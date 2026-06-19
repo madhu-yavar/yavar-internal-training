@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type Question = {
   question: string;
@@ -34,10 +34,10 @@ export function TrainingQuiz({ onClose }: { onClose: () => void }) {
     }
   };
 
-  // Lazy load on mount
-  useState(() => {
+  useEffect(() => {
     void load();
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const score = questions.reduce(
     (acc, q, i) => acc + (answers[i] === q.answerIndex ? 1 : 0),
