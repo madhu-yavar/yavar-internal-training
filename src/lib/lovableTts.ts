@@ -29,7 +29,12 @@ export class LovableTtsPlayer {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text, voice }),
       signal: this.abort.signal,
+    }).catch((e) => {
+      if (this.stopped) return null;
+      throw e;
     });
+    if (this.stopped) return;
+    if (!res) return;
     if (!res.ok || !res.body) {
       throw new Error(`TTS failed: ${res.status} ${await res.text().catch(() => "")}`);
     }
