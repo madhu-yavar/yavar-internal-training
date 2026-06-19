@@ -55,6 +55,7 @@ export const Route = createFileRoute("/training")({
 function TrainingPage() {
   const [idx, setIdx] = useState(0);
   const [quizOpen, setQuizOpen] = useState(false);
+  const [completed, setCompleted] = useState(false);
   const [revealed, setRevealed] = useState(0);
   const [playing, setPlaying] = useState(false);
   const slide = SLIDES[idx];
