@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import slidesData from "@/assets/training/slides.json";
+import videoAsset from "@/assets/training.mp4.asset.json";
 
 // Eager-import all slide PNGs as URLs
 const slideImages = import.meta.glob("@/assets/training/slide-*.png", {
@@ -86,7 +87,7 @@ function TrainingPage() {
             </h1>
           </div>
           <a
-            href="/Enterprise_AI_Private_LLM_Training_v2.mp4"
+            href={videoAsset.url}
             className="rounded-md bg-amber-500 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-amber-400 transition"
             download
           >
