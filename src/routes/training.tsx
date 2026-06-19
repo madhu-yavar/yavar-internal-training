@@ -89,6 +89,7 @@ function TrainingPage() {
   const musicRef = useRef<AmbientMusic | null>(null);
   const [rate, setRate] = useState(1);
   const rateRef = useRef(1);
+  const slideResetMountedRef = useRef(false);
   useEffect(() => { rateRef.current = rate; lovablePlayerRef.current?.setRate(rate); }, [rate]);
   useEffect(() => { idxRef.current = idx; }, [idx]);
 
@@ -142,7 +143,14 @@ function TrainingPage() {
   const speakOne = async (text: string): Promise<void> => {
     if (ttsSource === "ws") {
       try {
-        const player = new WsTtsPlayer({ url: buildTtsUrl(rateRef.current, ttsVoice, "a") });
+        let player = wsPlayerRef.current;
+        if (!player) {
+          player = new WsTtsPlayer({ url: buildTtsUrl(rateRef.current, ttsVoice, "a") });
+          player.prime();
+          wsPlayerRef.current = player;
+        } else {
+          player.setUrl(buildTtsUrl(rateRef.current, ttsVoice, "a"));
+        }
         wsPlayerRef.current = player;
         await player.speak(text);
         return;
@@ -176,6 +184,32 @@ function TrainingPage() {
     await speakBrowser(text);
   };
 
+  const estimatedSentenceMs = (text: string) => {
+    const words = Math.max(1, text.trim().split(/\s+/).length);
+    const spokenMs = (words / (2.35 * rateRef.current)) * 1000;
+    return Math.min(24_000, Math.max(4_500, spokenMs + 2_500));
+  };
+
+  const speakOneWithWatchdog = async (text: string): Promise<void> => {
+    let timedOut = false;
+    await Promise.race([
+      speakOne(text),
+      new Promise<void>((resolve) => {
+        window.setTimeout(() => {
+          timedOut = true;
+          resolve();
+        }, estimatedSentenceMs(text));
+      }),
+    ]);
+    if (timedOut && !cancelledRef.current) {
+      lovablePlayerRef.current?.stop();
+      wsPlayerRef.current?.stop();
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    }
+  };
+
 
   const speakFrom = async (startIndex: number) => {
     cancelledRef.current = false;
@@ -184,7 +218,7 @@ function TrainingPage() {
       if (cancelledRef.current) return;
       const i = cursorRef.current;
       setRevealed(i + 1);
-      await speakOne(sentences[i]);
+      await speakOneWithWatchdog(sentences[i]);
       if (cancelledRef.current) return;
       cursorRef.current = i + 1;
       // small natural pause
@@ -203,6 +237,11 @@ function TrainingPage() {
   // Reset on slide change
   useEffect(() => {
     setRevealed(1);
+    if (!slideResetMountedRef.current) {
+      slideResetMountedRef.current = true;
+      if (idx === SLIDES.length - 1) setCompleted(true);
+      return;
+    }
     stopAll();
     if (idx === SLIDES.length - 1) setCompleted(true);
     if (playing && userStartedRef.current) {
@@ -217,6 +256,8 @@ function TrainingPage() {
       stopAll();
       lovablePlayerRef.current?.dispose();
       lovablePlayerRef.current = null;
+      wsPlayerRef.current?.dispose();
+      wsPlayerRef.current = null;
       musicRef.current?.stop();
     };
   }, []);
@@ -245,6 +286,11 @@ function TrainingPage() {
         player.prime();
         lovablePlayerRef.current?.stop();
         lovablePlayerRef.current = player;
+      } else if (ttsSource === "ws") {
+        const player = new WsTtsPlayer({ url: buildTtsUrl(rateRef.current, ttsVoice, "a") });
+        player.prime();
+        wsPlayerRef.current?.stop();
+        wsPlayerRef.current = player;
       }
       setPlaying(true);
       void speakFrom(Math.max(0, revealed - 1));
