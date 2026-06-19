@@ -13,16 +13,36 @@ export class LovableTtsPlayer {
   private endTimer: ReturnType<typeof setTimeout> | null = null;
   private stopped = false;
 
+  /**
+   * Create + resume the AudioContext synchronously. MUST be called from a
+   * user-gesture handler (click, keydown). Otherwise iframes leave the
+   * context suspended and no audio is ever heard.
+   */
+  prime(): void {
+    if (this.ctx) return;
+    this.stopped = false;
+    try {
+      this.ctx = new AudioContext({ sampleRate: 24000 });
+      // resume() returns a promise but the unlock itself happens in the
+      // synchronous gesture frame — do not await here.
+      if (this.ctx.state === "suspended") void this.ctx.resume().catch(() => {});
+    } catch {
+      this.ctx = null;
+    }
+  }
+
   async speak(text: string, voice = "shimmer"): Promise<void> {
-    this.stop();
     this.stopped = false;
     this.abort = new AbortController();
-    this.ctx = new AudioContext({ sampleRate: 24000 });
+    if (!this.ctx) {
+      this.ctx = new AudioContext({ sampleRate: 24000 });
+    }
     if (this.ctx.state === "suspended") {
       try { await this.ctx.resume(); } catch { /* noop */ }
     }
     this.playhead = 0;
     this.pending = new Uint8Array(0);
+
 
     const res = await fetch("/api/tts", {
       method: "POST",
@@ -98,14 +118,22 @@ export class LovableTtsPlayer {
     this.sources.push(source);
   }
 
+  /** Stop current playback but KEEP the AudioContext alive so the next
+   *  speak() call doesn't lose its user-gesture unlock. */
   stop() {
     this.stopped = true;
     if (this.endTimer) { clearTimeout(this.endTimer); this.endTimer = null; }
     if (this.abort) { try { this.abort.abort(); } catch { /* noop */ } this.abort = null; }
     for (const s of this.sources) { try { s.stop(); } catch { /* noop */ } }
     this.sources = [];
-    if (this.ctx) { try { this.ctx.close(); } catch { /* noop */ } this.ctx = null; }
     this.playhead = 0;
     this.pending = new Uint8Array(0);
   }
+
+  /** Full teardown — only on unmount. */
+  dispose() {
+    this.stop();
+    if (this.ctx) { try { this.ctx.close(); } catch { /* noop */ } this.ctx = null; }
+  }
+
 }

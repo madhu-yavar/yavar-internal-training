@@ -108,12 +108,14 @@ function TrainingPage() {
 
   const stopAll = () => {
     cancelledRef.current = true;
+    // stop() keeps the AudioContext alive (prime/unlock survives) — only
+    // dispose() on unmount or voice change.
     lovablePlayerRef.current?.stop();
-    lovablePlayerRef.current = null;
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
     }
   };
+
 
   const speakBrowser = (text: string) =>
     new Promise<void>((resolve) => {
@@ -134,12 +136,18 @@ function TrainingPage() {
   const speakOne = async (text: string): Promise<void> => {
     if (ttsSource === "lovable") {
       try {
-        const player = new LovableTtsPlayer();
-        lovablePlayerRef.current = player;
+        // Reuse the player primed by togglePlay so the AudioContext stays
+        // unlocked across sentences/slides — creating a fresh context
+        // after an await loses the user-gesture and plays nothing.
+        let player = lovablePlayerRef.current;
+        if (!player) {
+          player = new LovableTtsPlayer();
+          player.prime();
+          lovablePlayerRef.current = player;
+        }
         await player.speak(text, ttsVoice);
         return;
       } catch (e: any) {
-        // Ignore aborts caused by stopAll() — those are intentional, not failures.
         if (cancelledRef.current || e?.name === "AbortError") return;
         console.warn("Lovable TTS failed, falling back to browser TTS:", e);
         setTtsSource("browser");
@@ -148,6 +156,7 @@ function TrainingPage() {
     if (cancelledRef.current) return;
     await speakBrowser(text);
   };
+
 
   const speakFrom = async (startIndex: number) => {
     cancelledRef.current = false;
@@ -187,9 +196,20 @@ function TrainingPage() {
   useEffect(() => {
     return () => {
       stopAll();
+      lovablePlayerRef.current?.dispose();
+      lovablePlayerRef.current = null;
       musicRef.current?.stop();
     };
   }, []);
+
+  // Auto-duck background music while narrator is speaking
+  const isSpeaking = playing && revealed < sentences.length;
+  useEffect(() => {
+    if (!musicRef.current) return;
+    musicRef.current.setVolume(isSpeaking ? 0.012 : 0.05);
+  }, [isSpeaking, musicOn]);
+
+
 
   const togglePlay = () => {
     userStartedRef.current = true;
@@ -197,10 +217,21 @@ function TrainingPage() {
       stopAll();
       setPlaying(false);
     } else {
+      // CRITICAL: create + resume the AudioContext synchronously inside the
+      // click handler. Doing this after any await loses the user gesture and
+      // the context stays suspended (no audio, no error) — that's why the
+      // first slide was silent.
+      if (ttsSource === "lovable") {
+        const player = new LovableTtsPlayer();
+        player.prime();
+        lovablePlayerRef.current?.stop();
+        lovablePlayerRef.current = player;
+      }
       setPlaying(true);
       void speakFrom(Math.max(0, revealed - 1));
     }
   };
+
 
 
   const advanceSlide = (dir: 1 | -1) => {
