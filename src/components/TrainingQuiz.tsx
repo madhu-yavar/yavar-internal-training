@@ -42,6 +42,7 @@ export function TrainingQuiz({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Record<number, number>>({});
+  const [hintsShown, setHintsShown] = useState<Record<number, boolean>>({});
   const [submitted, setSubmitted] = useState(false);
   const [current, setCurrent] = useState(0);
 
@@ -49,6 +50,7 @@ export function TrainingQuiz({ onClose }: { onClose: () => void }) {
     setLoading(true);
     setError(null);
     setAnswers({});
+    setHintsShown({});
     setSubmitted(false);
     setCurrent(0);
     try {
