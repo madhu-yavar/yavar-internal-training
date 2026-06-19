@@ -79,9 +79,10 @@ function TrainingPage() {
   const voiceRef = useRef<SpeechSynthesisVoice | null>(null);
   const userStartedRef = useRef(false);
   const [ttsSupported, setTtsSupported] = useState(true);
-  const [ttsSource, setTtsSource] = useState<"lovable" | "browser">("lovable");
+  const [ttsSource, setTtsSource] = useState<"lovable" | "browser" | "ws">("lovable");
   const [ttsVoice, setTtsVoice] = useState<string>("shimmer");
   const lovablePlayerRef = useRef<LovableTtsPlayer | null>(null);
+  const wsPlayerRef = useRef<WsTtsPlayer | null>(null);
   const cancelledRef = useRef(false);
   const idxRef = useRef(0);
   const [musicOn, setMusicOn] = useState(false);
