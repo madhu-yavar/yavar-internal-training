@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TrainingRouteImport } from './routes/training'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiTtsRouteImport } from './routes/api/tts'
 import { Route as ApiQuizRouteImport } from './routes/api/quiz'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 
@@ -22,6 +23,11 @@ const TrainingRoute = TrainingRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTtsRoute = ApiTtsRouteImport.update({
+  id: '/api/tts',
+  path: '/api/tts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiQuizRoute = ApiQuizRouteImport.update({
@@ -40,12 +46,14 @@ export interface FileRoutesByFullPath {
   '/training': typeof TrainingRoute
   '/api/chat': typeof ApiChatRoute
   '/api/quiz': typeof ApiQuizRoute
+  '/api/tts': typeof ApiTtsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/training': typeof TrainingRoute
   '/api/chat': typeof ApiChatRoute
   '/api/quiz': typeof ApiQuizRoute
+  '/api/tts': typeof ApiTtsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +61,14 @@ export interface FileRoutesById {
   '/training': typeof TrainingRoute
   '/api/chat': typeof ApiChatRoute
   '/api/quiz': typeof ApiQuizRoute
+  '/api/tts': typeof ApiTtsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/training' | '/api/chat' | '/api/quiz'
+  fullPaths: '/' | '/training' | '/api/chat' | '/api/quiz' | '/api/tts'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/training' | '/api/chat' | '/api/quiz'
-  id: '__root__' | '/' | '/training' | '/api/chat' | '/api/quiz'
+  to: '/' | '/training' | '/api/chat' | '/api/quiz' | '/api/tts'
+  id: '__root__' | '/' | '/training' | '/api/chat' | '/api/quiz' | '/api/tts'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,6 +76,7 @@ export interface RootRouteChildren {
   TrainingRoute: typeof TrainingRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiQuizRoute: typeof ApiQuizRoute
+  ApiTtsRoute: typeof ApiTtsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -83,6 +93,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/tts': {
+      id: '/api/tts'
+      path: '/api/tts'
+      fullPath: '/api/tts'
+      preLoaderRoute: typeof ApiTtsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/quiz': {
@@ -107,6 +124,7 @@ const rootRouteChildren: RootRouteChildren = {
   TrainingRoute: TrainingRoute,
   ApiChatRoute: ApiChatRoute,
   ApiQuizRoute: ApiQuizRoute,
+  ApiTtsRoute: ApiTtsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
