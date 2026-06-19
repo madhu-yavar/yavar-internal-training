@@ -204,10 +204,21 @@ function TrainingPage() {
       stopAll();
       setPlaying(false);
     } else {
+      // CRITICAL: create + resume the AudioContext synchronously inside the
+      // click handler. Doing this after any await loses the user gesture and
+      // the context stays suspended (no audio, no error) — that's why the
+      // first slide was silent.
+      if (ttsSource === "lovable") {
+        const player = new LovableTtsPlayer();
+        player.prime();
+        lovablePlayerRef.current?.stop();
+        lovablePlayerRef.current = player;
+      }
       setPlaying(true);
       void speakFrom(Math.max(0, revealed - 1));
     }
   };
+
 
 
   const advanceSlide = (dir: 1 | -1) => {
