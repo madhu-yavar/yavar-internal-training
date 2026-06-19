@@ -196,9 +196,18 @@ function TrainingPage() {
   useEffect(() => {
     return () => {
       stopAll();
+      lovablePlayerRef.current?.dispose();
+      lovablePlayerRef.current = null;
       musicRef.current?.stop();
     };
   }, []);
+
+  // Auto-duck background music while narrator is speaking
+  useEffect(() => {
+    if (!musicRef.current) return;
+    musicRef.current.setVolume(speaking ? 0.012 : 0.05);
+  }, [speaking, musicOn]);
+
 
   const togglePlay = () => {
     userStartedRef.current = true;
