@@ -222,13 +222,21 @@ function TrainingPage() {
               Enterprise AI with Private LLM
             </h1>
           </div>
-          <a
-            href={videoAsset.url}
-            className="rounded-md bg-amber-500 px-3 py-1.5 text-xs font-semibold text-slate-900 hover:bg-amber-400 transition"
-            download
-          >
-            ↓ MP4
-          </a>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setQuizOpen(true)}
+              className="rounded-md border border-emerald-400/40 bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-100 hover:bg-emerald-500/25 transition"
+            >
+              🎓 Take Quiz
+            </button>
+            <a
+              href={videoAsset.url}
+              className="rounded-md bg-amber-500 px-3 py-1.5 text-xs font-semibold text-slate-900 hover:bg-amber-400 transition"
+              download
+            >
+              ↓ MP4
+            </a>
+          </div>
         </div>
         <nav className="mx-auto flex max-w-7xl flex-wrap gap-2 px-6 pb-3">
           {CHAPTERS.map((c) => {
