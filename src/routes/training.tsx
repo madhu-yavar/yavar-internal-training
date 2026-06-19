@@ -368,17 +368,35 @@ function TrainingPage() {
                 >
                   Reveal all
                 </button>
-                <button
-                  onClick={() => {
+                <select
+                  value={ttsSource === "lovable" ? ttsVoice : "__browser__"}
+                  onChange={(e) => {
                     stopAll();
                     setPlaying(false);
-                    setTtsSource((s) => (s === "ws" ? "browser" : "ws"));
+                    const v = e.target.value;
+                    if (v === "__browser__") {
+                      setTtsSource("browser");
+                    } else {
+                      setTtsSource("lovable");
+                      setTtsVoice(v);
+                    }
                   }}
-                  title="Toggle voice source"
-                  className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[10px] uppercase tracking-wider hover:bg-white/10"
+                  title="Choose narrator voice"
+                  className="rounded-md border border-white/10 bg-slate-900 px-2 py-1 text-[11px] text-slate-200 hover:bg-white/10 focus:outline-none"
                 >
-                  {ttsSource === "ws" ? "🎙 Self-hosted" : "🗣 Browser"}
-                </button>
+                  <optgroup label="Lovable AI (expressive)">
+                    <option value="shimmer">🎙 Ari – Shimmer (warm)</option>
+                    <option value="coral">🎙 Coral (bright, friendly)</option>
+                    <option value="sage">🎙 Sage (calm, clear)</option>
+                    <option value="ballad">🎙 Ballad (storyteller)</option>
+                    <option value="verse">🎙 Verse (energetic)</option>
+                    <option value="alloy">🎙 Alloy (neutral)</option>
+                    <option value="ash">🎙 Ash (deep)</option>
+                  </optgroup>
+                  <optgroup label="Fallback">
+                    <option value="__browser__">🗣 Browser voice</option>
+                  </optgroup>
+                </select>
               </div>
             </div>
             <p className="mt-3 text-[15px] leading-relaxed text-slate-100 animate-fade-in" key={`s-${idx}-${revealed}`}>
