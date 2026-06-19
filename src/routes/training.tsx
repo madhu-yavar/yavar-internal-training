@@ -543,11 +543,12 @@ function TrainingPage() {
           )}
         </section>
 
-        <aside className="rounded-xl border border-white/10 bg-slate-900/60 p-3 h-fit sticky top-32">
+        <aside className="rounded-xl border border-white/10 bg-slate-900/60 p-3 h-fit lg:sticky lg:top-32">
           <div className="mb-2 px-1 text-[10px] uppercase tracking-[0.2em] text-amber-400">
             All Slides
           </div>
-          <ol className="max-h-[70vh] space-y-1 overflow-y-auto pr-1">
+          <ol className="max-h-[50vh] space-y-1 overflow-y-auto pr-1 lg:max-h-[70vh]">
+
             {SLIDES.map((s, i) => {
               const active = i === idx;
               return (
