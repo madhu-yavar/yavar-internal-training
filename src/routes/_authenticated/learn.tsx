@@ -15,7 +15,7 @@ export const Route = createFileRoute("/_authenticated/learn")({
 });
 
 function LearnDashboard() {
-  const { user, isAdmin } = Route.useRouteContext();
+  const { user, isAdmin } = useAuthCtx();
   const navigate = useNavigate();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
