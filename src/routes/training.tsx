@@ -184,6 +184,7 @@ function TrainingPage() {
   useEffect(() => {
     return () => {
       stopAll();
+      musicRef.current?.stop();
     };
   }, []);
 
