@@ -118,14 +118,22 @@ export class LovableTtsPlayer {
     this.sources.push(source);
   }
 
+  /** Stop current playback but KEEP the AudioContext alive so the next
+   *  speak() call doesn't lose its user-gesture unlock. */
   stop() {
     this.stopped = true;
     if (this.endTimer) { clearTimeout(this.endTimer); this.endTimer = null; }
     if (this.abort) { try { this.abort.abort(); } catch { /* noop */ } this.abort = null; }
     for (const s of this.sources) { try { s.stop(); } catch { /* noop */ } }
     this.sources = [];
-    if (this.ctx) { try { this.ctx.close(); } catch { /* noop */ } this.ctx = null; }
     this.playhead = 0;
     this.pending = new Uint8Array(0);
   }
+
+  /** Full teardown — only on unmount. */
+  dispose() {
+    this.stop();
+    if (this.ctx) { try { this.ctx.close(); } catch { /* noop */ } this.ctx = null; }
+  }
+
 }
