@@ -55,6 +55,7 @@ export const Route = createFileRoute("/training")({
 function TrainingPage() {
   const [idx, setIdx] = useState(0);
   const [quizOpen, setQuizOpen] = useState(false);
+  const [completed, setCompleted] = useState(false);
   const [revealed, setRevealed] = useState(0);
   const [playing, setPlaying] = useState(false);
   const slide = SLIDES[idx];
@@ -160,6 +161,7 @@ function TrainingPage() {
   useEffect(() => {
     setRevealed(1);
     stopAll();
+    if (idx === SLIDES.length - 1) setCompleted(true);
     if (playing && userStartedRef.current) {
       const t = setTimeout(() => speakFrom(0), 200);
       return () => clearTimeout(t);
@@ -224,10 +226,16 @@ function TrainingPage() {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setQuizOpen(true)}
-              className="rounded-md border border-emerald-400/40 bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-100 hover:bg-emerald-500/25 transition"
+              onClick={() => completed && setQuizOpen(true)}
+              disabled={!completed}
+              title={completed ? "Take the quiz" : "Complete all slides to unlock the quiz"}
+              className={`rounded-md border px-3 py-1.5 text-xs font-semibold transition ${
+                completed
+                  ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-100 hover:bg-emerald-500/25"
+                  : "border-white/10 bg-white/5 text-slate-500 cursor-not-allowed"
+              }`}
             >
-              🎓 Take Quiz
+              {completed ? "🎓 Take Quiz" : "🔒 Quiz locked"}
             </button>
             <a
               href={videoAsset.url}
