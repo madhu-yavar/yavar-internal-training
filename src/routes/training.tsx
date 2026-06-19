@@ -116,6 +116,7 @@ function TrainingPage() {
     // stop() keeps the AudioContext alive (prime/unlock survives) — only
     // dispose() on unmount or voice change.
     lovablePlayerRef.current?.stop();
+    wsPlayerRef.current?.stop();
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
     }
