@@ -1,13 +1,15 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { useAuthCtx } from "./route";
 
 export const Route = createFileRoute("/_authenticated/admin")({
-  beforeLoad: ({ context }) => {
-    if (!context.isAdmin) throw redirect({ to: "/learn" });
-  },
   component: AdminHome,
 });
 
 function AdminHome() {
+  const { isAdmin } = useAuthCtx();
+  if (!isAdmin) {
+    throw redirect({ to: "/learn" });
+  }
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <header className="border-b border-slate-800 bg-slate-900/60">
