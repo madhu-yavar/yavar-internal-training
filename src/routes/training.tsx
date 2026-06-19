@@ -462,6 +462,15 @@ function TrainingPage() {
                     <option value="__browser__">🗣 Browser voice</option>
                   </optgroup>
                 </select>
+                <select
+                  value={rate}
+                  onChange={(e) => setRate(parseFloat(e.target.value))}
+                  title="Playback speed"
+                  className="rounded-md border border-white/10 bg-slate-900 px-2 py-1 text-[11px] text-slate-200 hover:bg-white/10 focus:outline-none"
+                >
+                  {[0.75, 0.9, 1, 1.15, 1.25, 1.5, 1.75, 2].map((r) => (
+                    <option key={r} value={r}>{r}× speed</option>
+                  ))}
               </div>
             </div>
             <p className="mt-3 text-[15px] leading-relaxed text-slate-100 animate-fade-in" key={`s-${idx}-${revealed}`}>
