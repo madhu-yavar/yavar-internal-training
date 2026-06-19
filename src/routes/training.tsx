@@ -85,6 +85,9 @@ function TrainingPage() {
   const idxRef = useRef(0);
   const [musicOn, setMusicOn] = useState(false);
   const musicRef = useRef<AmbientMusic | null>(null);
+  const [rate, setRate] = useState(1);
+  const rateRef = useRef(1);
+  useEffect(() => { rateRef.current = rate; lovablePlayerRef.current?.setRate(rate); }, [rate]);
   useEffect(() => { idxRef.current = idx; }, [idx]);
 
   // Pick a good English voice when available (browser fallback)
@@ -126,7 +129,7 @@ function TrainingPage() {
       const u = new SpeechSynthesisUtterance(text);
       if (voiceRef.current) u.voice = voiceRef.current;
       u.lang = voiceRef.current?.lang || "en-US";
-      u.rate = 1.0;
+      u.rate = rateRef.current;
       u.pitch = 1.05;
       u.onend = () => resolve();
       u.onerror = () => resolve();
@@ -145,6 +148,7 @@ function TrainingPage() {
           player.prime();
           lovablePlayerRef.current = player;
         }
+        player.setRate(rateRef.current);
         await player.speak(text, ttsVoice);
         return;
       } catch (e: any) {
