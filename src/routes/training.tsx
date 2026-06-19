@@ -6,6 +6,7 @@ import { AIAvatar } from "@/components/AIAvatar";
 import { TrainingChat } from "@/components/TrainingChat";
 import { TrainingQuiz } from "@/components/TrainingQuiz";
 import { LovableTtsPlayer } from "@/lib/lovableTts";
+import { WsTtsPlayer, buildTtsUrl } from "@/lib/wsTts";
 import { AmbientMusic } from "@/lib/ambientMusic";
 
 type Slide = { i: number; title: string; notes: string };
