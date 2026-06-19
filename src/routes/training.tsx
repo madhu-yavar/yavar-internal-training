@@ -5,6 +5,7 @@ import videoAsset from "@/assets/training.mp4.asset.json";
 import { SLIDE_META } from "@/assets/training/slide-meta";
 import { AIAvatar } from "@/components/AIAvatar";
 import { TrainingChat } from "@/components/TrainingChat";
+import { WsTtsPlayer, DEFAULT_TTS_URL } from "@/lib/wsTts";
 
 type Slide = { i: number; title: string; notes: string };
 const SLIDES = slidesData as Slide[];
@@ -74,8 +75,11 @@ function TrainingPage() {
   const voiceRef = useRef<SpeechSynthesisVoice | null>(null);
   const userStartedRef = useRef(false);
   const [ttsSupported, setTtsSupported] = useState(true);
+  const [ttsSource, setTtsSource] = useState<"ws" | "browser">("ws");
+  const wsPlayerRef = useRef<WsTtsPlayer | null>(null);
+  const cancelledRef = useRef(false);
 
-  // Pick a good English voice when available
+  // Pick a good English voice when available (browser fallback)
   useEffect(() => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) {
       setTtsSupported(false);
@@ -94,45 +98,67 @@ function TrainingPage() {
     window.speechSynthesis.onvoiceschanged = pick;
   }, []);
 
-  const speakFrom = (startIndex: number) => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    const synth = window.speechSynthesis;
-    synth.cancel();
-    cursorRef.current = startIndex;
-    const speakNext = () => {
-      const i = cursorRef.current;
-      if (i >= sentences.length) {
-        setPlaying(false);
+  const stopAll = () => {
+    cancelledRef.current = true;
+    wsPlayerRef.current?.stop();
+    wsPlayerRef.current = null;
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+  };
+
+  const speakBrowser = (text: string) =>
+    new Promise<void>((resolve) => {
+      if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+        resolve();
         return;
       }
-      setRevealed(i + 1);
-      const u = new SpeechSynthesisUtterance(sentences[i]);
+      const u = new SpeechSynthesisUtterance(text);
       if (voiceRef.current) u.voice = voiceRef.current;
       u.lang = voiceRef.current?.lang || "en-US";
       u.rate = 1.0;
-      u.pitch = 1.0;
-      u.onend = () => {
-        cursorRef.current += 1;
-        // Tiny natural pause between sentences
-        setTimeout(speakNext, 120);
-      };
-      u.onerror = () => {
-        cursorRef.current += 1;
-        setTimeout(speakNext, 120);
-      };
-      synth.speak(u);
-    };
-    speakNext();
+      u.onend = () => resolve();
+      u.onerror = () => resolve();
+      window.speechSynthesis.speak(u);
+    });
+
+  const speakOne = async (text: string): Promise<void> => {
+    if (ttsSource === "ws") {
+      try {
+        const player = new WsTtsPlayer({ url: DEFAULT_TTS_URL });
+        wsPlayerRef.current = player;
+        await player.speak(text);
+        return;
+      } catch (e) {
+        // Fall back to browser TTS for the rest of the session
+        console.warn("WS TTS failed, falling back to browser TTS:", e);
+        setTtsSource("browser");
+      }
+    }
+    await speakBrowser(text);
+  };
+
+  const speakFrom = async (startIndex: number) => {
+    cancelledRef.current = false;
+    cursorRef.current = startIndex;
+    while (cursorRef.current < sentences.length) {
+      if (cancelledRef.current) return;
+      const i = cursorRef.current;
+      setRevealed(i + 1);
+      await speakOne(sentences[i]);
+      if (cancelledRef.current) return;
+      cursorRef.current = i + 1;
+      // small natural pause
+      await new Promise((r) => setTimeout(r, 120));
+    }
+    setPlaying(false);
   };
 
   // Reset on slide change
   useEffect(() => {
     setRevealed(1);
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-    }
+    stopAll();
     if (playing && userStartedRef.current) {
-      // Continue narrating on next slide
       const t = setTimeout(() => speakFrom(0), 200);
       return () => clearTimeout(t);
     }
@@ -141,22 +167,21 @@ function TrainingPage() {
   // Stop speech when leaving page
   useEffect(() => {
     return () => {
-      if (typeof window !== "undefined" && "speechSynthesis" in window) {
-        window.speechSynthesis.cancel();
-      }
+      stopAll();
     };
   }, []);
 
   const togglePlay = () => {
     userStartedRef.current = true;
     if (playing) {
-      window.speechSynthesis?.cancel();
+      stopAll();
       setPlaying(false);
     } else {
       setPlaying(true);
-      speakFrom(Math.max(0, revealed - 1));
+      void speakFrom(Math.max(0, revealed - 1));
     }
   };
+
 
   const advanceSlide = (dir: 1 | -1) => {
     setIdx((i) => Math.min(SLIDES.length - 1, Math.max(0, i + dir)));
@@ -316,13 +341,24 @@ function TrainingPage() {
                 </button>
                 <button
                   onClick={() => {
-                    window.speechSynthesis?.cancel();
+                    stopAll();
                     setPlaying(false);
                     setRevealed(sentences.length);
                   }}
                   className="rounded-md border border-white/10 bg-white/5 px-3 py-1 text-xs hover:bg-white/10"
                 >
                   Reveal all
+                </button>
+                <button
+                  onClick={() => {
+                    stopAll();
+                    setPlaying(false);
+                    setTtsSource((s) => (s === "ws" ? "browser" : "ws"));
+                  }}
+                  title="Toggle voice source"
+                  className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[10px] uppercase tracking-wider hover:bg-white/10"
+                >
+                  {ttsSource === "ws" ? "🎙 Self-hosted" : "🗣 Browser"}
                 </button>
               </div>
             </div>
