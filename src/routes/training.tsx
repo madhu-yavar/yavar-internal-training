@@ -161,6 +161,7 @@ function TrainingPage() {
   useEffect(() => {
     setRevealed(1);
     stopAll();
+    if (idx === SLIDES.length - 1) setCompleted(true);
     if (playing && userStartedRef.current) {
       const t = setTimeout(() => speakFrom(0), 200);
       return () => clearTimeout(t);
