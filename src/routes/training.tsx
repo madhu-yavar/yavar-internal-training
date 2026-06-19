@@ -407,6 +407,7 @@ function TrainingPage() {
           </ol>
         </aside>
       </main>
+      <TrainingChat currentSlide={slide.i} />
     </div>
   );
 }
