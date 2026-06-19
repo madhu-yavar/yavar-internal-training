@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import slidesData from "@/assets/training/slides.json";
 import videoAsset from "@/assets/training.mp4.asset.json";
 import { SLIDE_META } from "@/assets/training/slide-meta";
 import { AIAvatar } from "@/components/AIAvatar";
+import { TrainingChat } from "@/components/TrainingChat";
 
 type Slide = { i: number; title: string; notes: string };
 const SLIDES = slidesData as Slide[];
@@ -52,7 +53,7 @@ export const Route = createFileRoute("/training")({
 function TrainingPage() {
   const [idx, setIdx] = useState(0);
   const [revealed, setRevealed] = useState(0);
-  const [playing, setPlaying] = useState(true);
+  const [playing, setPlaying] = useState(false);
   const slide = SLIDES[idx];
   const meta = SLIDE_META[slide.i];
 
@@ -68,27 +69,108 @@ function TrainingPage() {
     [slide],
   );
 
+  // Track which sentence is currently being narrated
+  const cursorRef = useRef(0);
+  const voiceRef = useRef<SpeechSynthesisVoice | null>(null);
+  const userStartedRef = useRef(false);
+  const [ttsSupported, setTtsSupported] = useState(true);
+
+  // Pick a good English voice when available
+  useEffect(() => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      setTtsSupported(false);
+      return;
+    }
+    const pick = () => {
+      const voices = window.speechSynthesis.getVoices();
+      const preferred =
+        voices.find((v) => /en[-_]?(US|GB)/i.test(v.lang) && /female|samantha|jenny|aria|zira|google us english/i.test(v.name)) ||
+        voices.find((v) => /en[-_]?(US|GB)/i.test(v.lang)) ||
+        voices[0] ||
+        null;
+      voiceRef.current = preferred;
+    };
+    pick();
+    window.speechSynthesis.onvoiceschanged = pick;
+  }, []);
+
+  const speakFrom = (startIndex: number) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    const synth = window.speechSynthesis;
+    synth.cancel();
+    cursorRef.current = startIndex;
+    const speakNext = () => {
+      const i = cursorRef.current;
+      if (i >= sentences.length) {
+        setPlaying(false);
+        return;
+      }
+      setRevealed(i + 1);
+      const u = new SpeechSynthesisUtterance(sentences[i]);
+      if (voiceRef.current) u.voice = voiceRef.current;
+      u.lang = voiceRef.current?.lang || "en-US";
+      u.rate = 1.0;
+      u.pitch = 1.0;
+      u.onend = () => {
+        cursorRef.current += 1;
+        // Tiny natural pause between sentences
+        setTimeout(speakNext, 120);
+      };
+      u.onerror = () => {
+        cursorRef.current += 1;
+        setTimeout(speakNext, 120);
+      };
+      synth.speak(u);
+    };
+    speakNext();
+  };
+
+  // Reset on slide change
   useEffect(() => {
     setRevealed(1);
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+    if (playing && userStartedRef.current) {
+      // Continue narrating on next slide
+      const t = setTimeout(() => speakFrom(0), 200);
+      return () => clearTimeout(t);
+    }
   }, [idx]);
 
+  // Stop speech when leaving page
   useEffect(() => {
-    if (!playing) return;
-    const id = setInterval(() => {
-      setRevealed((r) => (r >= sentences.length ? r : r + 1));
-    }, 3200);
-    return () => clearInterval(id);
-  }, [idx, sentences.length, playing]);
+    return () => {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+  const togglePlay = () => {
+    userStartedRef.current = true;
+    if (playing) {
+      window.speechSynthesis?.cancel();
+      setPlaying(false);
+    } else {
+      setPlaying(true);
+      speakFrom(Math.max(0, revealed - 1));
+    }
+  };
+
+  const advanceSlide = (dir: 1 | -1) => {
+    setIdx((i) => Math.min(SLIDES.length - 1, Math.max(0, i + dir)));
+  };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight") setIdx((i) => Math.min(SLIDES.length - 1, i + 1));
-      if (e.key === "ArrowLeft") setIdx((i) => Math.max(0, i - 1));
-      if (e.key === " ") { e.preventDefault(); setPlaying((p) => !p); }
+      if (e.key === "ArrowRight") advanceSlide(1);
+      if (e.key === "ArrowLeft") advanceSlide(-1);
+      if (e.key === " ") { e.preventDefault(); togglePlay(); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  });
 
   const chapter = [...CHAPTERS].reverse().find((c) => slide.i >= c.start)?.label ?? "";
   const accent = meta?.accent ?? "amber";
@@ -227,13 +309,17 @@ function TrainingPage() {
               </div>
               <div className="flex gap-2">
                 <button
-                  onClick={() => setPlaying((p) => !p)}
-                  className="rounded-md border border-white/10 bg-white/5 px-3 py-1 text-xs hover:bg-white/10"
+                  onClick={togglePlay}
+                  className="rounded-md border border-amber-400/40 bg-amber-500/15 px-3 py-1 text-xs text-amber-100 hover:bg-amber-500/25"
                 >
-                  {playing ? "⏸ Pause" : "▶ Play"}
+                  {playing ? "⏸ Pause" : ttsSupported ? "▶ Play narration" : "▶ Play"}
                 </button>
                 <button
-                  onClick={() => setRevealed(sentences.length)}
+                  onClick={() => {
+                    window.speechSynthesis?.cancel();
+                    setPlaying(false);
+                    setRevealed(sentences.length);
+                  }}
                   className="rounded-md border border-white/10 bg-white/5 px-3 py-1 text-xs hover:bg-white/10"
                 >
                   Reveal all
@@ -321,6 +407,7 @@ function TrainingPage() {
           </ol>
         </aside>
       </main>
+      <TrainingChat currentSlide={slide.i} />
     </div>
   );
 }
