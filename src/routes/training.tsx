@@ -89,6 +89,7 @@ function TrainingPage() {
   const musicRef = useRef<AmbientMusic | null>(null);
   const [rate, setRate] = useState(1);
   const rateRef = useRef(1);
+  const slideResetMountedRef = useRef(false);
   useEffect(() => { rateRef.current = rate; lovablePlayerRef.current?.setRate(rate); }, [rate]);
   useEffect(() => { idxRef.current = idx; }, [idx]);
 
@@ -142,7 +143,14 @@ function TrainingPage() {
   const speakOne = async (text: string): Promise<void> => {
     if (ttsSource === "ws") {
       try {
-        const player = new WsTtsPlayer({ url: buildTtsUrl(rateRef.current, ttsVoice, "a") });
+        let player = wsPlayerRef.current;
+        if (!player) {
+          player = new WsTtsPlayer({ url: buildTtsUrl(rateRef.current, ttsVoice, "a") });
+          player.prime();
+          wsPlayerRef.current = player;
+        } else {
+          player.setUrl(buildTtsUrl(rateRef.current, ttsVoice, "a"));
+        }
         wsPlayerRef.current = player;
         await player.speak(text);
         return;
@@ -203,6 +211,11 @@ function TrainingPage() {
   // Reset on slide change
   useEffect(() => {
     setRevealed(1);
+    if (!slideResetMountedRef.current) {
+      slideResetMountedRef.current = true;
+      if (idx === SLIDES.length - 1) setCompleted(true);
+      return;
+    }
     stopAll();
     if (idx === SLIDES.length - 1) setCompleted(true);
     if (playing && userStartedRef.current) {
@@ -217,6 +230,8 @@ function TrainingPage() {
       stopAll();
       lovablePlayerRef.current?.dispose();
       lovablePlayerRef.current = null;
+      wsPlayerRef.current?.dispose();
+      wsPlayerRef.current = null;
       musicRef.current?.stop();
     };
   }, []);
@@ -245,6 +260,11 @@ function TrainingPage() {
         player.prime();
         lovablePlayerRef.current?.stop();
         lovablePlayerRef.current = player;
+      } else if (ttsSource === "ws") {
+        const player = new WsTtsPlayer({ url: buildTtsUrl(rateRef.current, ttsVoice, "a") });
+        player.prime();
+        wsPlayerRef.current?.stop();
+        wsPlayerRef.current = player;
       }
       setPlaying(true);
       void speakFrom(Math.max(0, revealed - 1));

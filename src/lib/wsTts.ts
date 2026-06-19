@@ -19,21 +19,38 @@ export class WsTtsPlayer {
   private ws: WebSocket | null = null;
   private playhead = 0;
   private pending = new Uint8Array(0);
+  private sources: AudioBufferSourceNode[] = [];
   private opts: Required<Pick<WsTtsOptions, "sampleRate">> & WsTtsOptions;
   private active = false;
   private endTimer: ReturnType<typeof setTimeout> | null = null;
+  private resolveCurrent: (() => void) | null = null;
 
   constructor(opts: WsTtsOptions) {
     this.opts = { sampleRate: 24000, ...opts };
+  }
+
+  setUrl(url: string) {
+    this.opts.url = url;
+  }
+
+  /** Create + resume the AudioContext from the user's Play click so mobile
+   * browsers allow the later per-sentence audio chunks to continue playing. */
+  prime(): void {
+    if (this.ctx) return;
+    try {
+      this.ctx = new AudioContext({ sampleRate: this.opts.sampleRate });
+      if (this.ctx.state === "suspended") void this.ctx.resume().catch(() => {});
+    } catch {
+      this.ctx = null;
+    }
   }
 
   async speak(text: string): Promise<void> {
     this.stop();
     this.active = true;
 
-    if (!this.ctx) {
-      this.ctx = new AudioContext({ sampleRate: this.opts.sampleRate });
-    }
+    this.prime();
+    if (!this.ctx) return;
     if (this.ctx.state === "suspended") await this.ctx.resume().catch(() => {});
     this.playhead = 0;
     this.pending = new Uint8Array(0);
@@ -50,14 +67,20 @@ export class WsTtsPlayer {
       }
       ws.binaryType = "arraybuffer";
       this.ws = ws;
+      this.resolveCurrent = resolve;
 
       const finish = () => {
         if (!this.active) return;
         this.active = false;
+        if (this.endTimer) clearTimeout(this.endTimer);
+        this.endTimer = null;
         try { ws.close(); } catch {}
+        if (this.ws === ws) this.ws = null;
         // wait for already-scheduled audio to finish
         const remaining = Math.max(0, this.playhead - (this.ctx?.currentTime ?? 0));
-        setTimeout(() => {
+        this.endTimer = setTimeout(() => {
+          this.endTimer = null;
+          this.resolveCurrent = null;
           this.opts.onEnd?.();
           resolve();
         }, Math.min(remaining * 1000 + 50, 30_000));
@@ -101,6 +124,8 @@ export class WsTtsPlayer {
         this.opts.onError?.(err);
         this.active = false;
         if (this.endTimer) clearTimeout(this.endTimer);
+        this.endTimer = null;
+        this.resolveCurrent = null;
         reject(err);
       };
 
@@ -131,6 +156,7 @@ export class WsTtsPlayer {
     else this.playhead = Math.max(this.playhead, now);
     source.start(this.playhead);
     this.playhead += buffer.duration;
+    this.sources.push(source);
   }
 
   stop() {
@@ -143,12 +169,23 @@ export class WsTtsPlayer {
       try { this.ws.close(); } catch {}
       this.ws = null;
     }
+    for (const source of this.sources) {
+      try { source.stop(); } catch {}
+    }
+    this.sources = [];
+    this.playhead = 0;
+    this.pending = new Uint8Array(0);
+    const resolve = this.resolveCurrent;
+    this.resolveCurrent = null;
+    resolve?.();
+  }
+
+  dispose() {
+    this.stop();
     if (this.ctx) {
       try { this.ctx.close(); } catch {}
       this.ctx = null;
     }
-    this.playhead = 0;
-    this.pending = new Uint8Array(0);
   }
 }
 
