@@ -266,27 +266,27 @@ function TrainingPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <header className="border-b border-white/10 bg-slate-900/70 backdrop-blur sticky top-0 z-20">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
-          <div>
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
+          <div className="min-w-0 flex-1">
             <div className="text-[10px] uppercase tracking-[0.25em] text-amber-400">
               Yavar · Interactive Training
             </div>
-            <h1 className="text-base font-semibold">
+            <h1 className="truncate text-sm font-semibold sm:text-base">
               Enterprise AI with Private LLM
             </h1>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <button
               onClick={() => completed && setQuizOpen(true)}
               disabled={!completed}
               title={completed ? "Take the quiz" : "Complete all slides to unlock the quiz"}
-              className={`rounded-md border px-3 py-1.5 text-xs font-semibold transition ${
+              className={`rounded-md border px-2.5 py-1.5 text-[11px] font-semibold transition sm:px-3 sm:text-xs ${
                 completed
                   ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-100 hover:bg-emerald-500/25"
                   : "border-white/10 bg-white/5 text-slate-500 cursor-not-allowed"
               }`}
             >
-              {completed ? "🎓 Take Quiz" : "🔒 Quiz locked"}
+              {completed ? "🎓 Quiz" : "🔒 Quiz"}
             </button>
             <button
               onClick={async () => {
@@ -302,24 +302,24 @@ function TrainingPage() {
                 }
               }}
               title={musicOn ? "Mute background music" : "Play soft background music"}
-              className={`rounded-md border px-3 py-1.5 text-xs font-semibold transition ${
+              className={`rounded-md border px-2.5 py-1.5 text-[11px] font-semibold transition sm:px-3 sm:text-xs ${
                 musicOn
                   ? "border-amber-400/40 bg-amber-500/15 text-amber-100 hover:bg-amber-500/25"
                   : "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"
               }`}
             >
-              {musicOn ? "🎵 Music on" : "🎵 Music"}
+              {musicOn ? "🎵 On" : "🎵"}
             </button>
           </div>
         </div>
-        <nav className="mx-auto flex max-w-7xl flex-wrap gap-2 px-6 pb-3">
+        <nav className="mx-auto flex max-w-7xl gap-2 overflow-x-auto px-4 pb-3 sm:flex-wrap sm:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {CHAPTERS.map((c) => {
             const active = chapter === c.label;
             return (
               <button
                 key={c.start}
                 onClick={() => setIdx(c.start - 1)}
-                className={`rounded-full px-3 py-1 text-xs transition ${
+                className={`shrink-0 rounded-full px-3 py-1 text-xs transition ${
                   active
                     ? "bg-amber-500 text-slate-900"
                     : "bg-white/5 text-slate-300 hover:bg-white/10"
@@ -331,6 +331,7 @@ function TrainingPage() {
           })}
         </nav>
       </header>
+
 
       <main className="mx-auto grid max-w-7xl gap-6 px-6 py-6 lg:grid-cols-[1fr_300px]">
         <section>
