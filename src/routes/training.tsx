@@ -5,6 +5,7 @@ import videoAsset from "@/assets/training.mp4.asset.json";
 import { SLIDE_META } from "@/assets/training/slide-meta";
 import { AIAvatar } from "@/components/AIAvatar";
 import { TrainingChat } from "@/components/TrainingChat";
+import { TrainingQuiz } from "@/components/TrainingQuiz";
 import { WsTtsPlayer, DEFAULT_TTS_URL } from "@/lib/wsTts";
 
 type Slide = { i: number; title: string; notes: string };
@@ -53,6 +54,7 @@ export const Route = createFileRoute("/training")({
 
 function TrainingPage() {
   const [idx, setIdx] = useState(0);
+  const [quizOpen, setQuizOpen] = useState(false);
   const [revealed, setRevealed] = useState(0);
   const [playing, setPlaying] = useState(false);
   const slide = SLIDES[idx];
