@@ -140,6 +140,18 @@ function TrainingPage() {
     });
 
   const speakOne = async (text: string): Promise<void> => {
+    if (ttsSource === "ws") {
+      try {
+        const player = new WsTtsPlayer({ url: buildTtsUrl(rateRef.current, ttsVoice, "a") });
+        wsPlayerRef.current = player;
+        await player.speak(text);
+        return;
+      } catch (e: any) {
+        if (cancelledRef.current) return;
+        console.warn("Yavar WS TTS failed, falling back to browser TTS:", e);
+        setTtsSource("browser");
+      }
+    }
     if (ttsSource === "lovable") {
       try {
         // Reuse the player primed by togglePlay so the AudioContext stays
