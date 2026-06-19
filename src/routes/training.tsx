@@ -108,12 +108,14 @@ function TrainingPage() {
 
   const stopAll = () => {
     cancelledRef.current = true;
+    // stop() keeps the AudioContext alive (prime/unlock survives) — only
+    // dispose() on unmount or voice change.
     lovablePlayerRef.current?.stop();
-    lovablePlayerRef.current = null;
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
     }
   };
+
 
   const speakBrowser = (text: string) =>
     new Promise<void>((resolve) => {
