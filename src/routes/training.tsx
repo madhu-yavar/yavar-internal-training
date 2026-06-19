@@ -184,6 +184,32 @@ function TrainingPage() {
     await speakBrowser(text);
   };
 
+  const estimatedSentenceMs = (text: string) => {
+    const words = Math.max(1, text.trim().split(/\s+/).length);
+    const spokenMs = (words / (2.35 * rateRef.current)) * 1000;
+    return Math.min(24_000, Math.max(4_500, spokenMs + 2_500));
+  };
+
+  const speakOneWithWatchdog = async (text: string): Promise<void> => {
+    let timedOut = false;
+    await Promise.race([
+      speakOne(text),
+      new Promise<void>((resolve) => {
+        window.setTimeout(() => {
+          timedOut = true;
+          resolve();
+        }, estimatedSentenceMs(text));
+      }),
+    ]);
+    if (timedOut && !cancelledRef.current) {
+      lovablePlayerRef.current?.stop();
+      wsPlayerRef.current?.stop();
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    }
+  };
+
 
   const speakFrom = async (startIndex: number) => {
     cancelledRef.current = false;
@@ -192,7 +218,7 @@ function TrainingPage() {
       if (cancelledRef.current) return;
       const i = cursorRef.current;
       setRevealed(i + 1);
-      await speakOne(sentences[i]);
+      await speakOneWithWatchdog(sentences[i]);
       if (cancelledRef.current) return;
       cursorRef.current = i + 1;
       // small natural pause
