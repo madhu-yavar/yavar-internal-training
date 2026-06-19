@@ -5,6 +5,7 @@ import videoAsset from "@/assets/training.mp4.asset.json";
 import { SLIDE_META } from "@/assets/training/slide-meta";
 import { AIAvatar } from "@/components/AIAvatar";
 import { TrainingChat } from "@/components/TrainingChat";
+import { WsTtsPlayer, DEFAULT_TTS_URL } from "@/lib/wsTts";
 
 type Slide = { i: number; title: string; notes: string };
 const SLIDES = slidesData as Slide[];
