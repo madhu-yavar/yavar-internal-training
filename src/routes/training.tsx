@@ -415,6 +415,26 @@ function TrainingPage() {
               ))}
             </div>
           </details>
+
+          {idx === SLIDES.length - 1 && (
+            <div className="mt-6 rounded-2xl border border-emerald-400/40 bg-gradient-to-br from-emerald-500/15 to-emerald-500/5 p-6 text-center">
+              <div className="text-[10px] uppercase tracking-[0.25em] text-emerald-300">
+                You've reached the end
+              </div>
+              <h3 className="mt-1 text-xl font-bold text-emerald-100">
+                Ready to test what you've learned?
+              </h3>
+              <p className="mt-1 text-sm text-emerald-200/80">
+                Take a 20-question quiz — fresh questions generated every time.
+              </p>
+              <button
+                onClick={() => setQuizOpen(true)}
+                className="mt-4 rounded-lg bg-emerald-500 px-5 py-2 text-sm font-semibold text-slate-900 hover:bg-emerald-400"
+              >
+                🎓 Start the Quiz
+              </button>
+            </div>
+          )}
         </section>
 
         <aside className="rounded-xl border border-white/10 bg-slate-900/60 p-3 h-fit sticky top-32">
@@ -454,6 +474,7 @@ function TrainingPage() {
         </aside>
       </main>
       <TrainingChat currentSlide={slide.i} />
+      {quizOpen && <TrainingQuiz onClose={() => setQuizOpen(false)} />}
     </div>
   );
 }
