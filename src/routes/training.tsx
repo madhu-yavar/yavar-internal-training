@@ -413,17 +413,17 @@ function TrainingPage() {
           </div>
 
           {/* Caption / current line */}
-          <div className="mt-4 rounded-xl border border-white/10 bg-slate-900/60 p-4">
-            <div className="flex items-center justify-between gap-3">
+          <div className="mt-4 rounded-xl border border-white/10 bg-slate-900/60 p-3 sm:p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="text-[10px] uppercase tracking-[0.2em] text-amber-400">
                 {speaking ? "Now speaking" : revealed >= sentences.length ? "Section complete" : "Paused"}
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <button
                   onClick={togglePlay}
                   className="rounded-md border border-amber-400/40 bg-amber-500/15 px-3 py-1 text-xs text-amber-100 hover:bg-amber-500/25"
                 >
-                  {playing ? "⏸ Pause" : ttsSupported ? "▶ Play narration" : "▶ Play"}
+                  {playing ? "⏸ Pause" : ttsSupported ? "▶ Play" : "▶ Play"}
                 </button>
                 <button
                   onClick={() => {
@@ -449,19 +449,19 @@ function TrainingPage() {
                     }
                   }}
                   title="Choose narrator voice"
-                  className="rounded-md border border-white/10 bg-slate-900 px-2 py-1 text-[11px] text-slate-200 hover:bg-white/10 focus:outline-none"
+                  className="max-w-[50%] rounded-md border border-white/10 bg-slate-900 px-2 py-1 text-[11px] text-slate-200 hover:bg-white/10 focus:outline-none"
                 >
                   <optgroup label="Lovable AI (expressive)">
-                    <option value="shimmer">🎙 Ari – Shimmer (warm)</option>
-                    <option value="coral">🎙 Coral (bright, friendly)</option>
-                    <option value="sage">🎙 Sage (calm, clear)</option>
-                    <option value="ballad">🎙 Ballad (storyteller)</option>
-                    <option value="verse">🎙 Verse (energetic)</option>
-                    <option value="alloy">🎙 Alloy (neutral)</option>
-                    <option value="ash">🎙 Ash (deep)</option>
+                    <option value="shimmer">🎙 Ari – Shimmer</option>
+                    <option value="coral">🎙 Coral</option>
+                    <option value="sage">🎙 Sage</option>
+                    <option value="ballad">🎙 Ballad</option>
+                    <option value="verse">🎙 Verse</option>
+                    <option value="alloy">🎙 Alloy</option>
+                    <option value="ash">🎙 Ash</option>
                   </optgroup>
                   <optgroup label="Fallback">
-                    <option value="__browser__">🗣 Browser voice</option>
+                    <option value="__browser__">🗣 Browser</option>
                   </optgroup>
                 </select>
                 <select
@@ -471,11 +471,12 @@ function TrainingPage() {
                   className="rounded-md border border-white/10 bg-slate-900 px-2 py-1 text-[11px] text-slate-200 hover:bg-white/10 focus:outline-none"
                 >
                   {[0.75, 0.9, 1, 1.15, 1.25, 1.5, 1.75, 2].map((r) => (
-                    <option key={r} value={r}>{r}× speed</option>
+                    <option key={r} value={r}>{r}×</option>
                   ))}
                 </select>
               </div>
             </div>
+
             <p className="mt-3 text-[15px] leading-relaxed text-slate-100 animate-fade-in" key={`s-${idx}-${revealed}`}>
               {currentSentence}
             </p>
