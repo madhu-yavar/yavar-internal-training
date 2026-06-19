@@ -8,8 +8,35 @@ type Question = {
   topic: string;
 };
 
+type Participant = { name: string; employeeId: string; email: string };
+
+const FREE_EMAIL_DOMAINS = new Set([
+  "gmail.com",
+  "googlemail.com",
+  "yahoo.com",
+  "yahoo.co.in",
+  "ymail.com",
+  "hotmail.com",
+  "outlook.com",
+  "live.com",
+  "msn.com",
+  "icloud.com",
+  "me.com",
+  "aol.com",
+  "proton.me",
+  "protonmail.com",
+  "rediffmail.com",
+  "zoho.com",
+  "mail.com",
+  "gmx.com",
+]);
+
 export function TrainingQuiz({ onClose }: { onClose: () => void }) {
-  const [loading, setLoading] = useState(true);
+  const [participant, setParticipant] = useState<Participant | null>(null);
+  const [form, setForm] = useState<Participant>({ name: "", employeeId: "", email: "" });
+  const [formErrors, setFormErrors] = useState<Partial<Record<keyof Participant, string>>>({});
+
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Record<number, number>>({});
@@ -34,10 +61,45 @@ export function TrainingQuiz({ onClose }: { onClose: () => void }) {
     }
   };
 
+  const validateForm = (): boolean => {
+    const errs: Partial<Record<keyof Participant, string>> = {};
+    const name = form.name.trim();
+    const employeeId = form.employeeId.trim();
+    const email = form.email.trim().toLowerCase();
+
+    if (name.length < 2) errs.name = "Please enter your full name";
+    else if (name.length > 80) errs.name = "Name is too long";
+
+    if (employeeId.length < 2) errs.employeeId = "Employee ID is required";
+    else if (employeeId.length > 40) errs.employeeId = "Employee ID is too long";
+
+    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRe.test(email)) errs.email = "Enter a valid email address";
+    else {
+      const domain = email.split("@")[1];
+      if (FREE_EMAIL_DOMAINS.has(domain)) {
+        errs.email = "Please use your official company email (not a personal one)";
+      }
+    }
+
+    setFormErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  const startQuiz = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+    setParticipant({
+      name: form.name.trim(),
+      employeeId: form.employeeId.trim(),
+      email: form.email.trim().toLowerCase(),
+    });
+  };
+
   useEffect(() => {
-    void load();
+    if (participant) void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [participant]);
 
   const score = questions.reduce(
     (acc, q, i) => acc + (answers[i] === q.answerIndex ? 1 : 0),
@@ -79,7 +141,70 @@ export function TrainingQuiz({ onClose }: { onClose: () => void }) {
         </header>
 
         <div className="flex-1 overflow-y-auto p-5">
-          {loading && (
+          {!participant && (
+            <form onSubmit={startQuiz} className="mx-auto max-w-md space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-100">
+                  Before you begin
+                </h3>
+                <p className="mt-1 text-sm text-slate-400">
+                  We need a few details to record your assessment. All fields are mandatory.
+                </p>
+              </div>
+
+              {(["name", "employeeId", "email"] as const).map((field) => {
+                const labels: Record<typeof field, string> = {
+                  name: "Full name",
+                  employeeId: "Employee ID",
+                  email: "Official company email",
+                };
+                const placeholders: Record<typeof field, string> = {
+                  name: "Jane Doe",
+                  employeeId: "EMP-12345",
+                  email: "jane.doe@yourcompany.com",
+                };
+                return (
+                  <div key={field}>
+                    <label className="mb-1 block text-xs uppercase tracking-wider text-slate-300">
+                      {labels[field]} <span className="text-rose-400">*</span>
+                    </label>
+                    <input
+                      type={field === "email" ? "email" : "text"}
+                      value={form[field]}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, [field]: e.target.value }))
+                      }
+                      placeholder={placeholders[field]}
+                      maxLength={field === "name" ? 80 : field === "email" ? 120 : 40}
+                      required
+                      className={`w-full rounded-lg border bg-slate-950/60 px-3 py-2 text-sm text-slate-100 outline-none transition focus:ring-2 ${
+                        formErrors[field]
+                          ? "border-rose-500/60 focus:ring-rose-400/30"
+                          : "border-white/10 focus:border-amber-400/60 focus:ring-amber-400/20"
+                      }`}
+                    />
+                    {formErrors[field] && (
+                      <p className="mt-1 text-xs text-rose-300">{formErrors[field]}</p>
+                    )}
+                  </div>
+                );
+              })}
+
+              <p className="text-[11px] text-slate-500">
+                Personal email domains (gmail, yahoo, outlook, etc.) are not accepted —
+                please use your work email.
+              </p>
+
+              <button
+                type="submit"
+                className="w-full rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-amber-400"
+              >
+                Continue to quiz →
+              </button>
+            </form>
+          )}
+
+          {participant && loading && (
             <div className="flex flex-col items-center justify-center gap-3 py-20 text-slate-300">
               <div className="h-10 w-10 animate-spin rounded-full border-2 border-amber-400 border-t-transparent" />
               <div className="text-sm">Generating 20 fresh questions just for you…</div>
@@ -174,7 +299,7 @@ export function TrainingQuiz({ onClose }: { onClose: () => void }) {
             <div>
               <div className="rounded-xl border border-amber-400/40 bg-gradient-to-br from-amber-500/20 to-amber-500/5 p-6 text-center">
                 <div className="text-[11px] uppercase tracking-[0.25em] text-amber-300">
-                  Your Result
+                  {participant?.name ? `Well done, ${participant.name.split(" ")[0]}!` : "Your Result"}
                 </div>
                 <div className="mt-2 text-5xl font-bold text-amber-100">
                   {score}/{questions.length}
@@ -184,6 +309,11 @@ export function TrainingQuiz({ onClose }: { onClose: () => void }) {
                   {badge.label}
                 </div>
                 <p className="mt-1 text-sm text-slate-300">{badge.note}</p>
+                {participant && (
+                  <p className="mt-2 text-[11px] text-slate-400">
+                    {participant.name} · {participant.employeeId} · {participant.email}
+                  </p>
+                )}
                 <div className="mt-4 flex justify-center gap-2">
                   <button
                     onClick={load}
