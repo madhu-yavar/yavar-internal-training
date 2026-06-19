@@ -203,10 +203,12 @@ function TrainingPage() {
   }, []);
 
   // Auto-duck background music while narrator is speaking
+  const isSpeaking = playing && revealed < sentences.length;
   useEffect(() => {
     if (!musicRef.current) return;
-    musicRef.current.setVolume(speaking ? 0.012 : 0.05);
-  }, [speaking, musicOn]);
+    musicRef.current.setVolume(isSpeaking ? 0.012 : 0.05);
+  }, [isSpeaking, musicOn]);
+
 
 
   const togglePlay = () => {
