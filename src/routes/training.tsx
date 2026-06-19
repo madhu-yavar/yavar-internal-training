@@ -451,7 +451,11 @@ function TrainingPage() {
                   Reveal all
                 </button>
                 <select
-                  value={ttsSource === "lovable" ? ttsVoice : "__browser__"}
+                  value={
+                    ttsSource === "browser"
+                      ? "__browser__"
+                      : `${ttsSource}:${ttsVoice}`
+                  }
                   onChange={(e) => {
                     stopAll();
                     setPlaying(false);
@@ -459,26 +463,39 @@ function TrainingPage() {
                     if (v === "__browser__") {
                       setTtsSource("browser");
                     } else {
-                      setTtsSource("lovable");
-                      setTtsVoice(v);
+                      const [src, voice] = v.split(":") as [
+                        "lovable" | "ws",
+                        string,
+                      ];
+                      setTtsSource(src);
+                      setTtsVoice(voice);
                     }
                   }}
                   title="Choose narrator voice"
                   className="max-w-[50%] rounded-md border border-white/10 bg-slate-900 px-2 py-1 text-[11px] text-slate-200 hover:bg-white/10 focus:outline-none"
                 >
+                  <optgroup label="Yavar (self-hosted GPU)">
+                    <option value="ws:af_heart">🇮🇳 Heart (warm, female)</option>
+                    <option value="ws:af_bella">🇮🇳 Bella (female)</option>
+                    <option value="ws:af_nicole">🇮🇳 Nicole (female)</option>
+                    <option value="ws:af_sarah">🇮🇳 Sarah (female)</option>
+                    <option value="ws:am_michael">🇮🇳 Michael (male)</option>
+                    <option value="ws:am_adam">🇮🇳 Adam (male)</option>
+                  </optgroup>
                   <optgroup label="Lovable AI (expressive)">
-                    <option value="shimmer">🎙 Ari – Shimmer</option>
-                    <option value="coral">🎙 Coral</option>
-                    <option value="sage">🎙 Sage</option>
-                    <option value="ballad">🎙 Ballad</option>
-                    <option value="verse">🎙 Verse</option>
-                    <option value="alloy">🎙 Alloy</option>
-                    <option value="ash">🎙 Ash</option>
+                    <option value="lovable:shimmer">🎙 Ari – Shimmer</option>
+                    <option value="lovable:coral">🎙 Coral</option>
+                    <option value="lovable:sage">🎙 Sage</option>
+                    <option value="lovable:ballad">🎙 Ballad</option>
+                    <option value="lovable:verse">🎙 Verse</option>
+                    <option value="lovable:alloy">🎙 Alloy</option>
+                    <option value="lovable:ash">🎙 Ash</option>
                   </optgroup>
                   <optgroup label="Fallback">
                     <option value="__browser__">🗣 Browser</option>
                   </optgroup>
                 </select>
+
                 <select
                   value={rate}
                   onChange={(e) => setRate(parseFloat(e.target.value))}
