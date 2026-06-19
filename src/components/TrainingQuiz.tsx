@@ -6,6 +6,8 @@ type Question = {
   answerIndex: number;
   explanation: string;
   topic: string;
+  hint?: string;
+  difficulty?: string;
 };
 
 type Participant = { name: string; employeeId: string; email: string };
