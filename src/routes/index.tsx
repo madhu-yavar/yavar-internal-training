@@ -12,18 +12,15 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
 function Index() {
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-100 p-8">
+      <div className="max-w-xl text-center space-y-6">
+        <div className="text-xs uppercase tracking-[0.25em] text-amber-400">Yavar Training</div>
+        <h1 className="text-4xl font-semibold leading-tight">Enterprise AI with Private LLM – Technical & Presales Deep Dive</h1>
+        <p className="text-slate-300">Interactive self-learning module with narration, animated slide flow, chapter navigation, and a downloadable MP4.</p>
+        <a href="/training" className="inline-block rounded-md bg-amber-500 px-6 py-3 font-semibold text-slate-900 hover:bg-amber-400 transition">Start Training →</a>
+      </div>
     </div>
   );
 }
