@@ -12,6 +12,14 @@ export class LovableTtsPlayer {
   private sources: AudioBufferSourceNode[] = [];
   private endTimer: ReturnType<typeof setTimeout> | null = null;
   private stopped = false;
+  private rate = 1;
+
+  setRate(r: number) {
+    this.rate = Math.max(0.5, Math.min(2, r));
+    for (const s of this.sources) {
+      try { s.playbackRate.value = this.rate; } catch { /* noop */ }
+    }
+  }
 
   /**
    * Create + resume the AudioContext synchronously. MUST be called from a
@@ -107,6 +115,7 @@ export class LovableTtsPlayer {
     buffer.copyToChannel(floats, 0);
     const source = this.ctx.createBufferSource();
     source.buffer = buffer;
+    source.playbackRate.value = this.rate;
     source.connect(this.ctx.destination);
     if (this.playhead === 0) {
       this.playhead = this.ctx.currentTime + 0.05;
@@ -114,7 +123,7 @@ export class LovableTtsPlayer {
       this.playhead = Math.max(this.playhead, this.ctx.currentTime);
     }
     source.start(this.playhead);
-    this.playhead += buffer.duration;
+    this.playhead += buffer.duration / this.rate;
     this.sources.push(source);
   }
 
