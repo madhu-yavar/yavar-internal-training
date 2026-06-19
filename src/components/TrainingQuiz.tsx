@@ -299,7 +299,7 @@ export function TrainingQuiz({ onClose }: { onClose: () => void }) {
             <div>
               <div className="rounded-xl border border-amber-400/40 bg-gradient-to-br from-amber-500/20 to-amber-500/5 p-6 text-center">
                 <div className="text-[11px] uppercase tracking-[0.25em] text-amber-300">
-                  Your Result
+                  {participant?.name ? `Well done, ${participant.name.split(" ")[0]}!` : "Your Result"}
                 </div>
                 <div className="mt-2 text-5xl font-bold text-amber-100">
                   {score}/{questions.length}
@@ -309,6 +309,11 @@ export function TrainingQuiz({ onClose }: { onClose: () => void }) {
                   {badge.label}
                 </div>
                 <p className="mt-1 text-sm text-slate-300">{badge.note}</p>
+                {participant && (
+                  <p className="mt-2 text-[11px] text-slate-400">
+                    {participant.name} · {participant.employeeId} · {participant.email}
+                  </p>
+                )}
                 <div className="mt-4 flex justify-center gap-2">
                   <button
                     onClick={load}
