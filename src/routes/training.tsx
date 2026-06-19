@@ -138,11 +138,14 @@ function TrainingPage() {
         lovablePlayerRef.current = player;
         await player.speak(text, ttsVoice);
         return;
-      } catch (e) {
+      } catch (e: any) {
+        // Ignore aborts caused by stopAll() — those are intentional, not failures.
+        if (cancelledRef.current || e?.name === "AbortError") return;
         console.warn("Lovable TTS failed, falling back to browser TTS:", e);
         setTtsSource("browser");
       }
     }
+    if (cancelledRef.current) return;
     await speakBrowser(text);
   };
 
