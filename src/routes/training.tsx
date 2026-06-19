@@ -6,7 +6,7 @@ import { SLIDE_META } from "@/assets/training/slide-meta";
 import { AIAvatar } from "@/components/AIAvatar";
 import { TrainingChat } from "@/components/TrainingChat";
 import { TrainingQuiz } from "@/components/TrainingQuiz";
-import { WsTtsPlayer, DEFAULT_TTS_URL } from "@/lib/wsTts";
+import { LovableTtsPlayer } from "@/lib/lovableTts";
 
 type Slide = { i: number; title: string; notes: string };
 const SLIDES = slidesData as Slide[];
@@ -78,8 +78,9 @@ function TrainingPage() {
   const voiceRef = useRef<SpeechSynthesisVoice | null>(null);
   const userStartedRef = useRef(false);
   const [ttsSupported, setTtsSupported] = useState(true);
-  const [ttsSource, setTtsSource] = useState<"ws" | "browser">("ws");
-  const wsPlayerRef = useRef<WsTtsPlayer | null>(null);
+  const [ttsSource, setTtsSource] = useState<"lovable" | "browser">("lovable");
+  const [ttsVoice, setTtsVoice] = useState<string>("shimmer");
+  const lovablePlayerRef = useRef<LovableTtsPlayer | null>(null);
   const cancelledRef = useRef(false);
 
   // Pick a good English voice when available (browser fallback)
@@ -103,8 +104,8 @@ function TrainingPage() {
 
   const stopAll = () => {
     cancelledRef.current = true;
-    wsPlayerRef.current?.stop();
-    wsPlayerRef.current = null;
+    lovablePlayerRef.current?.stop();
+    lovablePlayerRef.current = null;
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
     }
@@ -120,21 +121,21 @@ function TrainingPage() {
       if (voiceRef.current) u.voice = voiceRef.current;
       u.lang = voiceRef.current?.lang || "en-US";
       u.rate = 1.0;
+      u.pitch = 1.05;
       u.onend = () => resolve();
       u.onerror = () => resolve();
       window.speechSynthesis.speak(u);
     });
 
   const speakOne = async (text: string): Promise<void> => {
-    if (ttsSource === "ws") {
+    if (ttsSource === "lovable") {
       try {
-        const player = new WsTtsPlayer({ url: DEFAULT_TTS_URL });
-        wsPlayerRef.current = player;
-        await player.speak(text);
+        const player = new LovableTtsPlayer();
+        lovablePlayerRef.current = player;
+        await player.speak(text, ttsVoice);
         return;
       } catch (e) {
-        // Fall back to browser TTS for the rest of the session
-        console.warn("WS TTS failed, falling back to browser TTS:", e);
+        console.warn("Lovable TTS failed, falling back to browser TTS:", e);
         setTtsSource("browser");
       }
     }
@@ -367,17 +368,35 @@ function TrainingPage() {
                 >
                   Reveal all
                 </button>
-                <button
-                  onClick={() => {
+                <select
+                  value={ttsSource === "lovable" ? ttsVoice : "__browser__"}
+                  onChange={(e) => {
                     stopAll();
                     setPlaying(false);
-                    setTtsSource((s) => (s === "ws" ? "browser" : "ws"));
+                    const v = e.target.value;
+                    if (v === "__browser__") {
+                      setTtsSource("browser");
+                    } else {
+                      setTtsSource("lovable");
+                      setTtsVoice(v);
+                    }
                   }}
-                  title="Toggle voice source"
-                  className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[10px] uppercase tracking-wider hover:bg-white/10"
+                  title="Choose narrator voice"
+                  className="rounded-md border border-white/10 bg-slate-900 px-2 py-1 text-[11px] text-slate-200 hover:bg-white/10 focus:outline-none"
                 >
-                  {ttsSource === "ws" ? "🎙 Self-hosted" : "🗣 Browser"}
-                </button>
+                  <optgroup label="Lovable AI (expressive)">
+                    <option value="shimmer">🎙 Ari – Shimmer (warm)</option>
+                    <option value="coral">🎙 Coral (bright, friendly)</option>
+                    <option value="sage">🎙 Sage (calm, clear)</option>
+                    <option value="ballad">🎙 Ballad (storyteller)</option>
+                    <option value="verse">🎙 Verse (energetic)</option>
+                    <option value="alloy">🎙 Alloy (neutral)</option>
+                    <option value="ash">🎙 Ash (deep)</option>
+                  </optgroup>
+                  <optgroup label="Fallback">
+                    <option value="__browser__">🗣 Browser voice</option>
+                  </optgroup>
+                </select>
               </div>
             </div>
             <p className="mt-3 text-[15px] leading-relaxed text-slate-100 animate-fade-in" key={`s-${idx}-${revealed}`}>
