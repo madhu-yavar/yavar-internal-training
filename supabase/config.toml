@@ -1,1 +1,5 @@
 project_id = "amjvngzukmanhapwodwj"
+
+[auth.email.template.magic_link]
+subject = "Your Yavar Training sign-in code"
+content_path = "./supabase/templates/magic_link.html"
