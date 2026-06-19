@@ -5,6 +5,7 @@ import videoAsset from "@/assets/training.mp4.asset.json";
 import { SLIDE_META } from "@/assets/training/slide-meta";
 import { AIAvatar } from "@/components/AIAvatar";
 import { TrainingChat } from "@/components/TrainingChat";
+import { TrainingQuiz } from "@/components/TrainingQuiz";
 import { WsTtsPlayer, DEFAULT_TTS_URL } from "@/lib/wsTts";
 
 type Slide = { i: number; title: string; notes: string };
@@ -53,6 +54,7 @@ export const Route = createFileRoute("/training")({
 
 function TrainingPage() {
   const [idx, setIdx] = useState(0);
+  const [quizOpen, setQuizOpen] = useState(false);
   const [revealed, setRevealed] = useState(0);
   const [playing, setPlaying] = useState(false);
   const slide = SLIDES[idx];
@@ -220,13 +222,21 @@ function TrainingPage() {
               Enterprise AI with Private LLM
             </h1>
           </div>
-          <a
-            href={videoAsset.url}
-            className="rounded-md bg-amber-500 px-3 py-1.5 text-xs font-semibold text-slate-900 hover:bg-amber-400 transition"
-            download
-          >
-            ↓ MP4
-          </a>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setQuizOpen(true)}
+              className="rounded-md border border-emerald-400/40 bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-100 hover:bg-emerald-500/25 transition"
+            >
+              🎓 Take Quiz
+            </button>
+            <a
+              href={videoAsset.url}
+              className="rounded-md bg-amber-500 px-3 py-1.5 text-xs font-semibold text-slate-900 hover:bg-amber-400 transition"
+              download
+            >
+              ↓ MP4
+            </a>
+          </div>
         </div>
         <nav className="mx-auto flex max-w-7xl flex-wrap gap-2 px-6 pb-3">
           {CHAPTERS.map((c) => {
@@ -405,6 +415,26 @@ function TrainingPage() {
               ))}
             </div>
           </details>
+
+          {idx === SLIDES.length - 1 && (
+            <div className="mt-6 rounded-2xl border border-emerald-400/40 bg-gradient-to-br from-emerald-500/15 to-emerald-500/5 p-6 text-center">
+              <div className="text-[10px] uppercase tracking-[0.25em] text-emerald-300">
+                You've reached the end
+              </div>
+              <h3 className="mt-1 text-xl font-bold text-emerald-100">
+                Ready to test what you've learned?
+              </h3>
+              <p className="mt-1 text-sm text-emerald-200/80">
+                Take a 20-question quiz — fresh questions generated every time.
+              </p>
+              <button
+                onClick={() => setQuizOpen(true)}
+                className="mt-4 rounded-lg bg-emerald-500 px-5 py-2 text-sm font-semibold text-slate-900 hover:bg-emerald-400"
+              >
+                🎓 Start the Quiz
+              </button>
+            </div>
+          )}
         </section>
 
         <aside className="rounded-xl border border-white/10 bg-slate-900/60 p-3 h-fit sticky top-32">
@@ -444,6 +474,7 @@ function TrainingPage() {
         </aside>
       </main>
       <TrainingChat currentSlide={slide.i} />
+      {quizOpen && <TrainingQuiz onClose={() => setQuizOpen(false)} />}
     </div>
   );
 }
