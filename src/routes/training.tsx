@@ -6,6 +6,7 @@ import { AIAvatar } from "@/components/AIAvatar";
 import { TrainingChat } from "@/components/TrainingChat";
 import { TrainingQuiz } from "@/components/TrainingQuiz";
 import { LovableTtsPlayer } from "@/lib/lovableTts";
+import { WsTtsPlayer, buildTtsUrl } from "@/lib/wsTts";
 import { AmbientMusic } from "@/lib/ambientMusic";
 
 type Slide = { i: number; title: string; notes: string };
@@ -78,9 +79,10 @@ function TrainingPage() {
   const voiceRef = useRef<SpeechSynthesisVoice | null>(null);
   const userStartedRef = useRef(false);
   const [ttsSupported, setTtsSupported] = useState(true);
-  const [ttsSource, setTtsSource] = useState<"lovable" | "browser">("lovable");
-  const [ttsVoice, setTtsVoice] = useState<string>("shimmer");
+  const [ttsSource, setTtsSource] = useState<"lovable" | "browser" | "ws">("ws");
+  const [ttsVoice, setTtsVoice] = useState<string>("af_heart");
   const lovablePlayerRef = useRef<LovableTtsPlayer | null>(null);
+  const wsPlayerRef = useRef<WsTtsPlayer | null>(null);
   const cancelledRef = useRef(false);
   const idxRef = useRef(0);
   const [musicOn, setMusicOn] = useState(false);
@@ -114,6 +116,7 @@ function TrainingPage() {
     // stop() keeps the AudioContext alive (prime/unlock survives) — only
     // dispose() on unmount or voice change.
     lovablePlayerRef.current?.stop();
+    wsPlayerRef.current?.stop();
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
     }
@@ -137,6 +140,18 @@ function TrainingPage() {
     });
 
   const speakOne = async (text: string): Promise<void> => {
+    if (ttsSource === "ws") {
+      try {
+        const player = new WsTtsPlayer({ url: buildTtsUrl(rateRef.current, ttsVoice, "a") });
+        wsPlayerRef.current = player;
+        await player.speak(text);
+        return;
+      } catch (e: any) {
+        if (cancelledRef.current) return;
+        console.warn("Yavar WS TTS failed, falling back to browser TTS:", e);
+        setTtsSource("browser");
+      }
+    }
     if (ttsSource === "lovable") {
       try {
         // Reuse the player primed by togglePlay so the AudioContext stays
@@ -436,7 +451,11 @@ function TrainingPage() {
                   Reveal all
                 </button>
                 <select
-                  value={ttsSource === "lovable" ? ttsVoice : "__browser__"}
+                  value={
+                    ttsSource === "browser"
+                      ? "__browser__"
+                      : `${ttsSource}:${ttsVoice}`
+                  }
                   onChange={(e) => {
                     stopAll();
                     setPlaying(false);
@@ -444,26 +463,39 @@ function TrainingPage() {
                     if (v === "__browser__") {
                       setTtsSource("browser");
                     } else {
-                      setTtsSource("lovable");
-                      setTtsVoice(v);
+                      const [src, voice] = v.split(":") as [
+                        "lovable" | "ws",
+                        string,
+                      ];
+                      setTtsSource(src);
+                      setTtsVoice(voice);
                     }
                   }}
                   title="Choose narrator voice"
                   className="max-w-[50%] rounded-md border border-white/10 bg-slate-900 px-2 py-1 text-[11px] text-slate-200 hover:bg-white/10 focus:outline-none"
                 >
+                  <optgroup label="Yavar (self-hosted GPU)">
+                    <option value="ws:af_heart">🇮🇳 Heart (warm, female)</option>
+                    <option value="ws:af_bella">🇮🇳 Bella (female)</option>
+                    <option value="ws:af_nicole">🇮🇳 Nicole (female)</option>
+                    <option value="ws:af_sarah">🇮🇳 Sarah (female)</option>
+                    <option value="ws:am_michael">🇮🇳 Michael (male)</option>
+                    <option value="ws:am_adam">🇮🇳 Adam (male)</option>
+                  </optgroup>
                   <optgroup label="Lovable AI (expressive)">
-                    <option value="shimmer">🎙 Ari – Shimmer</option>
-                    <option value="coral">🎙 Coral</option>
-                    <option value="sage">🎙 Sage</option>
-                    <option value="ballad">🎙 Ballad</option>
-                    <option value="verse">🎙 Verse</option>
-                    <option value="alloy">🎙 Alloy</option>
-                    <option value="ash">🎙 Ash</option>
+                    <option value="lovable:shimmer">🎙 Ari – Shimmer</option>
+                    <option value="lovable:coral">🎙 Coral</option>
+                    <option value="lovable:sage">🎙 Sage</option>
+                    <option value="lovable:ballad">🎙 Ballad</option>
+                    <option value="lovable:verse">🎙 Verse</option>
+                    <option value="lovable:alloy">🎙 Alloy</option>
+                    <option value="lovable:ash">🎙 Ash</option>
                   </optgroup>
                   <optgroup label="Fallback">
                     <option value="__browser__">🗣 Browser</option>
                   </optgroup>
                 </select>
+
                 <select
                   value={rate}
                   onChange={(e) => setRate(parseFloat(e.target.value))}

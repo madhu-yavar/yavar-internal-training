@@ -153,4 +153,9 @@ export class WsTtsPlayer {
 }
 
 export const DEFAULT_TTS_URL =
-  "ws://202.88.209.11/tts/stream/tts?speed=1.0&voice=af_heart&lang_code=a";
+  "wss://agentic-rag.yavar.ai/stream/tts?voice=af_heart&lang_code=a";
+
+export function buildTtsUrl(speed = 1, voice = "af_heart", langCode = "a") {
+  return `wss://agentic-rag.yavar.ai/stream/tts?speed=${speed}&voice=${voice}&lang_code=${langCode}`;
+}
+
