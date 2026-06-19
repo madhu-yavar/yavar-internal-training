@@ -341,13 +341,24 @@ function TrainingPage() {
                 </button>
                 <button
                   onClick={() => {
-                    window.speechSynthesis?.cancel();
+                    stopAll();
                     setPlaying(false);
                     setRevealed(sentences.length);
                   }}
                   className="rounded-md border border-white/10 bg-white/5 px-3 py-1 text-xs hover:bg-white/10"
                 >
                   Reveal all
+                </button>
+                <button
+                  onClick={() => {
+                    stopAll();
+                    setPlaying(false);
+                    setTtsSource((s) => (s === "ws" ? "browser" : "ws"));
+                  }}
+                  title="Toggle voice source"
+                  className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[10px] uppercase tracking-wider hover:bg-white/10"
+                >
+                  {ttsSource === "ws" ? "🎙 Self-hosted" : "🗣 Browser"}
                 </button>
               </div>
             </div>
