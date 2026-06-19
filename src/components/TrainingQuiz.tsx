@@ -8,8 +8,35 @@ type Question = {
   topic: string;
 };
 
+type Participant = { name: string; employeeId: string; email: string };
+
+const FREE_EMAIL_DOMAINS = new Set([
+  "gmail.com",
+  "googlemail.com",
+  "yahoo.com",
+  "yahoo.co.in",
+  "ymail.com",
+  "hotmail.com",
+  "outlook.com",
+  "live.com",
+  "msn.com",
+  "icloud.com",
+  "me.com",
+  "aol.com",
+  "proton.me",
+  "protonmail.com",
+  "rediffmail.com",
+  "zoho.com",
+  "mail.com",
+  "gmx.com",
+]);
+
 export function TrainingQuiz({ onClose }: { onClose: () => void }) {
-  const [loading, setLoading] = useState(true);
+  const [participant, setParticipant] = useState<Participant | null>(null);
+  const [form, setForm] = useState<Participant>({ name: "", employeeId: "", email: "" });
+  const [formErrors, setFormErrors] = useState<Partial<Record<keyof Participant, string>>>({});
+
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Record<number, number>>({});
@@ -34,10 +61,45 @@ export function TrainingQuiz({ onClose }: { onClose: () => void }) {
     }
   };
 
+  const validateForm = (): boolean => {
+    const errs: Partial<Record<keyof Participant, string>> = {};
+    const name = form.name.trim();
+    const employeeId = form.employeeId.trim();
+    const email = form.email.trim().toLowerCase();
+
+    if (name.length < 2) errs.name = "Please enter your full name";
+    else if (name.length > 80) errs.name = "Name is too long";
+
+    if (employeeId.length < 2) errs.employeeId = "Employee ID is required";
+    else if (employeeId.length > 40) errs.employeeId = "Employee ID is too long";
+
+    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRe.test(email)) errs.email = "Enter a valid email address";
+    else {
+      const domain = email.split("@")[1];
+      if (FREE_EMAIL_DOMAINS.has(domain)) {
+        errs.email = "Please use your official company email (not a personal one)";
+      }
+    }
+
+    setFormErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  const startQuiz = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+    setParticipant({
+      name: form.name.trim(),
+      employeeId: form.employeeId.trim(),
+      email: form.email.trim().toLowerCase(),
+    });
+  };
+
   useEffect(() => {
-    void load();
+    if (participant) void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [participant]);
 
   const score = questions.reduce(
     (acc, q, i) => acc + (answers[i] === q.answerIndex ? 1 : 0),
