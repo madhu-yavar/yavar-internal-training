@@ -53,7 +53,7 @@ export const Route = createFileRoute("/training")({
 function TrainingPage() {
   const [idx, setIdx] = useState(0);
   const [revealed, setRevealed] = useState(0);
-  const [playing, setPlaying] = useState(true);
+  const [playing, setPlaying] = useState(false);
   const slide = SLIDES[idx];
   const meta = SLIDE_META[slide.i];
 
@@ -309,13 +309,17 @@ function TrainingPage() {
               </div>
               <div className="flex gap-2">
                 <button
-                  onClick={() => setPlaying((p) => !p)}
-                  className="rounded-md border border-white/10 bg-white/5 px-3 py-1 text-xs hover:bg-white/10"
+                  onClick={togglePlay}
+                  className="rounded-md border border-amber-400/40 bg-amber-500/15 px-3 py-1 text-xs text-amber-100 hover:bg-amber-500/25"
                 >
-                  {playing ? "⏸ Pause" : "▶ Play"}
+                  {playing ? "⏸ Pause" : ttsSupported ? "▶ Play narration" : "▶ Play"}
                 </button>
                 <button
-                  onClick={() => setRevealed(sentences.length)}
+                  onClick={() => {
+                    window.speechSynthesis?.cancel();
+                    setPlaying(false);
+                    setRevealed(sentences.length);
+                  }}
                   className="rounded-md border border-white/10 bg-white/5 px-3 py-1 text-xs hover:bg-white/10"
                 >
                   Reveal all
