@@ -134,12 +134,18 @@ function TrainingPage() {
   const speakOne = async (text: string): Promise<void> => {
     if (ttsSource === "lovable") {
       try {
-        const player = new LovableTtsPlayer();
-        lovablePlayerRef.current = player;
+        // Reuse the player primed by togglePlay so the AudioContext stays
+        // unlocked across sentences/slides — creating a fresh context
+        // after an await loses the user-gesture and plays nothing.
+        let player = lovablePlayerRef.current;
+        if (!player) {
+          player = new LovableTtsPlayer();
+          player.prime();
+          lovablePlayerRef.current = player;
+        }
         await player.speak(text, ttsVoice);
         return;
       } catch (e: any) {
-        // Ignore aborts caused by stopAll() — those are intentional, not failures.
         if (cancelledRef.current || e?.name === "AbortError") return;
         console.warn("Lovable TTS failed, falling back to browser TTS:", e);
         setTtsSource("browser");
@@ -148,6 +154,7 @@ function TrainingPage() {
     if (cancelledRef.current) return;
     await speakBrowser(text);
   };
+
 
   const speakFrom = async (startIndex: number) => {
     cancelledRef.current = false;
