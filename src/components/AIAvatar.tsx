@@ -7,7 +7,7 @@ type Props = {
   name?: string;
 };
 
-export function AIAvatar({ speaking, accent = "amber", name = "Ava" }: Props) {
+export function AIAvatar({ speaking, accent = "amber", name = "Ari" }: Props) {
   const ring = speaking ? "ring-2 ring-amber-400/70" : "ring-1 ring-white/10";
   return (
     <div className="flex items-center gap-3">

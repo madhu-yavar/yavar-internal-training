@@ -50,7 +50,7 @@ export function TrainingChat({ currentSlide }: { currentSlide?: number }) {
       <button
         onClick={() => setOpen((o) => !o)}
         className="group fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full bg-gradient-to-br from-amber-400 via-amber-500 to-orange-500 px-4 py-3 text-slate-900 shadow-[0_10px_40px_-8px_rgba(251,191,36,0.6)] ring-1 ring-amber-200/50 transition hover:scale-[1.03] active:scale-95"
-        aria-label="Ask Ava"
+        aria-label="Ask Ari"
       >
         <span className="relative flex h-7 w-7 items-center justify-center rounded-full bg-slate-900/90 text-base">
           {open ? "✕" : "✨"}
@@ -59,7 +59,7 @@ export function TrainingChat({ currentSlide }: { currentSlide?: number }) {
           )}
         </span>
         <span className="text-sm font-semibold tracking-tight">
-          {open ? "Close" : "Ask Ava"}
+          {open ? "Close" : "Ask Ari"}
         </span>
       </button>
 
@@ -76,7 +76,7 @@ export function TrainingChat({ currentSlide }: { currentSlide?: number }) {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-base font-semibold text-slate-100">Ava</span>
+                  <span className="text-base font-semibold text-slate-100">Ari</span>
                   <span className="rounded-full bg-emerald-400/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-emerald-300">
                     Online
                   </span>
@@ -113,7 +113,7 @@ export function TrainingChat({ currentSlide }: { currentSlide?: number }) {
               <div className="space-y-4">
                 <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-4">
                   <p className="text-slate-200">
-                    Hey! I'm <span className="font-semibold text-amber-300">Ava</span>. 
+                    Hey! I'm <span className="font-semibold text-amber-300">Ari</span>. 
                     Ask me anything about the course — and I'll also pull in relevant
                     industry context (model families, vector DBs, serving stacks, GPU
                     economics) when it helps.
@@ -184,7 +184,7 @@ export function TrainingChat({ currentSlide }: { currentSlide?: number }) {
                     <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-amber-400" />
                     <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-amber-400 [animation-delay:120ms]" />
                     <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-amber-400 [animation-delay:240ms]" />
-                    <span className="ml-2 text-[11px] text-slate-400">Ava is thinking…</span>
+                    <span className="ml-2 text-[11px] text-slate-400">Ari is thinking…</span>
                   </span>
                 </div>
               </div>
