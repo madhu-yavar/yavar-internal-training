@@ -226,10 +226,16 @@ function TrainingPage() {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setQuizOpen(true)}
-              className="rounded-md border border-emerald-400/40 bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-100 hover:bg-emerald-500/25 transition"
+              onClick={() => completed && setQuizOpen(true)}
+              disabled={!completed}
+              title={completed ? "Take the quiz" : "Complete all slides to unlock the quiz"}
+              className={`rounded-md border px-3 py-1.5 text-xs font-semibold transition ${
+                completed
+                  ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-100 hover:bg-emerald-500/25"
+                  : "border-white/10 bg-white/5 text-slate-500 cursor-not-allowed"
+              }`}
             >
-              🎓 Take Quiz
+              {completed ? "🎓 Take Quiz" : "🔒 Quiz locked"}
             </button>
             <a
               href={videoAsset.url}
