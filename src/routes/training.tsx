@@ -1,12 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import slidesData from "@/assets/training/slides.json";
-import videoAsset from "@/assets/training.mp4.asset.json";
 import { SLIDE_META } from "@/assets/training/slide-meta";
 import { AIAvatar } from "@/components/AIAvatar";
 import { TrainingChat } from "@/components/TrainingChat";
 import { TrainingQuiz } from "@/components/TrainingQuiz";
 import { LovableTtsPlayer } from "@/lib/lovableTts";
+import { AmbientMusic } from "@/lib/ambientMusic";
 
 type Slide = { i: number; title: string; notes: string };
 const SLIDES = slidesData as Slide[];
@@ -82,6 +82,10 @@ function TrainingPage() {
   const [ttsVoice, setTtsVoice] = useState<string>("shimmer");
   const lovablePlayerRef = useRef<LovableTtsPlayer | null>(null);
   const cancelledRef = useRef(false);
+  const idxRef = useRef(0);
+  const [musicOn, setMusicOn] = useState(false);
+  const musicRef = useRef<AmbientMusic | null>(null);
+  useEffect(() => { idxRef.current = idx; }, [idx]);
 
   // Pick a good English voice when available (browser fallback)
   useEffect(() => {
@@ -155,7 +159,14 @@ function TrainingPage() {
       // small natural pause
       await new Promise((r) => setTimeout(r, 120));
     }
-    setPlaying(false);
+    if (cancelledRef.current) return;
+    // Auto-advance to the next slide; effect will restart narration there.
+    if (idxRef.current < SLIDES.length - 1) {
+      setIdx(idxRef.current + 1);
+    } else {
+      setPlaying(false);
+      setCompleted(true);
+    }
   };
 
   // Reset on slide change
@@ -173,6 +184,7 @@ function TrainingPage() {
   useEffect(() => {
     return () => {
       stopAll();
+      musicRef.current?.stop();
     };
   }, []);
 
@@ -238,13 +250,28 @@ function TrainingPage() {
             >
               {completed ? "🎓 Take Quiz" : "🔒 Quiz locked"}
             </button>
-            <a
-              href={videoAsset.url}
-              className="rounded-md bg-amber-500 px-3 py-1.5 text-xs font-semibold text-slate-900 hover:bg-amber-400 transition"
-              download
+            <button
+              onClick={async () => {
+                if (musicOn) {
+                  musicRef.current?.stop();
+                  musicRef.current = null;
+                  setMusicOn(false);
+                } else {
+                  const m = new AmbientMusic();
+                  await m.start(0.05);
+                  musicRef.current = m;
+                  setMusicOn(true);
+                }
+              }}
+              title={musicOn ? "Mute background music" : "Play soft background music"}
+              className={`rounded-md border px-3 py-1.5 text-xs font-semibold transition ${
+                musicOn
+                  ? "border-amber-400/40 bg-amber-500/15 text-amber-100 hover:bg-amber-500/25"
+                  : "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"
+              }`}
             >
-              ↓ MP4
-            </a>
+              {musicOn ? "🎵 Music on" : "🎵 Music"}
+            </button>
           </div>
         </div>
         <nav className="mx-auto flex max-w-7xl flex-wrap gap-2 px-6 pb-3">
