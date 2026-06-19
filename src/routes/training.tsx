@@ -471,6 +471,7 @@ function TrainingPage() {
                   {[0.75, 0.9, 1, 1.15, 1.25, 1.5, 1.75, 2].map((r) => (
                     <option key={r} value={r}>{r}× speed</option>
                   ))}
+                </select>
               </div>
             </div>
             <p className="mt-3 text-[15px] leading-relaxed text-slate-100 animate-fade-in" key={`s-${idx}-${revealed}`}>
