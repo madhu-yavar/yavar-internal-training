@@ -85,6 +85,9 @@ function TrainingPage() {
   const idxRef = useRef(0);
   const [musicOn, setMusicOn] = useState(false);
   const musicRef = useRef<AmbientMusic | null>(null);
+  const [rate, setRate] = useState(1);
+  const rateRef = useRef(1);
+  useEffect(() => { rateRef.current = rate; lovablePlayerRef.current?.setRate(rate); }, [rate]);
   useEffect(() => { idxRef.current = idx; }, [idx]);
 
   // Pick a good English voice when available (browser fallback)
@@ -126,7 +129,7 @@ function TrainingPage() {
       const u = new SpeechSynthesisUtterance(text);
       if (voiceRef.current) u.voice = voiceRef.current;
       u.lang = voiceRef.current?.lang || "en-US";
-      u.rate = 1.0;
+      u.rate = rateRef.current;
       u.pitch = 1.05;
       u.onend = () => resolve();
       u.onerror = () => resolve();
@@ -145,6 +148,7 @@ function TrainingPage() {
           player.prime();
           lovablePlayerRef.current = player;
         }
+        player.setRate(rateRef.current);
         await player.speak(text, ttsVoice);
         return;
       } catch (e: any) {
@@ -457,6 +461,16 @@ function TrainingPage() {
                   <optgroup label="Fallback">
                     <option value="__browser__">🗣 Browser voice</option>
                   </optgroup>
+                </select>
+                <select
+                  value={rate}
+                  onChange={(e) => setRate(parseFloat(e.target.value))}
+                  title="Playback speed"
+                  className="rounded-md border border-white/10 bg-slate-900 px-2 py-1 text-[11px] text-slate-200 hover:bg-white/10 focus:outline-none"
+                >
+                  {[0.75, 0.9, 1, 1.15, 1.25, 1.5, 1.75, 2].map((r) => (
+                    <option key={r} value={r}>{r}× speed</option>
+                  ))}
                 </select>
               </div>
             </div>
