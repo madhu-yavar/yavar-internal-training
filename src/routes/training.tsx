@@ -333,25 +333,26 @@ function TrainingPage() {
       </header>
 
 
-      <main className="mx-auto grid max-w-7xl gap-6 px-6 py-6 lg:grid-cols-[1fr_300px]">
+      <main className="mx-auto grid max-w-7xl gap-6 px-4 py-4 sm:px-6 sm:py-6 lg:grid-cols-[1fr_300px]">
         <section>
           {/* Stage */}
           <div
             key={idx}
-            className={`relative overflow-hidden rounded-2xl border bg-gradient-to-br ${accentClass} p-6 shadow-2xl animate-fade-in min-h-[460px]`}
+            className={`relative overflow-hidden rounded-2xl border bg-gradient-to-br ${accentClass} p-4 shadow-2xl animate-fade-in min-h-[380px] sm:min-h-[460px] sm:p-6`}
           >
             {/* Header row: avatar + title */}
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
               <AIAvatar speaking={speaking} accent={accent} />
-              <div className="text-right">
+              <div className="min-w-0 sm:text-right">
                 <div className="text-[10px] uppercase tracking-[0.25em] text-amber-200/80">
                   Slide {slide.i} / {SLIDES.length} · {chapter}
                 </div>
-                <div className="mt-1 text-2xl font-bold leading-tight">
+                <div className="mt-1 text-xl font-bold leading-tight sm:text-2xl">
                   {meta?.headline ?? slide.title}
                 </div>
               </div>
             </div>
+
 
             {/* Cards */}
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
