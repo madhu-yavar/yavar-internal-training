@@ -1,0 +1,1396 @@
+[
+  {
+    "question": "What is the main advantage of a public LLM service?",
+    "options": [
+      "Fast access with minimal infrastructure setup",
+      "Complete control over model weights",
+      "Guaranteed on-premises deployment",
+      "No dependency on any vendor"
+    ],
+    "answerIndex": 0,
+    "explanation": "Public LLM services are quick to start because the provider manages the model and infrastructure.",
+    "topic": "Public vs Private LLM",
+    "difficulty": "easy",
+    "hint": "Think about speed of adoption."
+  },
+  {
+    "question": "Which statement best describes a private LLM?",
+    "options": [
+      "It must always run without internet",
+      "It runs within an enterprise-controlled or isolated environment",
+      "It can only answer internal questions",
+      "It is always a small model"
+    ],
+    "answerIndex": 1,
+    "explanation": "A private LLM is defined by enterprise control over runtime, data, access, and governance\u2014not only by physical location.",
+    "topic": "Public vs Private LLM",
+    "difficulty": "easy",
+    "hint": "Focus on control boundaries."
+  },
+  {
+    "question": "A client wants to test generic marketing copy with no sensitive data. What is usually the best starting point?",
+    "options": [
+      "Air-gapped LLM",
+      "Public LLM API",
+      "Custom model training",
+      "Dedicated GPU cluster"
+    ],
+    "answerIndex": 1,
+    "explanation": "For low-sensitivity generic tasks, a public API is often the fastest and simplest option.",
+    "topic": "Public vs Private LLM",
+    "difficulty": "easy",
+    "hint": "Choose the lightest viable option."
+  },
+  {
+    "question": "Which factor most strongly supports choosing a private LLM?",
+    "options": [
+      "Need for fancy UI",
+      "Need for sensitive data control and auditability",
+      "Need for faster internet",
+      "Need for longer presentations"
+    ],
+    "answerIndex": 1,
+    "explanation": "Sensitive data, compliance, internal integrations, and audit requirements are key reasons to consider private deployment.",
+    "topic": "Public vs Private LLM",
+    "difficulty": "easy",
+    "hint": "Think security and governance."
+  },
+  {
+    "question": "True or False: A private LLM must always be deployed on-premises.",
+    "options": [
+      "True",
+      "False"
+    ],
+    "answerIndex": 1,
+    "explanation": "Private deployment can also be in a dedicated VPC, private cloud, or customer-controlled cloud environment.",
+    "topic": "Public vs Private LLM",
+    "difficulty": "easy",
+    "hint": "Private does not always mean on-prem."
+  },
+  {
+    "question": "Who usually manages model upgrades in a public LLM service?",
+    "options": [
+      "The enterprise customer only",
+      "The service provider",
+      "The end user",
+      "The database administrator"
+    ],
+    "answerIndex": 1,
+    "explanation": "The vendor typically controls the model lifecycle and upgrade schedule in public LLM services.",
+    "topic": "Public vs Private LLM",
+    "difficulty": "easy",
+    "hint": "Think about who owns the serving platform."
+  },
+  {
+    "question": "Which option gives the enterprise the highest operational responsibility?",
+    "options": [
+      "Public API",
+      "Managed private endpoint",
+      "Self-hosted on-premises LLM",
+      "Shared SaaS chatbot"
+    ],
+    "answerIndex": 2,
+    "explanation": "Self-hosted on-premises deployments require the enterprise to manage hardware, model serving, security, scaling, and lifecycle.",
+    "topic": "Public vs Private LLM",
+    "difficulty": "medium",
+    "hint": "More control usually means more responsibility."
+  },
+  {
+    "question": "What is the best presales framing for private LLM?",
+    "options": [
+      "Private is always better than public",
+      "Private is needed for every AI use case",
+      "Private is valuable when control, compliance, or integration justify it",
+      "Private is only for large banks"
+    ],
+    "answerIndex": 2,
+    "explanation": "Private LLM should be positioned based on architectural need, not as a universal default.",
+    "topic": "Public vs Private LLM",
+    "difficulty": "easy",
+    "hint": "Avoid absolute claims."
+  },
+  {
+    "question": "Which item is most likely controlled by the provider in a public LLM?",
+    "options": [
+      "Client's internal approval workflow",
+      "Model serving infrastructure",
+      "Client's local network",
+      "Client's data classification policy"
+    ],
+    "answerIndex": 1,
+    "explanation": "The provider operates the model endpoint and underlying serving infrastructure.",
+    "topic": "Public vs Private LLM",
+    "difficulty": "easy",
+    "hint": "Think of the service boundary."
+  },
+  {
+    "question": "A company wants model access through private networking and customer-managed identity. Which option fits best?",
+    "options": [
+      "Public consumer chatbot",
+      "Private cloud or VPC deployment",
+      "Spreadsheet macro",
+      "Open website search"
+    ],
+    "answerIndex": 1,
+    "explanation": "Private cloud or VPC deployment supports isolated networking, identity, and enterprise controls.",
+    "topic": "Public vs Private LLM",
+    "difficulty": "easy",
+    "hint": "Look for controlled networking."
+  },
+  {
+    "question": "What makes an LLM private?",
+    "options": [
+      "Only the location of the server",
+      "A set of controlled boundaries around inference, data, security, governance, and operations",
+      "The number of parameters",
+      "The use of open-source software"
+    ],
+    "answerIndex": 1,
+    "explanation": "Privacy is created through multiple technical and governance controls, not only hosting location.",
+    "topic": "Private Boundaries",
+    "difficulty": "easy",
+    "hint": "Think beyond hosting."
+  },
+  {
+    "question": "Which boundary controls where prompts and outputs are processed?",
+    "options": [
+      "Inference boundary",
+      "Brand boundary",
+      "UI boundary",
+      "Sales boundary"
+    ],
+    "answerIndex": 0,
+    "explanation": "The inference boundary determines where model execution, prompts, and outputs are handled.",
+    "topic": "Private Boundaries",
+    "difficulty": "easy",
+    "hint": "It relates directly to model execution."
+  },
+  {
+    "question": "Which item belongs to the data boundary?",
+    "options": [
+      "Slide animation",
+      "Documents, embeddings, logs, and conversation state",
+      "Office Wi-Fi password",
+      "Model logo"
+    ],
+    "answerIndex": 1,
+    "explanation": "The data boundary covers enterprise content and supporting stores used by the LLM solution.",
+    "topic": "Private Boundaries",
+    "difficulty": "easy",
+    "hint": "Think stored enterprise information."
+  },
+  {
+    "question": "Which control belongs mainly to the security boundary?",
+    "options": [
+      "RBAC and encryption",
+      "Prompt writing style",
+      "Slide numbering",
+      "Voice tone"
+    ],
+    "answerIndex": 0,
+    "explanation": "Security boundaries include identity, access control, encryption, secrets, and network isolation.",
+    "topic": "Private Boundaries",
+    "difficulty": "easy",
+    "hint": "Think access and protection."
+  },
+  {
+    "question": "Why should presales ask what the client means by 'private'?",
+    "options": [
+      "Because all clients use the word in the same way",
+      "Because private may refer to hosting, data, logs, inference, or all of them",
+      "Because private only means air-gapped",
+      "Because private is a licensing term"
+    ],
+    "answerIndex": 1,
+    "explanation": "Different clients expect different levels of isolation and ownership.",
+    "topic": "Private Boundaries",
+    "difficulty": "easy",
+    "hint": "The term is overloaded."
+  },
+  {
+    "question": "What does an air-gapped deployment usually mean?",
+    "options": [
+      "The model uses a faster GPU",
+      "The environment is isolated from external networks",
+      "The model has fewer parameters",
+      "The UI has no animations"
+    ],
+    "answerIndex": 1,
+    "explanation": "Air-gapped environments are designed to operate without external network connectivity.",
+    "topic": "Private Boundaries",
+    "difficulty": "easy",
+    "hint": "Think network isolation."
+  },
+  {
+    "question": "Which boundary includes model monitoring, backup, versioning, and failover?",
+    "options": [
+      "Operations boundary",
+      "Marketing boundary",
+      "Color boundary",
+      "Presentation boundary"
+    ],
+    "answerIndex": 0,
+    "explanation": "Operational control covers how the system is run, monitored, scaled, and maintained.",
+    "topic": "Private Boundaries",
+    "difficulty": "easy",
+    "hint": "Think day-to-day running."
+  },
+  {
+    "question": "True or False: 'We do not train on your data' is the same as a fully private architecture.",
+    "options": [
+      "True",
+      "False"
+    ],
+    "answerIndex": 1,
+    "explanation": "No-training assurance addresses one concern, but not networking, storage, logs, access, or runtime isolation.",
+    "topic": "Private Boundaries",
+    "difficulty": "medium",
+    "hint": "One control does not equal full privacy."
+  },
+  {
+    "question": "What is an SLM?",
+    "options": [
+      "Small Language Model",
+      "Secure Language Memory",
+      "Shared Logic Model",
+      "Static Learning Module"
+    ],
+    "answerIndex": 0,
+    "explanation": "SLM stands for Small Language Model, typically optimized for narrower tasks and lower resource use.",
+    "topic": "Model Building Blocks",
+    "difficulty": "easy",
+    "hint": "Expand the abbreviation."
+  },
+  {
+    "question": "Which task is a good fit for an SLM?",
+    "options": [
+      "Highly ambiguous legal reasoning across many domains",
+      "Intent classification and document routing",
+      "Training a foundation model from scratch",
+      "Replacing all enterprise systems"
+    ],
+    "answerIndex": 1,
+    "explanation": "SLMs work well for focused tasks such as classification, routing, extraction, and guardrail checks.",
+    "topic": "Model Building Blocks",
+    "difficulty": "easy",
+    "hint": "Think narrow and repeatable."
+  },
+  {
+    "question": "What is the main purpose of quantization?",
+    "options": [
+      "Increase model file size",
+      "Reduce memory and compute requirements",
+      "Add more training data",
+      "Improve network security"
+    ],
+    "answerIndex": 1,
+    "explanation": "Quantization lowers numerical precision to reduce memory usage and often improve serving efficiency.",
+    "topic": "Model Building Blocks",
+    "difficulty": "easy",
+    "hint": "Think infrastructure optimization."
+  },
+  {
+    "question": "Which quantization option usually uses less memory?",
+    "options": [
+      "FP16",
+      "INT4",
+      "FP32",
+      "BF16"
+    ],
+    "answerIndex": 1,
+    "explanation": "INT4 uses lower precision than FP16 or FP32 and typically requires less memory.",
+    "topic": "Model Building Blocks",
+    "difficulty": "medium",
+    "hint": "Lower bit width means lower memory."
+  },
+  {
+    "question": "What is a key risk of aggressive quantization?",
+    "options": [
+      "The model may become physically larger",
+      "Answer quality may degrade",
+      "The vector database stops working",
+      "The model gains internet access"
+    ],
+    "answerIndex": 1,
+    "explanation": "Very low precision can reduce reasoning, numeric accuracy, or multilingual quality.",
+    "topic": "Model Building Blocks",
+    "difficulty": "medium",
+    "hint": "Optimization can have trade-offs."
+  },
+  {
+    "question": "When should fine-tuning usually be considered?",
+    "options": [
+      "Before understanding the use case",
+      "After simpler methods like prompting and RAG are evaluated",
+      "Only when no documents exist",
+      "Whenever the model is private"
+    ],
+    "answerIndex": 1,
+    "explanation": "Prompting and RAG are easier to change and govern; fine-tuning is used when deeper behavior adaptation is needed.",
+    "topic": "Model Building Blocks",
+    "difficulty": "easy",
+    "hint": "Start simple before tuning."
+  },
+  {
+    "question": "What does LoRA mainly provide?",
+    "options": [
+      "A lighter-weight fine-tuning approach",
+      "A new vector database",
+      "A cloud security service",
+      "A search engine"
+    ],
+    "answerIndex": 0,
+    "explanation": "LoRA adapts model behavior with a smaller number of trainable parameters.",
+    "topic": "Model Building Blocks",
+    "difficulty": "medium",
+    "hint": "It is a parameter-efficient technique."
+  },
+  {
+    "question": "Which factor should NOT be ignored when selecting model size?",
+    "options": [
+      "Latency",
+      "Concurrency",
+      "Task complexity",
+      "Presentation background color"
+    ],
+    "answerIndex": 3,
+    "explanation": "Model selection should consider quality, latency, concurrency, context, cost, and domain needs\u2014not visual slide design.",
+    "topic": "Model Building Blocks",
+    "difficulty": "easy",
+    "hint": "One option is unrelated to model selection."
+  },
+  {
+    "question": "What is continuous batching used for?",
+    "options": [
+      "Combining training datasets",
+      "Serving multiple inference requests efficiently",
+      "Encrypting documents",
+      "Creating embeddings manually"
+    ],
+    "answerIndex": 1,
+    "explanation": "Continuous batching allows the serving layer to combine requests and improve GPU utilization.",
+    "topic": "Model Building Blocks",
+    "difficulty": "medium",
+    "hint": "Think model serving efficiency."
+  },
+  {
+    "question": "What does KV cache help optimize?",
+    "options": [
+      "Repeated inference computation during generation",
+      "Document permissions",
+      "File naming",
+      "Email routing"
+    ],
+    "answerIndex": 0,
+    "explanation": "KV cache stores attention states so the model does not recompute them for every generated token.",
+    "topic": "Model Building Blocks",
+    "difficulty": "medium",
+    "hint": "It helps token generation speed."
+  },
+  {
+    "question": "What is an AI agent in an enterprise system?",
+    "options": [
+      "A decorative chatbot avatar",
+      "A goal-directed loop that plans, uses tools, and observes results",
+      "A database table",
+      "A static report"
+    ],
+    "answerIndex": 1,
+    "explanation": "An agent decides steps, invokes approved tools, observes outputs, and continues under policy controls.",
+    "topic": "Agents and MCP",
+    "difficulty": "easy",
+    "hint": "Think planning plus action."
+  },
+  {
+    "question": "What is a skill in an agentic system?",
+    "options": [
+      "A reusable business capability",
+      "A GPU driver",
+      "A user password",
+      "A network cable"
+    ],
+    "answerIndex": 0,
+    "explanation": "A skill is a packaged capability such as classifying a document or creating a summary.",
+    "topic": "Agents and MCP",
+    "difficulty": "easy",
+    "hint": "It is reusable behavior."
+  },
+  {
+    "question": "What is a tool in an agentic architecture?",
+    "options": [
+      "A deterministic API or function the agent can call",
+      "The model's personality",
+      "A presentation template",
+      "A training dataset only"
+    ],
+    "answerIndex": 0,
+    "explanation": "Tools let the agent interact with systems such as databases, CRM, ERP, or email.",
+    "topic": "Agents and MCP",
+    "difficulty": "easy",
+    "hint": "Think external action."
+  },
+  {
+    "question": "What does MCP help standardize?",
+    "options": [
+      "How tools and resources are exposed to models or agents",
+      "How GPUs are manufactured",
+      "How users design slides",
+      "How documents are printed"
+    ],
+    "answerIndex": 0,
+    "explanation": "MCP-style integration provides structured schemas for tools, resources, and prompts.",
+    "topic": "Agents and MCP",
+    "difficulty": "medium",
+    "hint": "Think standardized tool access."
+  },
+  {
+    "question": "Which action should normally require human approval?",
+    "options": [
+      "Reading a public FAQ",
+      "Updating an ERP financial record",
+      "Summarizing a policy",
+      "Classifying a support ticket"
+    ],
+    "answerIndex": 1,
+    "explanation": "Write operations affecting business systems should have approval and audit controls.",
+    "topic": "Agents and MCP",
+    "difficulty": "easy",
+    "hint": "Choose the highest-risk action."
+  },
+  {
+    "question": "Why should tool permissions follow least privilege?",
+    "options": [
+      "To let the agent access everything",
+      "To limit the agent to only the actions it needs",
+      "To improve slide speed",
+      "To remove all audit logs"
+    ],
+    "answerIndex": 1,
+    "explanation": "Least privilege reduces damage if the model or workflow behaves incorrectly.",
+    "topic": "Agents and MCP",
+    "difficulty": "easy",
+    "hint": "Minimal required access."
+  },
+  {
+    "question": "What is the role of a planner agent?",
+    "options": [
+      "Store embeddings",
+      "Break a goal into steps or route the task",
+      "Encrypt databases",
+      "Generate invoices manually"
+    ],
+    "answerIndex": 1,
+    "explanation": "The planner decides the sequence of tasks needed to achieve the user's goal.",
+    "topic": "Agents and MCP",
+    "difficulty": "easy",
+    "hint": "Think decomposition."
+  },
+  {
+    "question": "What is the role of a validator in an agent workflow?",
+    "options": [
+      "Check tool inputs, outputs, rules, and policy compliance",
+      "Create a new model",
+      "Replace IAM",
+      "Increase GPU memory"
+    ],
+    "answerIndex": 0,
+    "explanation": "Validators reduce errors by checking results before the workflow continues.",
+    "topic": "Agents and MCP",
+    "difficulty": "easy",
+    "hint": "It checks correctness and safety."
+  },
+  {
+    "question": "Which information should be logged for agent traceability?",
+    "options": [
+      "Only the final answer",
+      "Prompt, tool calls, observations, approvals, and final outcome",
+      "Only the user's name",
+      "Only the tool name"
+    ],
+    "answerIndex": 1,
+    "explanation": "A complete trace is needed to understand how the agent reached and executed its outcome.",
+    "topic": "Agents and MCP",
+    "difficulty": "medium",
+    "hint": "Think end-to-end audit."
+  },
+  {
+    "question": "What is a fallback in agent orchestration?",
+    "options": [
+      "A backup path when a tool or model fails",
+      "A new user interface",
+      "A permanent deletion rule",
+      "A vector embedding"
+    ],
+    "answerIndex": 0,
+    "explanation": "Fallbacks help the system degrade safely when a dependency fails.",
+    "topic": "Agents and MCP",
+    "difficulty": "easy",
+    "hint": "Backup behavior."
+  },
+  {
+    "question": "True or False: Enterprise agents should be presented as fully autonomous systems with no controls.",
+    "options": [
+      "True",
+      "False"
+    ],
+    "answerIndex": 1,
+    "explanation": "Enterprise agents should be governed through permissions, validation, approvals, and observability.",
+    "topic": "Agents and MCP",
+    "difficulty": "easy",
+    "hint": "Autonomy must be bounded."
+  },
+  {
+    "question": "What does RAG stand for?",
+    "options": [
+      "Retrieval-Augmented Generation",
+      "Response Automation Gateway",
+      "Runtime Agent Governance",
+      "Relational Access Graph"
+    ],
+    "answerIndex": 0,
+    "explanation": "RAG grounds an LLM using retrieved enterprise information at runtime.",
+    "topic": "RAG",
+    "difficulty": "easy",
+    "hint": "Expand the acronym."
+  },
+  {
+    "question": "Why is RAG used?",
+    "options": [
+      "To increase slide size",
+      "To provide the LLM with current and relevant enterprise context",
+      "To replace all databases",
+      "To remove the need for security"
+    ],
+    "answerIndex": 1,
+    "explanation": "RAG connects the model to approved enterprise knowledge without retraining the base model.",
+    "topic": "RAG",
+    "difficulty": "easy",
+    "hint": "Think grounding."
+  },
+  {
+    "question": "What happens during ingestion in a RAG system?",
+    "options": [
+      "Documents are parsed, chunked, tagged, embedded, and indexed",
+      "Only the final answer is stored",
+      "The model is always fine-tuned",
+      "Users are removed"
+    ],
+    "answerIndex": 0,
+    "explanation": "Ingestion prepares enterprise data for retrieval.",
+    "topic": "RAG",
+    "difficulty": "easy",
+    "hint": "Prepare content before search."
+  },
+  {
+    "question": "What is chunking?",
+    "options": [
+      "Splitting content into retrievable sections",
+      "Deleting old users",
+      "Reducing GPU voltage",
+      "Changing the model license"
+    ],
+    "answerIndex": 0,
+    "explanation": "Chunking breaks documents into meaningful sections that can be indexed and retrieved.",
+    "topic": "RAG",
+    "difficulty": "easy",
+    "hint": "Divide documents for retrieval."
+  },
+  {
+    "question": "Why is metadata important in RAG?",
+    "options": [
+      "It adds colors to the UI",
+      "It supports filtering by tenant, role, date, document type, and version",
+      "It reduces all model errors automatically",
+      "It replaces embeddings"
+    ],
+    "answerIndex": 1,
+    "explanation": "Metadata adds enterprise context and governance to retrieval.",
+    "topic": "RAG",
+    "difficulty": "easy",
+    "hint": "Think filtering and control."
+  },
+  {
+    "question": "What is query rewriting?",
+    "options": [
+      "Changing a user query to improve retrieval",
+      "Changing document ownership",
+      "Deleting search logs",
+      "Renaming the model"
+    ],
+    "answerIndex": 0,
+    "explanation": "Query rewriting can add synonyms, expand acronyms, or split complex questions.",
+    "topic": "RAG",
+    "difficulty": "medium",
+    "hint": "Improve the search input."
+  },
+  {
+    "question": "Why should access filtering occur before context reaches the LLM?",
+    "options": [
+      "To prevent unauthorized content from being retrieved or used",
+      "To increase animation speed",
+      "To change the model size",
+      "To reduce slide count"
+    ],
+    "answerIndex": 0,
+    "explanation": "Retrieval must respect the user's permissions before the content is assembled for generation.",
+    "topic": "RAG",
+    "difficulty": "easy",
+    "hint": "Security before generation."
+  },
+  {
+    "question": "What is reranking?",
+    "options": [
+      "Reordering retrieved candidates using a stronger relevance model",
+      "Changing user roles",
+      "Compressing the LLM",
+      "Removing all metadata"
+    ],
+    "answerIndex": 0,
+    "explanation": "Reranking improves which retrieved chunks are sent to the LLM.",
+    "topic": "RAG",
+    "difficulty": "medium",
+    "hint": "Second-stage relevance improvement."
+  },
+  {
+    "question": "What is context packing?",
+    "options": [
+      "Selecting and organizing the best retrieved evidence within the prompt limit",
+      "Encrypting files",
+      "Training a vector model",
+      "Moving data to tape"
+    ],
+    "answerIndex": 0,
+    "explanation": "Context packing removes duplicates and fits the most relevant evidence into the model's context window.",
+    "topic": "RAG",
+    "difficulty": "medium",
+    "hint": "The model has limited prompt space."
+  },
+  {
+    "question": "What should a RAG system do if it finds no reliable evidence?",
+    "options": [
+      "Invent a confident answer",
+      "Return a safe no-answer or escalation response",
+      "Delete the user account",
+      "Call every tool available"
+    ],
+    "answerIndex": 1,
+    "explanation": "Safe degradation is better than hallucinating when evidence is missing.",
+    "topic": "RAG",
+    "difficulty": "easy",
+    "hint": "No evidence means no guess."
+  },
+  {
+    "question": "What improves citation quality?",
+    "options": [
+      "Keeping source page and section metadata",
+      "Using only larger fonts",
+      "Removing document versions",
+      "Ignoring retrieved chunks"
+    ],
+    "answerIndex": 0,
+    "explanation": "Page, section, and chunk provenance allow the answer to reference the correct evidence.",
+    "topic": "RAG",
+    "difficulty": "easy",
+    "hint": "Preserve provenance."
+  },
+  {
+    "question": "Which statement is correct?",
+    "options": [
+      "RAG quality depends only on the LLM",
+      "RAG quality depends on parsing, chunking, metadata, retrieval, reranking, and evaluation",
+      "RAG removes the need for data quality",
+      "RAG always needs full fine-tuning"
+    ],
+    "answerIndex": 1,
+    "explanation": "The complete pipeline determines RAG quality.",
+    "topic": "RAG",
+    "difficulty": "easy",
+    "hint": "Think end-to-end pipeline."
+  },
+  {
+    "question": "A scanned table is parsed incorrectly. Which RAG stage is most likely responsible?",
+    "options": [
+      "Document parsing/OCR",
+      "Model licensing",
+      "User authentication only",
+      "GPU cooling"
+    ],
+    "answerIndex": 0,
+    "explanation": "Poor OCR or table extraction can corrupt the content before retrieval.",
+    "topic": "RAG",
+    "difficulty": "medium",
+    "hint": "The problem starts before search."
+  },
+  {
+    "question": "What does a vector database store?",
+    "options": [
+      "Only images",
+      "Embeddings and related metadata",
+      "Only passwords",
+      "Only SQL joins"
+    ],
+    "answerIndex": 1,
+    "explanation": "Vector databases store numeric embeddings used for semantic similarity search.",
+    "topic": "Vector DB and Search",
+    "difficulty": "easy",
+    "hint": "Think semantic representations."
+  },
+  {
+    "question": "What is an embedding?",
+    "options": [
+      "A numeric representation of meaning",
+      "A compressed video file",
+      "A user role",
+      "A network port"
+    ],
+    "answerIndex": 0,
+    "explanation": "Embeddings map content into vectors so semantically similar items can be found.",
+    "topic": "Vector DB and Search",
+    "difficulty": "easy",
+    "hint": "Meaning converted into numbers."
+  },
+  {
+    "question": "Which search is best for exact policy IDs?",
+    "options": [
+      "Keyword search",
+      "Semantic search only",
+      "Random search",
+      "Image search"
+    ],
+    "answerIndex": 0,
+    "explanation": "Exact identifiers are usually retrieved best through lexical or keyword search.",
+    "topic": "Vector DB and Search",
+    "difficulty": "easy",
+    "hint": "Exact terms need exact matching."
+  },
+  {
+    "question": "Which search is best when wording differs but meaning is similar?",
+    "options": [
+      "Semantic search",
+      "Filename sorting",
+      "Manual browsing only",
+      "Exact string search only"
+    ],
+    "answerIndex": 0,
+    "explanation": "Semantic search finds content based on meaning, even when the wording differs.",
+    "topic": "Vector DB and Search",
+    "difficulty": "easy",
+    "hint": "Think similar meaning."
+  },
+  {
+    "question": "What is hybrid search?",
+    "options": [
+      "A combination of keyword and semantic retrieval",
+      "A mix of public and private cloud only",
+      "A type of encryption",
+      "A GPU configuration"
+    ],
+    "answerIndex": 0,
+    "explanation": "Hybrid search combines lexical precision and semantic recall.",
+    "topic": "Vector DB and Search",
+    "difficulty": "easy",
+    "hint": "Use both exact words and meaning."
+  },
+  {
+    "question": "Why is hybrid search useful in enterprises?",
+    "options": [
+      "Business queries often mix concepts with exact codes or names",
+      "It removes all need for metadata",
+      "It always costs less than any other method",
+      "It prevents all hallucinations"
+    ],
+    "answerIndex": 0,
+    "explanation": "Enterprise questions may contain both natural-language intent and exact identifiers.",
+    "topic": "Vector DB and Search",
+    "difficulty": "medium",
+    "hint": "Think policy ID plus natural language."
+  },
+  {
+    "question": "What does top-k mean in retrieval?",
+    "options": [
+      "The number of highest-ranked candidates returned",
+      "The number of users in the system",
+      "The number of model layers",
+      "The total GPU count"
+    ],
+    "answerIndex": 0,
+    "explanation": "Top-k controls how many candidate chunks are selected by retrieval.",
+    "topic": "Vector DB and Search",
+    "difficulty": "easy",
+    "hint": "How many results are kept."
+  },
+  {
+    "question": "What is a namespace commonly used for?",
+    "options": [
+      "Separating tenants or collections",
+      "Changing model tone",
+      "Creating audio files",
+      "Generating passwords"
+    ],
+    "answerIndex": 0,
+    "explanation": "Namespaces help isolate data across business units, applications, or tenants.",
+    "topic": "Vector DB and Search",
+    "difficulty": "easy",
+    "hint": "Think logical separation."
+  },
+  {
+    "question": "Why is re-indexing sometimes required?",
+    "options": [
+      "An embedding model or document corpus has changed",
+      "The slide theme changed",
+      "A user changed password",
+      "The presenter changed voice"
+    ],
+    "answerIndex": 0,
+    "explanation": "Changes to embeddings or source data may require index rebuilds or updates.",
+    "topic": "Vector DB and Search",
+    "difficulty": "medium",
+    "hint": "Indexes follow data and embedding changes."
+  },
+  {
+    "question": "What is a risk of duplicate chunks?",
+    "options": [
+      "They can crowd out more relevant evidence",
+      "They automatically improve accuracy",
+      "They increase IAM security",
+      "They reduce storage to zero"
+    ],
+    "answerIndex": 0,
+    "explanation": "Duplicate content can dominate the top results and reduce retrieval diversity.",
+    "topic": "Vector DB and Search",
+    "difficulty": "medium",
+    "hint": "Repeated results can reduce quality."
+  },
+  {
+    "question": "Why must deletion propagate to the vector index?",
+    "options": [
+      "To respect retention and removal policies",
+      "To increase model size",
+      "To improve presentation quality",
+      "To avoid all API calls"
+    ],
+    "answerIndex": 0,
+    "explanation": "Deleting only the source document is insufficient if its embeddings remain retrievable.",
+    "topic": "Vector DB and Search",
+    "difficulty": "medium",
+    "hint": "Deleted source should not remain searchable."
+  },
+  {
+    "question": "What is a golden test set?",
+    "options": [
+      "A curated set of questions with expected sources and answers",
+      "A premium model license",
+      "A special GPU",
+      "A design template"
+    ],
+    "answerIndex": 0,
+    "explanation": "Golden test sets provide repeatable evaluation for retrieval and answer quality.",
+    "topic": "Evaluation and Observability",
+    "difficulty": "easy",
+    "hint": "Think benchmark questions."
+  },
+  {
+    "question": "What does recall@k measure?",
+    "options": [
+      "Whether relevant evidence appears within the top k results",
+      "Total number of users",
+      "GPU temperature",
+      "Average slide duration"
+    ],
+    "answerIndex": 0,
+    "explanation": "Recall@k checks if the correct evidence was retrieved among the candidate results.",
+    "topic": "Evaluation and Observability",
+    "difficulty": "medium",
+    "hint": "Did the right source appear?"
+  },
+  {
+    "question": "What does MRR mainly evaluate?",
+    "options": [
+      "How highly the first relevant result is ranked",
+      "How many models are running",
+      "How large the vector database is",
+      "How many users logged in"
+    ],
+    "answerIndex": 0,
+    "explanation": "Mean Reciprocal Rank rewards systems that rank relevant evidence near the top.",
+    "topic": "Evaluation and Observability",
+    "difficulty": "medium",
+    "hint": "Focus on rank position."
+  },
+  {
+    "question": "What is groundedness?",
+    "options": [
+      "Whether the answer is supported by retrieved evidence",
+      "Whether the server is in a basement",
+      "Whether the UI uses green color",
+      "Whether the model is open source"
+    ],
+    "answerIndex": 0,
+    "explanation": "Groundedness measures alignment between generated claims and evidence.",
+    "topic": "Evaluation and Observability",
+    "difficulty": "easy",
+    "hint": "Evidence supports the answer."
+  },
+  {
+    "question": "Which change should trigger regression testing?",
+    "options": [
+      "Changing the embedding model",
+      "Changing a user's profile picture",
+      "Renaming a slide",
+      "Changing office seating"
+    ],
+    "answerIndex": 0,
+    "explanation": "Embedding, reranking, prompting, model, or index changes can affect retrieval quality.",
+    "topic": "Evaluation and Observability",
+    "difficulty": "easy",
+    "hint": "Changes to the AI pipeline need tests."
+  },
+  {
+    "question": "What should online monitoring capture?",
+    "options": [
+      "Query, retrieved chunks, scores, model version, latency, and guardrail flags",
+      "Only the final answer",
+      "Only the username",
+      "Only the slide number"
+    ],
+    "answerIndex": 0,
+    "explanation": "Rich telemetry is needed for debugging, quality review, and audit.",
+    "topic": "Evaluation and Observability",
+    "difficulty": "easy",
+    "hint": "Capture the full trace."
+  },
+  {
+    "question": "What is a no-answer rate?",
+    "options": [
+      "The percentage of queries where the system cannot provide supported evidence",
+      "The number of GPUs offline",
+      "The number of slides skipped",
+      "The number of passwords reset"
+    ],
+    "answerIndex": 0,
+    "explanation": "No-answer rate helps understand coverage and retrieval limitations.",
+    "topic": "Evaluation and Observability",
+    "difficulty": "medium",
+    "hint": "How often the system safely declines."
+  },
+  {
+    "question": "Why should a RAG pilot not be approved based only on a good demo?",
+    "options": [
+      "Because repeatable retrieval, security, citation, and latency must also be tested",
+      "Because demos are never useful",
+      "Because only model size matters",
+      "Because users should not see the system"
+    ],
+    "answerIndex": 0,
+    "explanation": "Production readiness requires measurable quality and control, not only visual success.",
+    "topic": "Evaluation and Observability",
+    "difficulty": "easy",
+    "hint": "A demo is not evidence of reliability."
+  },
+  {
+    "question": "What does retrieval drift mean?",
+    "options": [
+      "Retrieval quality changes after data, embeddings, or indexes evolve",
+      "The server physically moves",
+      "The user changes departments",
+      "The slide changes order"
+    ],
+    "answerIndex": 0,
+    "explanation": "Retrieval performance can degrade as data or models change over time.",
+    "topic": "Evaluation and Observability",
+    "difficulty": "medium",
+    "hint": "Quality can shift over time."
+  },
+  {
+    "question": "Which storage is best suited for raw documents?",
+    "options": [
+      "Object storage",
+      "Vector DB only",
+      "GPU memory",
+      "Prompt template"
+    ],
+    "answerIndex": 0,
+    "explanation": "Raw PDFs, images, and files are commonly stored in object storage.",
+    "topic": "Data and Architecture",
+    "difficulty": "easy",
+    "hint": "Think file storage."
+  },
+  {
+    "question": "Which retrieval method is best for live account balances?",
+    "options": [
+      "SQL or API query",
+      "Static vector search only",
+      "Manual PDF search",
+      "Model fine-tuning"
+    ],
+    "answerIndex": 0,
+    "explanation": "Live structured values should usually come from governed systems of record through SQL or APIs.",
+    "topic": "Data and Architecture",
+    "difficulty": "easy",
+    "hint": "Use the source of truth."
+  },
+  {
+    "question": "Why should not all enterprise questions use vector search?",
+    "options": [
+      "Different data shapes require SQL, API, keyword, graph, or hybrid approaches",
+      "Vector search is always illegal",
+      "Vector search only works offline",
+      "Vector search cannot store metadata"
+    ],
+    "answerIndex": 0,
+    "explanation": "Retrieval should match the structure and freshness requirements of the data.",
+    "topic": "Data and Architecture",
+    "difficulty": "medium",
+    "hint": "Choose retrieval by data type."
+  },
+  {
+    "question": "In a private LLM reference architecture, where do agents and tools belong?",
+    "options": [
+      "Application and orchestration layer",
+      "Only the storage layer",
+      "Only the UI layer",
+      "Only the GPU driver"
+    ],
+    "answerIndex": 0,
+    "explanation": "Agents, sessions, workflows, and tools are managed in the orchestration layer.",
+    "topic": "Data and Architecture",
+    "difficulty": "easy",
+    "hint": "Think workflow control."
+  },
+  {
+    "question": "What is ZGrid primarily used for?",
+    "options": [
+      "Runtime governance, safety, and responsible AI controls",
+      "GPU manufacturing",
+      "Document scanning only",
+      "User interface animation"
+    ],
+    "answerIndex": 0,
+    "explanation": "ZGrid adds controls such as hallucination checks, jailbreak protection, data masking, and auditability.",
+    "topic": "ZGrid",
+    "difficulty": "easy",
+    "hint": "Think AI control plane."
+  },
+  {
+    "question": "What is prompt injection?",
+    "options": [
+      "Malicious or hidden instructions designed to override system behavior",
+      "A method of adding RAM",
+      "A type of file compression",
+      "A database backup"
+    ],
+    "answerIndex": 0,
+    "explanation": "Prompt injection attempts to manipulate the model through untrusted instructions.",
+    "topic": "ZGrid",
+    "difficulty": "easy",
+    "hint": "Think hidden malicious instructions."
+  },
+  {
+    "question": "What is a jailbreak attempt?",
+    "options": [
+      "An attempt to bypass model safety or policy controls",
+      "A server restart",
+      "A user logout",
+      "A document upload"
+    ],
+    "answerIndex": 0,
+    "explanation": "Jailbreaks try to force the model to ignore restrictions.",
+    "topic": "ZGrid",
+    "difficulty": "easy",
+    "hint": "Bypass safety rules."
+  },
+  {
+    "question": "What should happen if the model output contains PHI that should not leave the private environment?",
+    "options": [
+      "Mask or block it according to policy",
+      "Send it to every user",
+      "Store it in a public log",
+      "Ignore it"
+    ],
+    "answerIndex": 0,
+    "explanation": "Sensitive health information must be controlled through detection, masking, and policy enforcement.",
+    "topic": "ZGrid",
+    "difficulty": "easy",
+    "hint": "Protect sensitive health data."
+  },
+  {
+    "question": "Which control is most relevant before a risky tool action?",
+    "options": [
+      "Approval gate and schema validation",
+      "Larger font size",
+      "Extra embeddings",
+      "New slide transition"
+    ],
+    "answerIndex": 0,
+    "explanation": "High-risk actions should be checked against policy and approved before execution.",
+    "topic": "ZGrid",
+    "difficulty": "easy",
+    "hint": "Validate before action."
+  },
+  {
+    "question": "Which deployment pattern is fastest for a low-risk pilot?",
+    "options": [
+      "Public API with guardrails",
+      "Air-gapped on-prem",
+      "Full model training",
+      "Private data center expansion"
+    ],
+    "answerIndex": 0,
+    "explanation": "A public API is usually fastest for low-sensitivity experimentation.",
+    "topic": "Deployment and Fitment",
+    "difficulty": "easy",
+    "hint": "Choose speed over control for low risk."
+  },
+  {
+    "question": "Which deployment pattern offers maximum isolation?",
+    "options": [
+      "On-premises or air-gapped",
+      "Public consumer chatbot",
+      "Open internet API",
+      "Shared trial account"
+    ],
+    "answerIndex": 0,
+    "explanation": "On-premises and air-gapped environments provide the strongest infrastructure isolation.",
+    "topic": "Deployment and Fitment",
+    "difficulty": "easy",
+    "hint": "Think strictest control."
+  },
+  {
+    "question": "What is a hybrid LLM deployment?",
+    "options": [
+      "A mix of private and external model usage based on sensitivity or workload",
+      "A model with two screens",
+      "A vector DB with no metadata",
+      "A system without governance"
+    ],
+    "answerIndex": 0,
+    "explanation": "Hybrid patterns route sensitive tasks privately while allowing selected non-sensitive tasks to use external services.",
+    "topic": "Deployment and Fitment",
+    "difficulty": "easy",
+    "hint": "Mix deployment modes."
+  },
+  {
+    "question": "Which input is important for GPU sizing?",
+    "options": [
+      "Peak concurrency",
+      "Number of slide colors",
+      "Presenter name",
+      "Office location only"
+    ],
+    "answerIndex": 0,
+    "explanation": "Concurrency, token volume, context length, precision, and model size affect GPU needs.",
+    "topic": "Deployment and Fitment",
+    "difficulty": "easy",
+    "hint": "How many users at once?"
+  },
+  {
+    "question": "Why is context length important for sizing?",
+    "options": [
+      "Longer contexts require more memory and compute",
+      "It changes the user's password",
+      "It reduces document count automatically",
+      "It controls network cables"
+    ],
+    "answerIndex": 0,
+    "explanation": "Larger context windows increase memory use and inference cost.",
+    "topic": "Deployment and Fitment",
+    "difficulty": "medium",
+    "hint": "More tokens need more resources."
+  },
+  {
+    "question": "When is private LLM a weak fit?",
+    "options": [
+      "Generic low-volume tasks with no sensitive data or integration need",
+      "Regulated workflows",
+      "Strict audit requirements",
+      "Sensitive enterprise knowledge"
+    ],
+    "answerIndex": 0,
+    "explanation": "Private deployment may not justify its cost and complexity for simple, low-risk tasks.",
+    "topic": "Deployment and Fitment",
+    "difficulty": "easy",
+    "hint": "Avoid overengineering."
+  },
+  {
+    "question": "Which is an infrastructure risk in private LLM projects?",
+    "options": [
+      "GPU capacity and high availability",
+      "Document font style",
+      "Meeting room booking",
+      "Slide page number"
+    ],
+    "answerIndex": 0,
+    "explanation": "Private deployments require capacity, scaling, uptime, and disaster recovery planning.",
+    "topic": "Deployment and Fitment",
+    "difficulty": "easy",
+    "hint": "Think operational infrastructure."
+  },
+  {
+    "question": "Which is a data risk in private LLM projects?",
+    "options": [
+      "Stale documents and weak metadata",
+      "Too many animations",
+      "Large office space",
+      "Fast internet browsing"
+    ],
+    "answerIndex": 0,
+    "explanation": "Poor data quality and governance directly reduce retrieval reliability.",
+    "topic": "Deployment and Fitment",
+    "difficulty": "easy",
+    "hint": "Think bad inputs."
+  },
+  {
+    "question": "What is the best sales behavior when private LLM is not justified?",
+    "options": [
+      "Recommend a simpler architecture",
+      "Force an on-prem deployment",
+      "Hide the costs",
+      "Promise perfect accuracy"
+    ],
+    "answerIndex": 0,
+    "explanation": "Responsible qualification builds trust and reduces delivery risk.",
+    "topic": "Deployment and Fitment",
+    "difficulty": "easy",
+    "hint": "Sell responsibly."
+  },
+  {
+    "question": "Who is most concerned with network isolation, IAM, and threat models?",
+    "options": [
+      "CISO",
+      "Marketing manager",
+      "Graphic designer",
+      "Receptionist"
+    ],
+    "answerIndex": 0,
+    "explanation": "The CISO focuses on security architecture, access, risk, and controls.",
+    "topic": "Stakeholders and Presales",
+    "difficulty": "easy",
+    "hint": "Think security leader."
+  },
+  {
+    "question": "Who usually owns business value and ROI for a use case?",
+    "options": [
+      "Business function head",
+      "Only the database",
+      "Only the model vendor",
+      "Only the UI designer"
+    ],
+    "answerIndex": 0,
+    "explanation": "Business leaders typically own process outcomes, adoption, and ROI.",
+    "topic": "Stakeholders and Presales",
+    "difficulty": "easy",
+    "hint": "Who owns the business process?"
+  },
+  {
+    "question": "Who is most likely to discuss metadata, lineage, and source quality?",
+    "options": [
+      "Data or analytics head",
+      "Facilities team",
+      "Brand designer",
+      "Travel desk"
+    ],
+    "answerIndex": 0,
+    "explanation": "Data leaders focus on data readiness, ownership, quality, and governance.",
+    "topic": "Stakeholders and Presales",
+    "difficulty": "easy",
+    "hint": "Think data ownership."
+  },
+  {
+    "question": "What should happen first in a technical presales engagement?",
+    "options": [
+      "Discovery of the business problem and expected outcome",
+      "Purchase GPUs immediately",
+      "Train a model without data",
+      "Build every integration"
+    ],
+    "answerIndex": 0,
+    "explanation": "Discovery ensures the solution is tied to a real problem and measurable result.",
+    "topic": "Stakeholders and Presales",
+    "difficulty": "easy",
+    "hint": "Start with the problem."
+  },
+  {
+    "question": "What is the purpose of a data assessment?",
+    "options": [
+      "Evaluate sources, quality, sensitivity, volume, and readiness",
+      "Choose slide colors",
+      "Select office furniture",
+      "Write marketing slogans"
+    ],
+    "answerIndex": 0,
+    "explanation": "Data assessment determines whether the use case is feasible and what architecture is required.",
+    "topic": "Stakeholders and Presales",
+    "difficulty": "easy",
+    "hint": "Check data before design."
+  },
+  {
+    "question": "What should a PoC include?",
+    "options": [
+      "Clear scope, sample data, metrics, and acceptance criteria",
+      "Only a demo login",
+      "Only a large model",
+      "No measurable outcome"
+    ],
+    "answerIndex": 0,
+    "explanation": "A good PoC is testable and tied to defined success criteria.",
+    "topic": "Stakeholders and Presales",
+    "difficulty": "easy",
+    "hint": "Make it measurable."
+  },
+  {
+    "question": "Which is a good 90-day success metric?",
+    "options": [
+      "Reduce document processing time by 40%",
+      "Use the biggest model possible",
+      "Create more slides",
+      "Add more colors to the UI"
+    ],
+    "answerIndex": 0,
+    "explanation": "Success metrics should describe measurable business outcomes.",
+    "topic": "Stakeholders and Presales",
+    "difficulty": "easy",
+    "hint": "Choose a business result."
+  },
+  {
+    "question": "Which use case best fits a private knowledge assistant?",
+    "options": [
+      "Answering employee policy questions using approved internal documents",
+      "Generating random jokes",
+      "Changing monitor brightness",
+      "Creating public weather data"
+    ],
+    "answerIndex": 0,
+    "explanation": "Private knowledge assistants combine enterprise retrieval, access control, and citations.",
+    "topic": "Use Cases",
+    "difficulty": "easy",
+    "hint": "Think internal knowledge."
+  },
+  {
+    "question": "Which use case best demonstrates agentic workflow value?",
+    "options": [
+      "Read a request, check CRM, update a ticket, and seek approval",
+      "Display a static PDF",
+      "Change a slide title",
+      "Store a password in a note"
+    ],
+    "answerIndex": 0,
+    "explanation": "Agentic value comes from orchestrating multiple steps and tools under controls.",
+    "topic": "Use Cases",
+    "difficulty": "easy",
+    "hint": "Look for multi-step action."
+  },
+  {
+    "question": "What is the recommended demo storyline?",
+    "options": [
+      "Pain point \u2192 data boundary \u2192 retrieval evidence \u2192 governed action \u2192 controls \u2192 measurable outcome",
+      "Model size \u2192 logo \u2192 pricing only",
+      "Start with infrastructure details and end without business value",
+      "Show random features with no use case"
+    ],
+    "answerIndex": 0,
+    "explanation": "A strong demo links the client problem to architecture, evidence, controls, and measurable results.",
+    "topic": "Use Cases",
+    "difficulty": "medium",
+    "hint": "Tell a complete business-to-technology story."
+  }
+]

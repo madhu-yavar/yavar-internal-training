@@ -6,6 +6,8 @@ type Question = {
   answerIndex: number;
   explanation: string;
   topic: string;
+  hint?: string;
+  difficulty?: string;
 };
 
 type Participant = { name: string; employeeId: string; email: string };
@@ -40,6 +42,7 @@ export function TrainingQuiz({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Record<number, number>>({});
+  const [hintsShown, setHintsShown] = useState<Record<number, boolean>>({});
   const [submitted, setSubmitted] = useState(false);
   const [current, setCurrent] = useState(0);
 
@@ -47,6 +50,7 @@ export function TrainingQuiz({ onClose }: { onClose: () => void }) {
     setLoading(true);
     setError(null);
     setAnswers({});
+    setHintsShown({});
     setSubmitted(false);
     setCurrent(0);
     try {
@@ -242,27 +246,104 @@ export function TrainingQuiz({ onClose }: { onClose: () => void }) {
               <h3 className="mt-4 text-lg font-semibold text-slate-100">
                 {q.question}
               </h3>
+
+              {(() => {
+                const answered = answers[current] !== undefined;
+                const hintShown = hintsShown[current];
+                if (answered || !q.hint) return null;
+                return (
+                  <div className="mt-3">
+                    {hintShown ? (
+                      <div className="rounded-md border border-sky-400/30 bg-sky-500/10 px-3 py-2 text-xs text-sky-100">
+                        💡 <span className="font-semibold">Hint:</span> {q.hint}
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() =>
+                          setHintsShown((h) => ({ ...h, [current]: true }))
+                        }
+                        className="rounded-md border border-sky-400/30 bg-sky-500/10 px-3 py-1 text-xs text-sky-200 hover:bg-sky-500/20"
+                      >
+                        💡 Show hint
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
+
               <div className="mt-4 space-y-2">
                 {q.options.map((opt, i) => {
                   const chosen = answers[current] === i;
+                  const answered = answers[current] !== undefined;
+                  const isCorrect = i === q.answerIndex;
+                  let cls =
+                    "border-white/10 bg-white/5 text-slate-200 hover:bg-white/10";
+                  if (answered) {
+                    if (isCorrect)
+                      cls =
+                        "border-emerald-400 bg-emerald-500/15 text-emerald-100";
+                    else if (chosen)
+                      cls = "border-rose-400 bg-rose-500/15 text-rose-100";
+                    else cls = "border-white/5 bg-white/0 text-slate-400";
+                  } else if (chosen) {
+                    cls = "border-amber-400 bg-amber-500/15 text-amber-100";
+                  }
                   return (
                     <button
                       key={i}
-                      onClick={() => setAnswers((a) => ({ ...a, [current]: i }))}
-                      className={`w-full rounded-lg border px-4 py-3 text-left text-sm transition ${
-                        chosen
-                          ? "border-amber-400 bg-amber-500/15 text-amber-100"
-                          : "border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
+                      disabled={answered}
+                      onClick={() =>
+                        setAnswers((a) => ({ ...a, [current]: i }))
+                      }
+                      className={`w-full rounded-lg border px-4 py-3 text-left text-sm transition ${cls} ${
+                        answered ? "cursor-default" : ""
                       }`}
                     >
                       <span className="mr-2 font-semibold">
                         {String.fromCharCode(65 + i)}.
                       </span>
                       {opt}
+                      {answered && isCorrect && (
+                        <span className="ml-2 text-xs">✓ correct</span>
+                      )}
+                      {answered && chosen && !isCorrect && (
+                        <span className="ml-2 text-xs">✗ your pick</span>
+                      )}
                     </button>
                   );
                 })}
               </div>
+
+              {answers[current] !== undefined && (
+                <div
+                  className={`mt-4 rounded-lg border p-3 text-sm ${
+                    answers[current] === q.answerIndex
+                      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-100"
+                      : "border-rose-500/40 bg-rose-500/10 text-rose-100"
+                  }`}
+                >
+                  <div className="font-semibold">
+                    {answers[current] === q.answerIndex
+                      ? "✅ Correct!"
+                      : "❌ Not quite — let's learn this one"}
+                  </div>
+                  {answers[current] !== q.answerIndex && (
+                    <div className="mt-1 text-xs text-slate-200">
+                      Correct answer:{" "}
+                      <span className="font-semibold text-emerald-200">
+                        {String.fromCharCode(65 + q.answerIndex)}.{" "}
+                        {q.options[q.answerIndex]}
+                      </span>
+                    </div>
+                  )}
+                  {q.explanation && (
+                    <div className="mt-2 text-xs leading-relaxed text-slate-100/90">
+                      📘 {q.explanation}
+                    </div>
+                  )}
+                </div>
+              )}
+
 
               <div className="mt-6 flex items-center justify-between">
                 <button
