@@ -415,13 +415,21 @@ function CoursePlayer() {
 }
 
 function CourseQuiz({ quiz, courseTitle, onClose }: { quiz: Quiz[]; courseTitle: string; onClose: () => void }) {
+  const sampled = useMemo(() => {
+    const arr = [...quiz];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr.slice(0, Math.min(20, arr.length));
+  }, [quiz]);
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [hintsShown, setHintsShown] = useState<Record<number, boolean>>({});
   const [submitted, setSubmitted] = useState(false);
-  const q = quiz[current];
-  const score = quiz.reduce((acc, item, i) => acc + (answers[i] === correctIndex(item.correct) ? 1 : 0), 0);
-  const pct = quiz.length ? Math.round((score / quiz.length) * 100) : 0;
+  const q = sampled[current];
+  const score = sampled.reduce((acc, item, i) => acc + (answers[i] === correctIndex(item.correct) ? 1 : 0), 0);
+  const pct = sampled.length ? Math.round((score / sampled.length) * 100) : 0;
 
   if (!q) return null;
   const options = [q.option_a, q.option_b, q.option_c, q.option_d].filter((o): o is string => !!o);
