@@ -171,9 +171,10 @@ function AdminHome() {
                       to="/admin/courses/$courseId"
                       params={{ courseId: c.id }}
                       title="Edit course"
-                      className="rounded-md border border-slate-600 bg-slate-800/80 px-2 py-1 text-[11px] text-slate-100 hover:bg-slate-700"
+                      aria-label="Edit course"
+                      className="grid h-8 w-8 place-items-center rounded-md border border-slate-600 bg-slate-800/80 text-slate-100 hover:bg-slate-700"
                     >
-                      ✏️ Edit
+                      ✏️
                     </Link>
                     <button
                       onClick={async (e) => {
@@ -185,9 +186,10 @@ function AdminHome() {
                         setCourses((cs) => cs.filter((x) => x.id !== c.id));
                       }}
                       title="Delete course"
-                      className="rounded-md border border-rose-500/40 bg-rose-500/15 px-2 py-1 text-[11px] text-rose-100 hover:bg-rose-500/30"
+                      aria-label="Delete course"
+                      className="grid h-8 w-8 place-items-center rounded-md border border-rose-500/40 bg-rose-500/15 text-rose-100 hover:bg-rose-500/30"
                     >
-                      🗑 Delete
+                      🗑
                     </button>
                   </div>
                 </div>
