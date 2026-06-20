@@ -706,7 +706,7 @@ function QuizSection({
 
   function downloadTemplate() {
     const ws = XLSX.utils.aoa_to_sheet([
-      ["prompt", "option_a", "option_b", "option_c", "option_d", "correct", "explanation", "topic", "difficulty"],
+      ["prompt", "option_a", "option_b", "option_c", "option_d", "correct", "explanation", "hint", "topic", "difficulty"],
       [
         "What does RAG stand for?",
         "Retrieval-Augmented Generation",
@@ -715,6 +715,7 @@ function QuizSection({
         "Recursive Algo Graph",
         "A",
         "RAG combines retrieval with generation.",
+        "Think 'retrieve then generate'.",
         "AI",
         "easy",
       ],
