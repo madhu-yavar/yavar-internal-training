@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthCtx } from "@/lib/auth-context";
 import { MessageAdminDialog } from "@/components/MessageAdminDialog";
+import { BrandFooter } from "@/components/BrandFooter";
+import yavarLogo from "@/assets/yavar-logo.png.asset.json";
 
 type Course = {
   id: string;
