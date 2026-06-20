@@ -12,7 +12,7 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
-type Mode = "signin" | "forgot";
+type Mode = "signin" | "signup" | "forgot";
 
 function AuthPage() {
   const navigate = useNavigate();
@@ -43,6 +43,20 @@ function AuthPage() {
     } else {
       navigate({ to: "/learn" });
     }
+  };
+
+  const signUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErr(null); setMsg(null); setLoading(true);
+    const { error } = await supabase.auth.signUp({
+      email: email.trim().toLowerCase(),
+      password,
+      options: { emailRedirectTo: `${window.location.origin}/learn` },
+    });
+    setLoading(false);
+    if (error) { setErr(error.message); return; }
+    setMsg("Account created. You can sign in now.");
+    setMode("signin");
   };
 
   const sendReset = async (e: React.FormEvent) => {

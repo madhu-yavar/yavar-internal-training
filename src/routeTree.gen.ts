@@ -15,7 +15,6 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiTtsRouteImport } from './routes/api/tts'
-import { Route as ApiSeedAdminRouteImport } from './routes/api/seed-admin'
 import { Route as ApiQuizRouteImport } from './routes/api/quiz'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedLearnRouteImport } from './routes/_authenticated/learn'
@@ -50,11 +49,6 @@ const IndexRoute = IndexRouteImport.update({
 const ApiTtsRoute = ApiTtsRouteImport.update({
   id: '/api/tts',
   path: '/api/tts',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiSeedAdminRoute = ApiSeedAdminRouteImport.update({
-  id: '/api/seed-admin',
-  path: '/api/seed-admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiQuizRoute = ApiQuizRouteImport.update({
@@ -100,7 +94,6 @@ export interface FileRoutesByFullPath {
   '/learn': typeof AuthenticatedLearnRouteWithChildren
   '/api/chat': typeof ApiChatRoute
   '/api/quiz': typeof ApiQuizRoute
-  '/api/seed-admin': typeof ApiSeedAdminRoute
   '/api/tts': typeof ApiTtsRoute
   '/learn/$courseId': typeof AuthenticatedLearnCourseIdRoute
 }
@@ -114,7 +107,6 @@ export interface FileRoutesByTo {
   '/learn': typeof AuthenticatedLearnRouteWithChildren
   '/api/chat': typeof ApiChatRoute
   '/api/quiz': typeof ApiQuizRoute
-  '/api/seed-admin': typeof ApiSeedAdminRoute
   '/api/tts': typeof ApiTtsRoute
   '/learn/$courseId': typeof AuthenticatedLearnCourseIdRoute
 }
@@ -130,7 +122,6 @@ export interface FileRoutesById {
   '/_authenticated/learn': typeof AuthenticatedLearnRouteWithChildren
   '/api/chat': typeof ApiChatRoute
   '/api/quiz': typeof ApiQuizRoute
-  '/api/seed-admin': typeof ApiSeedAdminRoute
   '/api/tts': typeof ApiTtsRoute
   '/_authenticated/learn/$courseId': typeof AuthenticatedLearnCourseIdRoute
 }
@@ -146,7 +137,6 @@ export interface FileRouteTypes {
     | '/learn'
     | '/api/chat'
     | '/api/quiz'
-    | '/api/seed-admin'
     | '/api/tts'
     | '/learn/$courseId'
   fileRoutesByTo: FileRoutesByTo
@@ -160,7 +150,6 @@ export interface FileRouteTypes {
     | '/learn'
     | '/api/chat'
     | '/api/quiz'
-    | '/api/seed-admin'
     | '/api/tts'
     | '/learn/$courseId'
   id:
@@ -175,7 +164,6 @@ export interface FileRouteTypes {
     | '/_authenticated/learn'
     | '/api/chat'
     | '/api/quiz'
-    | '/api/seed-admin'
     | '/api/tts'
     | '/_authenticated/learn/$courseId'
   fileRoutesById: FileRoutesById
@@ -188,7 +176,6 @@ export interface RootRouteChildren {
   TrainingRoute: typeof TrainingRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiQuizRoute: typeof ApiQuizRoute
-  ApiSeedAdminRoute: typeof ApiSeedAdminRoute
   ApiTtsRoute: typeof ApiTtsRoute
 }
 
@@ -234,13 +221,6 @@ declare module '@tanstack/react-router' {
       path: '/api/tts'
       fullPath: '/api/tts'
       preLoaderRoute: typeof ApiTtsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/seed-admin': {
-      id: '/api/seed-admin'
-      path: '/api/seed-admin'
-      fullPath: '/api/seed-admin'
-      preLoaderRoute: typeof ApiSeedAdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/quiz': {
@@ -322,7 +302,6 @@ const rootRouteChildren: RootRouteChildren = {
   TrainingRoute: TrainingRoute,
   ApiChatRoute: ApiChatRoute,
   ApiQuizRoute: ApiQuizRoute,
-  ApiSeedAdminRoute: ApiSeedAdminRoute,
   ApiTtsRoute: ApiTtsRoute,
 }
 export const routeTree = rootRouteImport
