@@ -18,8 +18,8 @@ async function getPdfjs() {
   // dynamic import — pdfjs is heavy and only needed in the admin upload flow
   const pdfjs = await import("pdfjs-dist");
   const worker = await import("pdfjs-dist/build/pdf.worker.mjs?url");
-  // @ts-expect-error - worker src is set globally
-  pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
+  (pdfjs as unknown as { GlobalWorkerOptions: { workerSrc: string } }).GlobalWorkerOptions.workerSrc =
+    worker.default;
   return pdfjs;
 }
 
