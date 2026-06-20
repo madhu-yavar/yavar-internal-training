@@ -23,21 +23,47 @@ ANSWERING POLICY
 ${CORPUS}
 === END MATERIAL ===`;
 
+type CourseCtx = {
+  title?: string;
+  slides?: { i: number; title: string; notes: string }[];
+};
+
 export const Route = createFileRoute("/api/chat")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const { messages } = (await request.json()) as { messages?: unknown };
+        const body = (await request.json()) as { messages?: unknown; course?: CourseCtx };
+        const { messages, course } = body;
         if (!Array.isArray(messages)) {
           return new Response("Messages are required", { status: 400 });
         }
         const key = process.env.LOVABLE_API_KEY;
         if (!key) return new Response("Missing LOVABLE_API_KEY", { status: 500 });
 
+        // Build the per-course system prompt when a course context is passed in;
+        // otherwise fall back to the original Enterprise-AI deck corpus.
+        let system = SYSTEM;
+        if (course?.slides?.length) {
+          const corpus = course.slides
+            .map((s) => `### Slide ${s.i}: ${s.title}\n${s.notes}`)
+            .join("\n\n");
+          system = `You are "Ari", a warm, sharp AI learning coach for the course "${course.title ?? "this course"}".
+
+ANSWERING POLICY
+1. Ground your answers in the training material below whenever the topic is covered. Cite slides like (Slide 3) when you do.
+2. You MAY go beyond the deck for in-domain context the learner asks about — prefix that with "Beyond the deck:" so it's clear.
+3. If a question is clearly outside the course's subject area, politely decline in ONE line and suggest a relevant in-scope question.
+4. Be concise, technical, practical. Prefer short bullets, bold key terms, and small tables when helpful. Use markdown.
+
+=== TRAINING MATERIAL ===
+${corpus}
+=== END MATERIAL ===`;
+        }
+
         const gateway = createLovableAiGatewayProvider(key);
         const result = streamText({
           model: gateway("google/gemini-3-flash-preview"),
-          system: SYSTEM,
+          system,
           messages: await convertToModelMessages(messages as UIMessage[]),
         });
 

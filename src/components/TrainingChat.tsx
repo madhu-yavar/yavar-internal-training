@@ -12,10 +12,26 @@ const SUGGESTIONS = [
   { icon: "⚙️", text: "vLLM vs Ollama vs TGI for serving" },
 ];
 
-export function TrainingChat({ currentSlide }: { currentSlide?: number }) {
+type CourseCtx = {
+  title: string;
+  slides: { i: number; title: string; notes: string }[];
+};
+
+export function TrainingChat({
+  currentSlide,
+  course,
+}: {
+  currentSlide?: number;
+  course?: CourseCtx;
+}) {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
-  const transport = useRef(new DefaultChatTransport({ api: "/api/chat" })).current;
+  const transport = useRef(
+    new DefaultChatTransport({
+      api: "/api/chat",
+      body: course ? { course } : undefined,
+    }),
+  ).current;
   const { messages, sendMessage, setMessages, status, error, stop } = useChat({ transport });
   const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
