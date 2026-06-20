@@ -305,6 +305,13 @@ function CoursePlayer() {
             >
               {musicOn ? "🎵 On" : "🎵 Music"}
             </button>
+            <button
+              onClick={() => setMsgOpen(true)}
+              title="Suggest a correction to this course"
+              className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-white/10"
+            >
+              ✏️ Suggest correction
+            </button>
           </div>
         </div>
       </header>
