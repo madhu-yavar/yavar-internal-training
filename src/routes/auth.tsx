@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -6,17 +6,19 @@ export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
       { title: "Sign in — Yavar Training" },
-      { name: "description", content: "Sign in with a one-time code sent to your email." },
+      { name: "description", content: "Sign in to access your training courses." },
     ],
   }),
   component: AuthPage,
 });
 
+type Mode = "signin" | "forgot";
+
 function AuthPage() {
   const navigate = useNavigate();
+  const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
-  const [stage, setStage] = useState<"email" | "code">("email");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -27,43 +29,77 @@ function AuthPage() {
     });
   }, [navigate]);
 
-  const sendCode = async (e: React.FormEvent) => {
+  const signIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setErr(null); setMsg(null); setLoading(true);
-    const { error } = await supabase.auth.signInWithOtp({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: email.trim().toLowerCase(),
-      options: { shouldCreateUser: true },
+      password,
     });
     setLoading(false);
     if (error) { setErr(error.message); return; }
-    setMsg("We sent a 6-digit code to your email.");
-    setStage("code");
+    if (data.user?.user_metadata?.must_change_password) {
+      navigate({ to: "/change-password" });
+    } else {
+      navigate({ to: "/learn" });
+    }
   };
 
-  const verifyCode = async (e: React.FormEvent) => {
+  const sendReset = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErr(null); setLoading(true);
-    const { error } = await supabase.auth.verifyOtp({
-      email: email.trim().toLowerCase(),
-      token: code.trim(),
-      type: "email",
+    setErr(null); setMsg(null); setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+      redirectTo: `${window.location.origin}/reset-password`,
     });
     setLoading(false);
     if (error) { setErr(error.message); return; }
-    navigate({ to: "/learn" });
+    setMsg("If that email exists, a password reset link has been sent.");
   };
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center px-4">
       <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900/60 p-8 shadow-2xl">
         <div className="text-xs uppercase tracking-[0.25em] text-amber-400 mb-2">Yavar Training</div>
-        <h1 className="text-2xl font-semibold mb-1">Sign in</h1>
+        <h1 className="text-2xl font-semibold mb-1">
+          {mode === "signin" ? "Sign in" : "Reset password"}
+        </h1>
         <p className="text-sm text-slate-400 mb-6">
-          {stage === "email" ? "Enter your email — we'll send a one-time code." : `Enter the code sent to ${email}.`}
+          {mode === "signin"
+            ? "Use your email and password."
+            : "We'll send a password reset link to your email."}
         </p>
 
-        {stage === "email" ? (
-          <form onSubmit={sendCode} className="space-y-4">
+        {mode === "signin" ? (
+          <form onSubmit={signIn} className="space-y-4">
+            <input
+              type="email" required value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              autoComplete="email"
+              className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 focus:border-amber-400 focus:outline-none"
+            />
+            <input
+              type="password" required value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password"
+              autoComplete="current-password"
+              className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 focus:border-amber-400 focus:outline-none"
+            />
+            <button
+              disabled={loading}
+              className="w-full rounded-md bg-amber-500 px-4 py-2 font-semibold text-slate-900 hover:bg-amber-400 disabled:opacity-50"
+            >
+              {loading ? "Signing in…" : "Sign in"}
+            </button>
+            <button
+              type="button" onClick={() => { setMode("forgot"); setErr(null); setMsg(null); }}
+              className="w-full text-sm text-slate-400 hover:text-amber-300"
+            >
+              Forgot password?
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={sendReset} className="space-y-4">
             <input
               type="email" required value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -74,34 +110,23 @@ function AuthPage() {
               disabled={loading}
               className="w-full rounded-md bg-amber-500 px-4 py-2 font-semibold text-slate-900 hover:bg-amber-400 disabled:opacity-50"
             >
-              {loading ? "Sending…" : "Send code"}
-            </button>
-          </form>
-        ) : (
-          <form onSubmit={verifyCode} className="space-y-4">
-            <input
-              inputMode="numeric" pattern="[0-9]*" required value={code}
-              onChange={(e) => setCode(e.target.value)}
-              placeholder="6-digit code"
-              className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-center tracking-[0.5em] text-slate-100 focus:border-amber-400 focus:outline-none"
-            />
-            <button
-              disabled={loading}
-              className="w-full rounded-md bg-amber-500 px-4 py-2 font-semibold text-slate-900 hover:bg-amber-400 disabled:opacity-50"
-            >
-              {loading ? "Verifying…" : "Verify & sign in"}
+              {loading ? "Sending…" : "Send reset link"}
             </button>
             <button
-              type="button" onClick={() => { setStage("email"); setCode(""); setMsg(null); }}
-              className="w-full text-sm text-slate-400 hover:text-slate-200"
+              type="button" onClick={() => { setMode("signin"); setErr(null); setMsg(null); }}
+              className="w-full text-sm text-slate-400 hover:text-amber-300"
             >
-              Use a different email
+              Back to sign in
             </button>
           </form>
         )}
 
         {msg && <p className="mt-4 text-sm text-emerald-400">{msg}</p>}
         {err && <p className="mt-4 text-sm text-rose-400">{err}</p>}
+
+        <p className="mt-6 text-center text-xs text-slate-500">
+          <Link to="/" className="hover:text-slate-300">← Back to home</Link>
+        </p>
       </div>
     </div>
   );

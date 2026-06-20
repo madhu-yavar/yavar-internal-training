@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useNavigate, useLocation } from "@tanstack/react-router";
 import { useEffect, useState, createContext, useContext } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +18,7 @@ export const Route = createFileRoute("/_authenticated")({
 
 function AuthedLayout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [state, setState] = useState<AuthCtx | "loading" | "anon">("loading");
 
   useEffect(() => {
@@ -39,11 +40,17 @@ function AuthedLayout() {
         user: u.user,
         isAdmin: !!roles?.some((r) => r.role === "admin"),
       });
+      if (
+        u.user.user_metadata?.must_change_password &&
+        location.pathname !== "/change-password"
+      ) {
+        navigate({ to: "/change-password" });
+      }
     })();
     return () => {
       mounted = false;
     };
-  }, [navigate]);
+  }, [navigate, location.pathname]);
 
   if (state === "loading" || state === "anon") {
     return (
