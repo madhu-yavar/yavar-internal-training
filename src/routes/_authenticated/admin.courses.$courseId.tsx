@@ -175,8 +175,10 @@ function CourseEditor() {
         <SlidesSection
           courseId={courseId}
           courseTitle={course.title}
+          courseDescription={course.description}
           slides={slides}
           signedImages={signedImages}
+          onSaveCourse={saveCourse}
           onChanged={reload}
           setErr={setErr}
         />
