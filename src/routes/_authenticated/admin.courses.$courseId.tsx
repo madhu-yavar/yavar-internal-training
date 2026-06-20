@@ -1,8 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import * as XLSX from "xlsx";
 import { useAuthCtx } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { COURSE_BUCKET, getSignedUrl } from "@/lib/storage";
+import { parseDeck, type ParsedSlide } from "@/lib/deckParser";
+import { generateNarrations } from "@/lib/narration.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/courses/$courseId")({
   component: CourseEditor,
