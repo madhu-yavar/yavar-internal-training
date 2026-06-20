@@ -1,25 +1,9 @@
 import { createFileRoute, Outlet, useNavigate, useLocation } from "@tanstack/react-router";
-import { useEffect, useState, createContext, useContext } from "react";
-import type { User } from "@supabase/supabase-js";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { AuthCtx, type AuthState } from "@/lib/auth-context";
 
-type AuthCtx = { user: User; isAdmin: boolean } | null;
-const Ctx = createContext<{ value: AuthCtx; ready: boolean }>({ value: null, ready: false });
-
-export function useAuthCtx() {
-  const { value, ready } = useContext(Ctx);
-  if (!ready || !value) {
-    // Safe fallback during loading — components should also handle this
-    return { user: null as unknown as User, isAdmin: false, _loading: true } as unknown as {
-      user: User; isAdmin: boolean;
-    };
-  }
-  return value;
-}
-
-export function useAuthReady() {
-  return useContext(Ctx).ready;
-}
+export { useAuthCtx, useAuthReady } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/_authenticated")({
   component: AuthedLayout,
@@ -28,7 +12,7 @@ export const Route = createFileRoute("/_authenticated")({
 function AuthedLayout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [state, setState] = useState<{ value: AuthCtx; ready: boolean }>({ value: null, ready: false });
+  const [state, setState] = useState<AuthState>({ value: null, ready: false });
 
   useEffect(() => {
     let mounted = true;
@@ -46,11 +30,7 @@ function AuthedLayout() {
         .eq("user_id", u.user.id);
       if (!mounted) return;
       const isAdmin = !!roles?.some((r) => r.role === "admin");
-      console.log("[auth-layout] user:", u.user.email, "roles:", roles, "isAdmin:", isAdmin);
-      setState({
-        value: { user: u.user, isAdmin },
-        ready: true,
-      });
+      setState({ value: { user: u.user, isAdmin }, ready: true });
       if (
         u.user.user_metadata?.must_change_password &&
         location.pathname !== "/change-password"
@@ -80,8 +60,8 @@ function AuthedLayout() {
   }
 
   return (
-    <Ctx.Provider value={state}>
+    <AuthCtx.Provider value={state}>
       <Outlet />
-    </Ctx.Provider>
+    </AuthCtx.Provider>
   );
 }
