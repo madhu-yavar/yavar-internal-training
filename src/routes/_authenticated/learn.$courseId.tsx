@@ -421,7 +421,17 @@ function CoursePlayer() {
           </ol>
         </aside>
       </main>
-      {quizOpen && <CourseQuiz quiz={quiz} courseTitle={course.title} onClose={() => setQuizOpen(false)} />}
+      {quizOpen && <CourseQuiz quiz={quiz} courseTitle={course.title} courseId={courseId} userId={user?.id ?? null} onClose={() => setQuizOpen(false)} />}
+      {user?.id && (
+        <MessageAdminDialog
+          open={msgOpen}
+          onClose={() => setMsgOpen(false)}
+          userId={user.id}
+          courseId={courseId}
+          defaultType="correction"
+          defaultSubject={`Correction for "${course.title}" (slide ${idx + 1})`}
+        />
+      )}
       <TrainingChat
         currentSlide={idx + 1}
         course={{
@@ -439,7 +449,7 @@ function CoursePlayer() {
   );
 }
 
-function CourseQuiz({ quiz, courseTitle, onClose }: { quiz: Quiz[]; courseTitle: string; onClose: () => void }) {
+function CourseQuiz({ quiz, courseTitle, courseId, userId, onClose }: { quiz: Quiz[]; courseTitle: string; courseId: string; userId: string | null; onClose: () => void }) {
   const sampled = useMemo(() => {
     const arr = [...quiz];
     for (let i = arr.length - 1; i > 0; i--) {
