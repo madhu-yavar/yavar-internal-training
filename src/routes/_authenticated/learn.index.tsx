@@ -40,6 +40,14 @@ function LearnDashboard() {
   const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(true);
   const [msgOpen, setMsgOpen] = useState(false);
+  const [unreadReplies, setUnreadReplies] = useState(0);
+
+  const seenKey = user?.id ? `ari_replies_seen_${user.id}` : "";
+  const markRepliesSeen = () => {
+    if (!seenKey) return;
+    localStorage.setItem(seenKey, new Date().toISOString());
+    setUnreadReplies(0);
+  };
 
   useEffect(() => {
     if (!user?.id) return;
