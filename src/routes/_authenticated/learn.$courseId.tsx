@@ -209,6 +209,10 @@ function CoursePlayer() {
     musicRef.current?.setVolume(speaking ? 0.012 : 0.05);
   }, [speaking]);
 
+  useEffect(() => {
+    playerRef.current?.setRate(speed);
+  }, [speed]);
+
   const togglePlay = () => {
     startedRef.current = true;
     if (playing) {
