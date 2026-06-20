@@ -246,7 +246,7 @@ function CoursePlayer() {
     );
   }
 
-  const imageUrl = slide.image_url ? signedImages[slide.image_url] || slide.image_url : null;
+  void signedImages;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
