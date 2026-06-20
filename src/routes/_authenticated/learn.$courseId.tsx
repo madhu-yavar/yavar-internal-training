@@ -61,9 +61,11 @@ const ACCENT_BG: Record<string, string> = {
 
 function CoursePlayer() {
   const { courseId } = Route.useParams();
+  const { user } = useAuthCtx();
   const [course, setCourse] = useState<Course | null>(null);
   const [slides, setSlides] = useState<Slide[]>([]);
   const [cues, setCues] = useState<Cue[]>([]);
+  const [msgOpen, setMsgOpen] = useState(false);
   const [quiz, setQuiz] = useState<Quiz[]>([]);
   const [signedImages, setSignedImages] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
