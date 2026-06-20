@@ -1,77 +1,53 @@
+# Plan: Rebrand + Learner Experience
 
-# End-to-End Training Platform Plan
+## 1. Rebrand
 
-You picked the full build. Because that's large, I'll deliver it in 3 sequential turns so each piece is verifiable. This plan covers all 3.
+Rename product from "Yavar Training" to **"Ari Learn"** (Ari is already our in-course AI tutor — keeps the brand coherent).
 
----
+- Update landing page (`src/routes/index.tsx`) with meaningful hero: headline, subhead, 3 feature blurbs (AI-narrated slides, Ari tutor chat, adaptive quizzes), CTA buttons (Sign in / Browse courses), footer.
+- Update titles/meta in `__root.tsx` and route `head()` blocks.
+- Update header brand text on auth, learn dashboard, admin.
 
-## Turn 1 — Foundation: Cloud, Auth, Roles, Schema, Shells
+> **"Yavar Learn with Ari"**
 
-**Backend (Lovable Cloud)**
-- Enable Cloud.
-- Configure Auth: email OTP (magic-link / 6-digit code) for `madhugraj@gmail.com`.
-- Migration creates:
-  - `app_role` enum (`admin`, `user`), `user_roles` table + `has_role()` security-definer function.
-  - `courses` (id, title, description, cover_url, voice, lang_code, published, created_at).
-  - `slides` (id, course_id, idx, title, body_md, image_url, narration_text).
-  - `srt_cues` (id, course_id, idx, start_ms, end_ms, text) — optional per slide.
-  - `quiz_questions` (id, course_id, prompt, option_a..d, correct, explanation, hint, topic, difficulty).
-  - `enrollments` (user_id, course_id, started_at, completed_at, last_slide_idx, score).
-  - `slide_views` (user_id, course_id, slide_idx, viewed_at) for progress analytics.
-  - Storage buckets: `course-assets` (public, for slide images / covers), `course-uploads` (private, for raw pdf/pptx/srt/json originals).
-- RLS: admins full access via `has_role`; users read published courses + own enrollments/views.
-- Trigger: auto-seed admin role for `madhugraj@gmail.com` on first signup.
+## 2. Learner Login & Dashboard
 
-**Frontend**
-- Route tree:
-  - `/auth` — email OTP login (public).
-  - `/` — public landing → if signed in, redirect to `/learn`.
-  - `/_authenticated/learn` — user dashboard, grid of course cards.
-  - `/_authenticated/learn/$courseId` — learning player (current training UI, but data-driven from DB).
-  - `/_authenticated/_admin/admin` — admin dashboard (gated by `has_role('admin')`).
-  - `/_authenticated/_admin/admin/courses/$courseId` — course editor.
-- Reuse current training player; swap hardcoded chapters/slides/quiz for DB fetches.
+The auth flow already exists. We'll enrich the post-login experience on `/learn`:
 
-**Deliverable end of Turn 1:** Admin can log in, see empty admin shell; users can sign up; existing training still works (kept as a seeded "AI Enterprise Private LLM" course).
+**Course cards show per-user status**, computed from existing tables:
 
----
+- `Not started` → no `slide_views` rows
+- `In progress X%` → `count(distinct slide_views.slide_id) / total_slides`
+- `Completed` → all slides viewed AND at least one quiz attempt ≥ pass mark
+- Best quiz score badge
 
-## Turn 2 — Admin Content Tools
+## 3. Quiz Retakes + Attempt History
 
-- Course editor: create/edit course metadata, voice (Yavar voices), publish toggle, cover image upload.
-- Slide manager: upload knowledge-base slide images (drag-drop, reorder, per-slide title + narration text). This matches your "knowledge base slide will be uploaded by the admin" preference — admin uploads pre-rendered slide images (PNG/JPG) like the current training deck.
-- Optional bulk import: ZIP of images named `01.png`, `02.png`… auto-creates slides.
-- SRT upload: parses `.srt` into `srt_cues` (drives captions + per-slide pacing).
-- Quiz upload: accepts the same XLSX/JSON format you've been using; previews questions before save.
-- Voice model picker per course (Yavar self-hosted endpoint + voice + speed defaults).
+- New table `quiz_attempts` (user_id, course_id, score, total, taken_at) with RLS (user reads/writes own; admin reads all).
+- After quiz submit → insert attempt row.
+- Show "Best: 17/20 · Attempts: 4 · Retake" on course card and quiz screen.
+- Unlimited retakes; each draws a fresh random 20.
 
-**Deliverable end of Turn 2:** Admin can build a complete course from uploaded slide images + SRT + quiz XLSX. Users immediately see it on `/learn`.
+## 4. Message Admin (Requests / Corrections)
 
----
+- New table `course_requests` (id, user_id, course_id nullable, type: `new_course`|`correction`|`question`, subject, body, status: `open`|`responded`|`closed`, admin_reply, created_at).
+- RLS: user inserts/reads own; admin reads all + updates status/reply.
+- Learner UI:
+  - "💬 Message Ari Team" button on dashboard → modal with type + subject + message.
+  - Inside a course → "Suggest a correction" prefilled with course id.
+  - "My requests" panel showing status + admin reply.
+- Admin UI:
+  - New `/admin/requests` page listing all requests with filters, reply box, mark resolved.
 
-## Turn 3 — Auto-Play Video & Analytics
+## 5. Technical notes
 
-- "Video" generation = in-browser auto-play of slide deck with synchronized Yavar TTS narration, captions from SRT, advance on sentence end. Single "Play full lesson" button on the course card produces the lecture experience without rendering an MP4 (matches your choice).
-- Per-slide reveal cards already supported; quiz at the end; remediation on wrong answers (already built).
-- Progress tracking:
-  - Log `slide_views` per slide; mark `enrollments.completed_at` when last slide + quiz done.
-  - Save quiz score.
-- Admin analytics dashboard:
-  - Total enrolled / completed per course.
-  - Completion rate, average score, average time to complete.
-  - Per-user table: status, % progress, last activity, score.
-  - Charts via Recharts (already in stack).
+- Tables added via migration with GRANTs + RLS using existing `has_role(uid,'admin')`.
+- Progress computed via a single `getLearnerDashboard` server fn (`requireSupabaseAuth`) returning `{courses, progress, attempts, openRequests}` to avoid N+1.
+- Quiz attempt insert via server fn; admin reply via server fn checking `has_role`.
+- No changes to slides/SRT/TTS pipeline.
 
-**Deliverable end of Turn 3:** Full loop — admin publishes a course, users take it, admin sees real-time progress.
+## Out of scope (ask if you want them)
 
----
-
-## Open assumptions (tell me if any are wrong before I start Turn 1)
-
-1. "Knowledge base slide" = pre-rendered slide images uploaded by admin (PNG/JPG), one per slide, in order. Not parsing the raw PPT/PDF on the server (Worker runtime can't run LibreOffice/Poppler).
-2. OTP = Supabase email magic-link / 6-digit code. No password.
-3. First admin = `madhugraj@gmail.com` (auto-promoted on signup via DB trigger). Additional admins promoted from inside the admin panel.
-4. Existing hardcoded training stays accessible as a seeded course so nothing breaks during migration.
-5. No SSO, no payments, no certificates this round.
-
-If those are right, I'll start with Turn 1 next.
+- Certificates / PDF completion proof
+- Email notifications when admin replies
+- Leaderboards
