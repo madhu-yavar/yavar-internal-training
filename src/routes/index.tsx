@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import yavarLogo from "@/assets/yavar-logo.png.asset.json";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -31,13 +33,14 @@ function Index() {
       {/* Header */}
       <header className="border-b border-white/5">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
-          <div className="flex items-center gap-2">
-            <div className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-amber-400 to-rose-400 text-sm font-bold text-slate-900">A</div>
-            <div>
-              <div className="text-sm font-semibold leading-none">Yavar Learn</div>
+          <div className="flex items-center gap-3">
+            <img src={yavarLogo.url} alt="Yavar" className="h-8 w-auto" />
+            <div className="hidden sm:block border-l border-white/10 pl-3">
+              <div className="text-sm font-semibold leading-none">Learn</div>
               <div className="text-[10px] uppercase tracking-[0.2em] text-amber-300">with Ari</div>
             </div>
           </div>
+
           <nav className="flex items-center gap-2 text-sm">
             {signedIn ? (
               <Link to="/learn" className="rounded-md bg-amber-500 px-4 py-2 font-semibold text-slate-900 hover:bg-amber-400">Open library →</Link>
@@ -65,9 +68,10 @@ function Index() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-white/5 py-8 text-center text-xs text-slate-500">
-        Yavar Learn · Powered by Ari · © {new Date().getFullYear()}
+      <footer className="border-t border-white/5 py-6 text-center text-xs text-slate-500">
+        Copyright © 2026 Yavar techworks Pte Ltd. All rights reserved.
       </footer>
+
     </div>
   );
 }
