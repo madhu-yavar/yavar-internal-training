@@ -198,6 +198,14 @@ function MetadataSection({ course, onSave }: { course: Course; onSave: (p: Parti
   const [lang, setLang] = useState(course.lang_code);
   const [speed, setSpeed] = useState<number>(course.speed);
 
+  useEffect(() => {
+    setTitle(course.title);
+    setDescription(course.description ?? "");
+    setVoice(course.voice);
+    setLang(course.lang_code);
+    setSpeed(course.speed);
+  }, [course.title, course.description, course.voice, course.lang_code, course.speed]);
+
   return (
     <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
       <h2 className="text-base font-semibold">Course metadata</h2>
