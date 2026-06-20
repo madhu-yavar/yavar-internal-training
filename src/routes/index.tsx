@@ -2,6 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import yavarLogo from "@/assets/yavar-logo.png.asset.json";
+import { BrandFooter } from "@/components/BrandFooter";
+
 
 
 export const Route = createFileRoute("/")({
