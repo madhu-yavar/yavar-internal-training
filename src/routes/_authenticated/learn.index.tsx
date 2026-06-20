@@ -56,15 +56,15 @@ function LearnDashboard() {
       if (ids.length) {
         const [{ data: slides }, { data: views }, { data: attempts }] = await Promise.all([
           supabase.from("slides").select("course_id").in("course_id", ids),
-          supabase.from("slide_views").select("course_id,slide_id").eq("user_id", user.id).in("course_id", ids),
+          supabase.from("slide_views").select("course_id,slide_idx").eq("user_id", user.id).in("course_id", ids),
           supabase.from("quiz_attempts").select("course_id,score,total").eq("user_id", user.id).in("course_id", ids),
         ]);
         const map: Record<string, Stat> = {};
         for (const id of ids) map[id] = { totalSlides: 0, viewedSlides: 0, attempts: 0, bestScore: null, bestTotal: null };
-        (slides ?? []).forEach((s: { course_id: string }) => { map[s.course_id].totalSlides++; });
-        const viewedSets: Record<string, Set<string>> = {};
-        (views ?? []).forEach((v: { course_id: string; slide_id: string }) => {
-          (viewedSets[v.course_id] ||= new Set()).add(v.slide_id);
+        ((slides ?? []) as Array<{ course_id: string }>).forEach((s) => { map[s.course_id].totalSlides++; });
+        const viewedSets: Record<string, Set<number>> = {};
+        ((views ?? []) as Array<{ course_id: string; slide_idx: number }>).forEach((v) => {
+          (viewedSets[v.course_id] ||= new Set()).add(v.slide_idx);
         });
         for (const id of ids) map[id].viewedSlides = viewedSets[id]?.size ?? 0;
         (attempts ?? []).forEach((a: { course_id: string; score: number; total: number }) => {
