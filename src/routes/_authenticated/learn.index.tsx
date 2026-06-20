@@ -10,7 +10,7 @@ type Course = {
   cover_url: string | null;
 };
 
-export const Route = createFileRoute("/_authenticated/learn")({
+export const Route = createFileRoute("/_authenticated/learn/")({
   component: LearnDashboard,
 });
 
