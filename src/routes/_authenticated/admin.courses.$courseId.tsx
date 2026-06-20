@@ -283,15 +283,19 @@ function Field({ label, children, className = "" }: { label: string; children: R
 function SlidesSection({
   courseId,
   courseTitle,
+  courseDescription,
   slides,
   signedImages,
+  onSaveCourse,
   onChanged,
   setErr,
 }: {
   courseId: string;
   courseTitle: string;
+  courseDescription: string | null;
   slides: Slide[];
   signedImages: Record<string, string>;
+  onSaveCourse: (p: Partial<Course>) => Promise<void>;
   onChanged: () => Promise<void>;
   setErr: (s: string | null) => void;
 }) {
@@ -299,6 +303,7 @@ function SlidesSection({
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [autoNarrate, setAutoNarrate] = useState(true);
   const runNarrations = useServerFn(generateNarrations);
+  const runDescription = useServerFn(generateCourseDescription);
 
   async function handleDeck(file: File, replace: boolean) {
     setErr(null);
@@ -306,6 +311,21 @@ function SlidesSection({
     try {
       const parsed: ParsedSlide[] = await parseDeck(file);
       if (parsed.length === 0) throw new Error("No slides found in file.");
+
+      if (!courseDescription?.trim()) {
+        setBusy("Generating course description…");
+        try {
+          const res = await runDescription({
+            data: {
+              courseTitle,
+              slides: parsed.map((p) => ({ title: p.title, bullets: p.bullets })),
+            },
+          });
+          await onSaveCourse({ description: res.description });
+        } catch (e) {
+          console.warn("description failed, continuing without AI", e);
+        }
+      }
 
       // Optional AI narration for slides whose notes are empty
       let aiNarrations: string[] = parsed.map((p) => p.notes);
