@@ -162,6 +162,7 @@ function CourseEditor() {
         <MetadataSection course={course} onSave={saveCourse} />
         <SlidesSection
           courseId={courseId}
+          courseTitle={course.title}
           slides={slides}
           signedImages={signedImages}
           onChanged={reload}
