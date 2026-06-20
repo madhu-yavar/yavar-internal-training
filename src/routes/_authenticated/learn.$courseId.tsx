@@ -336,27 +336,16 @@ function CoursePlayer() {
               </div>
             </div>
 
-            <div className="mt-6 space-y-3">
-              {bullets.length > 0 ? bullets.map((bullet, i) => {
-                const visible = i <= Math.max(0, revealed);
-                const active = i === Math.min(revealed, bullets.length - 1) && speaking;
-                return (
-                  <div
-                    key={i}
-                    className={`rounded-xl border p-4 transition-all duration-500 ${visible ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"} ${active ? "border-amber-400/60 bg-amber-500/10 shadow-lg shadow-amber-500/10" : "border-white/10 bg-slate-950/55"}`}
-                    style={{ transitionDelay: `${i * 80}ms` }}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className={`mt-1 grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-bold ${active ? "bg-amber-400 text-slate-900" : "bg-white/10 text-amber-200"}`}>{i + 1}</div>
-                      <div className="text-[15px] leading-relaxed text-slate-100">{bullet}</div>
-                    </div>
-                  </div>
-                );
-              }) : (
-                <div className="rounded-xl border border-white/10 bg-slate-950/55 p-4 text-sm leading-relaxed text-slate-200">
-                  {stripGeneratedMaterial(slide.body_md) || currentLine}
-                </div>
-              )}
+            <div className="mt-6">
+              <LearningScene
+                slideIdx={idx}
+                title={slide.title}
+                bullets={bullets}
+                revealed={revealed}
+                speaking={speaking}
+                currentLine={currentLine || stripGeneratedMaterial(slide.body_md) || ""}
+                accent={accent}
+              />
             </div>
           </div>
 
