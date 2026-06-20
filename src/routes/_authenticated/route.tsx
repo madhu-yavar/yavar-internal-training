@@ -45,8 +45,10 @@ function AuthedLayout() {
         .select("role")
         .eq("user_id", u.user.id);
       if (!mounted) return;
+      const isAdmin = !!roles?.some((r) => r.role === "admin");
+      console.log("[auth-layout] user:", u.user.email, "roles:", roles, "isAdmin:", isAdmin);
       setState({
-        value: { user: u.user, isAdmin: !!roles?.some((r) => r.role === "admin") },
+        value: { user: u.user, isAdmin },
         ready: true,
       });
       if (
