@@ -639,34 +639,49 @@ function QuizSection({
     setErr(null);
     setUploading(true);
     try {
-      const text = await file.text();
-      const data = JSON.parse(text);
-      const arr = Array.isArray(data) ? data : data.questions;
-      if (!Array.isArray(arr)) throw new Error("Expected JSON array (or { questions: [...] }).");
-      const rows = arr.map((q: Record<string, unknown>, i: number) => {
-        const prompt = (q.prompt ?? q.question ?? q.q) as string;
-        const opts = (q.options ?? [q.option_a, q.option_b, q.option_c, q.option_d]) as string[];
-        const correctRaw = (q.correct ?? q.answer) as string | number;
-        let correct = "A";
-        if (typeof correctRaw === "number") correct = ["A", "B", "C", "D"][correctRaw] ?? "A";
-        else if (typeof correctRaw === "string") {
-          const t = correctRaw.trim().toUpperCase();
-          correct = ["A", "B", "C", "D"].includes(t) ? t : "A";
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: "array" });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rowsRaw = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
+      if (rowsRaw.length === 0) throw new Error("Spreadsheet has no rows.");
+
+      const pick = (r: Record<string, unknown>, ...keys: string[]) => {
+        for (const k of keys) {
+          for (const actual of Object.keys(r)) {
+            if (actual.trim().toLowerCase() === k.toLowerCase()) {
+              const v = r[actual];
+              if (v !== null && v !== undefined && String(v).trim() !== "") return String(v).trim();
+            }
+          }
         }
-        if (!prompt) throw new Error(`Question ${i + 1} missing prompt.`);
+        return "";
+      };
+
+      const rows = rowsRaw.map((r, i) => {
+        const prompt = pick(r, "prompt", "question", "q");
+        const a = pick(r, "option_a", "a", "optiona");
+        const b = pick(r, "option_b", "b", "optionb");
+        const c = pick(r, "option_c", "c", "optionc");
+        const d = pick(r, "option_d", "d", "optiond");
+        const correctRaw = pick(r, "correct", "answer");
+        const correct = ["A", "B", "C", "D"].includes(correctRaw.toUpperCase())
+          ? correctRaw.toUpperCase()
+          : "A";
+        if (!prompt) throw new Error(`Row ${i + 2}: missing 'prompt' / 'question'.`);
+        if (!a || !b) throw new Error(`Row ${i + 2}: need at least option_a and option_b.`);
         return {
           course_id: courseId,
           idx: i,
           prompt,
-          option_a: opts?.[0] ?? null,
-          option_b: opts?.[1] ?? null,
-          option_c: opts?.[2] ?? null,
-          option_d: opts?.[3] ?? null,
+          option_a: a || null,
+          option_b: b || null,
+          option_c: c || null,
+          option_d: d || null,
           correct,
-          explanation: (q.explanation ?? null) as string | null,
-          hint: (q.hint ?? null) as string | null,
-          topic: (q.topic ?? null) as string | null,
-          difficulty: (q.difficulty ?? null) as string | null,
+          explanation: pick(r, "explanation", "rationale") || null,
+          hint: pick(r, "hint") || null,
+          topic: pick(r, "topic", "category") || null,
+          difficulty: pick(r, "difficulty", "level") || null,
         };
       });
       await supabase.from("quiz_questions").delete().eq("course_id", courseId);
@@ -680,6 +695,26 @@ function QuizSection({
     }
   }
 
+  function downloadTemplate() {
+    const ws = XLSX.utils.aoa_to_sheet([
+      ["prompt", "option_a", "option_b", "option_c", "option_d", "correct", "explanation", "topic", "difficulty"],
+      [
+        "What does RAG stand for?",
+        "Retrieval-Augmented Generation",
+        "Random Access Grid",
+        "Rapid AI Gateway",
+        "Recursive Algo Graph",
+        "A",
+        "RAG combines retrieval with generation.",
+        "AI",
+        "easy",
+      ],
+    ]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Quiz");
+    XLSX.writeFile(wb, "quiz-template.xlsx");
+  }
+
   async function clearQuiz() {
     if (!confirm("Delete all quiz questions?")) return;
     const { error } = await supabase.from("quiz_questions").delete().eq("course_id", courseId);
@@ -689,9 +724,20 @@ function QuizSection({
 
   return (
     <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
-      <div className="flex items-center justify-between">
-        <h2 className="text-base font-semibold">Quiz ({quiz.length} questions)</h2>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 className="text-base font-semibold">Quiz ({quiz.length} questions)</h2>
+          <p className="mt-1 text-xs text-slate-500">
+            Upload an Excel (.xlsx) with columns: <code className="text-slate-300">prompt, option_a, option_b, option_c, option_d, correct, explanation</code>.
+          </p>
+        </div>
         <div className="flex gap-2">
+          <button
+            onClick={downloadTemplate}
+            className="rounded-md border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
+          >
+            Download template
+          </button>
           {quiz.length > 0 && (
             <button
               onClick={clearQuiz}
@@ -701,10 +747,10 @@ function QuizSection({
             </button>
           )}
           <label className="cursor-pointer rounded-md bg-amber-500 px-3 py-1.5 text-sm font-medium text-slate-950 hover:bg-amber-400">
-            {uploading ? "Importing…" : "Upload quiz JSON"}
+            {uploading ? "Importing…" : "Upload .xlsx"}
             <input
               type="file"
-              accept="application/json,.json"
+              accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
               className="hidden"
               disabled={uploading}
               onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
@@ -712,19 +758,7 @@ function QuizSection({
           </label>
         </div>
       </div>
-      <details className="mt-2 text-xs text-slate-400">
-        <summary className="cursor-pointer">Expected JSON format</summary>
-        <pre className="mt-2 overflow-x-auto rounded bg-slate-950 p-3 text-[11px] text-slate-300">{`[
-  {
-    "prompt": "What is RAG?",
-    "options": ["Retrieval-Augmented Generation", "Random Access Grid", "Rapid AI Gateway", "None"],
-    "correct": "A",
-    "explanation": "RAG combines retrieval with generation.",
-    "topic": "AI",
-    "difficulty": "easy"
-  }
-]`}</pre>
-      </details>
+
 
       {quiz.length > 0 && (
         <ol className="mt-3 space-y-2 text-sm">
