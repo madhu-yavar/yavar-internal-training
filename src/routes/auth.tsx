@@ -97,7 +97,7 @@ function AuthPage() {
           {mode === "signin"
             ? "Use your email and password."
             : mode === "signup"
-            ? "Pick a password (8+ characters)."
+            ? "Use your official work email (public providers like gmail/yahoo are not allowed). Password must be 8+ characters."
             : "We'll send a password reset link to your email."}
         </p>
 
