@@ -203,6 +203,8 @@ function AuthPage() {
           <Link to="/" className="hover:text-slate-300">← Back to home</Link>
         </p>
       </div>
+      </div>
+      <BrandFooter />
     </div>
   );
 }
