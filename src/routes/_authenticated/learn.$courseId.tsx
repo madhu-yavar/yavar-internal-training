@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AIAvatar } from "@/components/AIAvatar";
+import { TrainingChat } from "@/components/TrainingChat";
 import { supabase } from "@/integrations/supabase/client";
 import { AmbientMusic } from "@/lib/ambientMusic";
 import { bindCuesToSlides, formatMs, narrationSentences, readGeneratedSegments, slideBullets, stripGeneratedMaterial, type TimedSegment } from "@/lib/courseMaterial";
@@ -410,6 +411,19 @@ function CoursePlayer() {
         </aside>
       </main>
       {quizOpen && <CourseQuiz quiz={quiz} courseTitle={course.title} onClose={() => setQuizOpen(false)} />}
+      <TrainingChat
+        currentSlide={idx + 1}
+        course={{
+          title: course.title,
+          slides: slides.map((s) => ({
+            i: s.idx + 1,
+            title: s.title,
+            notes: [stripGeneratedMaterial(s.body_md), s.narration_text ?? ""]
+              .filter(Boolean)
+              .join("\n\n"),
+          })),
+        }}
+      />
     </div>
   );
 }
