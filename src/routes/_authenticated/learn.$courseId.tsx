@@ -71,6 +71,8 @@ function CoursePlayer() {
   const [completed, setCompleted] = useState(false);
   const [quizOpen, setQuizOpen] = useState(false);
   const [musicOn, setMusicOn] = useState(false);
+  const [voice, setVoice] = useState<string>("shimmer");
+  const [speed, setSpeed] = useState<number>(1);
   const playerRef = useRef<LovableTtsPlayer | null>(null);
   const musicRef = useRef<AmbientMusic | null>(null);
   const cancelledRef = useRef(false);
@@ -96,6 +98,8 @@ function CoursePlayer() {
       }
       const orderedSlides = ((s as Slide[]) ?? []).sort((a, b) => a.idx - b.idx);
       setCourse(c as Course);
+      setVoice(((c as Course).voice && (c as Course).voice !== "default") ? (c as Course).voice : "shimmer");
+      setSpeed((c as Course).speed ?? 1);
       setSlides(orderedSlides);
       setCues((cu as Cue[]) ?? []);
       setQuiz((q as Quiz[]) ?? []);
@@ -143,7 +147,7 @@ function CoursePlayer() {
       }
       const u = new SpeechSynthesisUtterance(text);
       u.lang = "en-US";
-      u.rate = course?.speed ?? 1;
+      u.rate = speed;
       u.pitch = 1.04;
       u.onend = () => resolve();
       u.onerror = () => resolve();
@@ -158,8 +162,8 @@ function CoursePlayer() {
         player.prime();
         playerRef.current = player;
       }
-      player.setRate(course?.speed ?? 1);
-      await player.speak(text, course?.voice === "default" ? "shimmer" : course?.voice ?? "shimmer");
+      player.setRate(speed);
+      await player.speak(text, voice);
     } catch {
       if (!cancelledRef.current) await speakBrowser(text);
     }
@@ -205,6 +209,10 @@ function CoursePlayer() {
     musicRef.current?.setVolume(speaking ? 0.012 : 0.05);
   }, [speaking]);
 
+  useEffect(() => {
+    playerRef.current?.setRate(speed);
+  }, [speed]);
+
   const togglePlay = () => {
     startedRef.current = true;
     if (playing) {
@@ -243,7 +251,31 @@ function CoursePlayer() {
             <Link to="/learn" className="text-[11px] font-semibold text-amber-300 hover:text-amber-200">← Library</Link>
             <h1 className="truncate text-base font-semibold">{course.title}</h1>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            <label className="flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-300">
+              <span className="text-slate-400">Voice</span>
+              <select
+                value={voice}
+                onChange={(e) => setVoice(e.target.value)}
+                className="bg-transparent text-xs text-slate-100 outline-none"
+              >
+                {["alloy","ash","ballad","coral","echo","sage","shimmer","verse"].map((v) => (
+                  <option key={v} value={v} className="bg-slate-900">{v}</option>
+                ))}
+              </select>
+            </label>
+            <label className="flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-300">
+              <span className="text-slate-400">Speed</span>
+              <select
+                value={speed}
+                onChange={(e) => setSpeed(Number(e.target.value))}
+                className="bg-transparent text-xs text-slate-100 outline-none"
+              >
+                {[0.75, 0.9, 1, 1.15, 1.25, 1.5, 1.75, 2].map((s) => (
+                  <option key={s} value={s} className="bg-slate-900">{s}×</option>
+                ))}
+              </select>
+            </label>
             <button
               onClick={() => completed && setQuizOpen(true)}
               disabled={!completed || quiz.length === 0}
@@ -383,13 +415,21 @@ function CoursePlayer() {
 }
 
 function CourseQuiz({ quiz, courseTitle, onClose }: { quiz: Quiz[]; courseTitle: string; onClose: () => void }) {
+  const sampled = useMemo(() => {
+    const arr = [...quiz];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr.slice(0, Math.min(20, arr.length));
+  }, [quiz]);
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [hintsShown, setHintsShown] = useState<Record<number, boolean>>({});
   const [submitted, setSubmitted] = useState(false);
-  const q = quiz[current];
-  const score = quiz.reduce((acc, item, i) => acc + (answers[i] === correctIndex(item.correct) ? 1 : 0), 0);
-  const pct = quiz.length ? Math.round((score / quiz.length) * 100) : 0;
+  const q = sampled[current];
+  const score = sampled.reduce((acc, item, i) => acc + (answers[i] === correctIndex(item.correct) ? 1 : 0), 0);
+  const pct = sampled.length ? Math.round((score / sampled.length) * 100) : 0;
 
   if (!q) return null;
   const options = [q.option_a, q.option_b, q.option_c, q.option_d].filter((o): o is string => !!o);
@@ -410,10 +450,10 @@ function CourseQuiz({ quiz, courseTitle, onClose }: { quiz: Quiz[]; courseTitle:
           {!submitted ? (
             <div>
               <div className="mb-4 flex items-center justify-between text-xs text-slate-400">
-                <span>Question {current + 1} of {quiz.length}</span>
+                <span>Question {current + 1} of {sampled.length}</span>
                 <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-amber-200">{q.topic || q.difficulty || "Quiz"}</span>
               </div>
-              <div className="mb-2 h-1 w-full overflow-hidden rounded-full bg-white/5"><div className="h-full bg-amber-400" style={{ width: `${((current + 1) / quiz.length) * 100}%` }} /></div>
+              <div className="mb-2 h-1 w-full overflow-hidden rounded-full bg-white/5"><div className="h-full bg-amber-400" style={{ width: `${((current + 1) / sampled.length) * 100}%` }} /></div>
               <h3 className="mt-4 text-lg font-semibold text-slate-100">{q.prompt}</h3>
               {!answered && q.hint && (
                 <div className="mt-3">
@@ -432,14 +472,14 @@ function CourseQuiz({ quiz, courseTitle, onClose }: { quiz: Quiz[]; courseTitle:
               {answered && <div className={`mt-4 rounded-lg border p-3 text-sm ${answers[current] === correct ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-100" : "border-rose-500/40 bg-rose-500/10 text-rose-100"}`}><div className="font-semibold">{answers[current] === correct ? "✅ Correct" : "❌ Not quite"}</div>{q.explanation && <div className="mt-2 text-xs leading-relaxed text-slate-100/90">📘 {q.explanation}</div>}</div>}
               <div className="mt-6 flex items-center justify-between">
                 <button disabled={current === 0} onClick={() => setCurrent((c) => Math.max(0, c - 1))} className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-sm disabled:opacity-30 hover:bg-white/10">← Prev</button>
-                <div className="text-xs text-slate-400">Answered: {Object.keys(answers).length}/{quiz.length}</div>
-                {current < quiz.length - 1 ? <button onClick={() => setCurrent((c) => c + 1)} className="rounded-md bg-amber-500 px-4 py-1.5 text-sm font-semibold text-slate-900 hover:bg-amber-400">Next →</button> : <button disabled={Object.keys(answers).length < quiz.length} onClick={() => setSubmitted(true)} className="rounded-md bg-emerald-500 px-4 py-1.5 text-sm font-semibold text-slate-900 disabled:opacity-30 hover:bg-emerald-400">Submit ✓</button>}
+                <div className="text-xs text-slate-400">Answered: {Object.keys(answers).length}/{sampled.length}</div>
+                {current < sampled.length - 1 ? <button onClick={() => setCurrent((c) => c + 1)} className="rounded-md bg-amber-500 px-4 py-1.5 text-sm font-semibold text-slate-900 hover:bg-amber-400">Next →</button> : <button disabled={Object.keys(answers).length < sampled.length} onClick={() => setSubmitted(true)} className="rounded-md bg-emerald-500 px-4 py-1.5 text-sm font-semibold text-slate-900 disabled:opacity-30 hover:bg-emerald-400">Submit ✓</button>}
               </div>
             </div>
           ) : (
             <div className="rounded-xl border border-amber-400/40 bg-gradient-to-br from-amber-500/20 to-amber-500/5 p-6 text-center">
               <div className="text-[11px] uppercase tracking-[0.25em] text-amber-300">Your result</div>
-              <div className="mt-2 text-5xl font-bold text-amber-100">{score}/{quiz.length}</div>
+              <div className="mt-2 text-5xl font-bold text-amber-100">{score}/{sampled.length}</div>
               <div className="mt-1 text-2xl font-semibold text-amber-200">{pct}%</div>
               <button onClick={onClose} className="mt-5 rounded-md border border-white/10 bg-white/5 px-4 py-1.5 text-sm text-slate-200 hover:bg-white/10">Done</button>
             </div>

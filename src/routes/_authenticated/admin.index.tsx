@@ -123,27 +123,42 @@ function AdminHome() {
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {courses.map((c) => (
-                <Link
-                  key={c.id}
-                  to="/admin/courses/$courseId"
-                  params={{ courseId: c.id }}
-                  className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 hover:border-amber-400/50"
-                >
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-base font-semibold">{c.title}</h3>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wider ${
-                        c.published ? "bg-emerald-500/15 text-emerald-300" : "bg-slate-700/50 text-slate-300"
-                      }`}
-                    >
-                      {c.published ? "Published" : "Draft"}
-                    </span>
-                  </div>
-                  {c.description && <p className="mt-2 text-sm text-slate-400 line-clamp-2">{c.description}</p>}
-                  <div className="mt-3 text-xs text-slate-500">
-                    Voice: {c.voice} · {c.lang_code}
-                  </div>
-                </Link>
+                <div key={c.id} className="group relative rounded-2xl border border-slate-800 bg-slate-900/60 hover:border-amber-400/50">
+                  <Link
+                    to="/admin/courses/$courseId"
+                    params={{ courseId: c.id }}
+                    className="block p-5"
+                  >
+                    <div className="flex items-center justify-between pr-8">
+                      <h3 className="text-base font-semibold">{c.title}</h3>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wider ${
+                          c.published ? "bg-emerald-500/15 text-emerald-300" : "bg-slate-700/50 text-slate-300"
+                        }`}
+                      >
+                        {c.published ? "Published" : "Draft"}
+                      </span>
+                    </div>
+                    {c.description && <p className="mt-2 text-sm text-slate-400 line-clamp-2">{c.description}</p>}
+                    <div className="mt-3 text-xs text-slate-500">
+                      Voice: {c.voice} · {c.lang_code}
+                    </div>
+                  </Link>
+                  <button
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (!confirm(`Delete "${c.title}" and all its slides, narration, and quiz? This cannot be undone.`)) return;
+                      const { error } = await supabase.from("courses").delete().eq("id", c.id);
+                      if (error) { setErr(error.message); return; }
+                      setCourses((cs) => cs.filter((x) => x.id !== c.id));
+                    }}
+                    title="Delete course"
+                    className="absolute right-3 top-3 rounded-md border border-rose-500/30 bg-rose-500/10 px-2 py-1 text-[11px] text-rose-200 opacity-0 transition group-hover:opacity-100 hover:bg-rose-500/20"
+                  >
+                    🗑 Delete
+                  </button>
+                </div>
               ))}
             </div>
           )}
