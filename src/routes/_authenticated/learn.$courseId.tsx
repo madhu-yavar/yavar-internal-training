@@ -98,6 +98,8 @@ function CoursePlayer() {
       }
       const orderedSlides = ((s as Slide[]) ?? []).sort((a, b) => a.idx - b.idx);
       setCourse(c as Course);
+      setVoice(((c as Course).voice && (c as Course).voice !== "default") ? (c as Course).voice : "shimmer");
+      setSpeed((c as Course).speed ?? 1);
       setSlides(orderedSlides);
       setCues((cu as Cue[]) ?? []);
       setQuiz((q as Quiz[]) ?? []);
