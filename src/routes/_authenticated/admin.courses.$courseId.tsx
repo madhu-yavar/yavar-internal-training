@@ -791,3 +791,121 @@ function QuizSection({
     </section>
   );
 }
+
+/* ---------- Generate / Compile ---------- */
+function GenerateSection({
+  course,
+  slides,
+  cues,
+  quiz,
+  onSaveCourse,
+  onChanged,
+  setErr,
+}: {
+  course: Course;
+  slides: Slide[];
+  cues: Cue[];
+  quiz: Quiz[];
+  onSaveCourse: (p: Partial<Course>) => Promise<void>;
+  onChanged: () => Promise<void>;
+  setErr: (s: string | null) => void;
+}) {
+  const [busy, setBusy] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
+  const runNarrations = useServerFn(generateNarrations);
+
+  const missingNarration = slides.filter((s) => !s.narration_text || s.narration_text.trim().length < 4);
+  const hasSlides = slides.length > 0;
+  const hasQuiz = quiz.length > 0;
+  const ready = hasSlides && hasQuiz && missingNarration.length === 0;
+
+  async function generate() {
+    setErr(null);
+    setStatus(null);
+    if (!hasSlides) {
+      setErr("Upload a PDF or PPTX deck first.");
+      return;
+    }
+    try {
+      if (missingNarration.length > 0) {
+        setBusy(`Generating narration for ${missingNarration.length} slide(s)…`);
+        const res = await runNarrations({
+          data: {
+            courseTitle: course.title,
+            slides: slides.map((s) => ({
+              title: s.title,
+              bullets: (s.body_md ?? "")
+                .split("\n")
+                .map((l) => l.replace(/^[-*]\s*/, "").trim())
+                .filter(Boolean),
+            })),
+          },
+        });
+        // Only update slides that were missing narration
+        for (const s of missingNarration) {
+          const text = res.narrations[s.idx];
+          if (!text) continue;
+          const { error } = await supabase
+            .from("slides")
+            .update({ narration_text: text })
+            .eq("id", s.id);
+          if (error) throw error;
+        }
+        await onChanged();
+      }
+      setBusy("Publishing course…");
+      if (!course.published) await onSaveCourse({ published: true });
+      setStatus("Learning material is ready. Learners can now play this course.");
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <section className="rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 to-slate-900/60 p-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h2 className="text-base font-semibold text-amber-200">Generate learning material</h2>
+          <p className="mt-1 text-xs text-slate-400">
+            Compiles your deck, narration, captions and quiz into a playable course with animated slides,
+            AI voice-over and ambient music.
+          </p>
+          <ul className="mt-3 grid gap-1 text-xs sm:grid-cols-2">
+            <li className={hasSlides ? "text-emerald-300" : "text-slate-500"}>
+              {hasSlides ? "✓" : "○"} Slides ({slides.length})
+            </li>
+            <li className={missingNarration.length === 0 && hasSlides ? "text-emerald-300" : "text-slate-500"}>
+              {missingNarration.length === 0 && hasSlides ? "✓" : "○"} Narration{" "}
+              {missingNarration.length > 0 && `(${missingNarration.length} missing)`}
+            </li>
+            <li className={cues.length > 0 ? "text-emerald-300" : "text-slate-500"}>
+              {cues.length > 0 ? "✓" : "○"} Captions ({cues.length}) <span className="text-slate-600">— optional</span>
+            </li>
+            <li className={hasQuiz ? "text-emerald-300" : "text-slate-500"}>
+              {hasQuiz ? "✓" : "○"} Quiz ({quiz.length})
+            </li>
+          </ul>
+          {status && <div className="mt-3 text-xs text-emerald-300">{status}</div>}
+        </div>
+        <div className="flex flex-col items-end gap-2">
+          <button
+            onClick={generate}
+            disabled={!!busy || !hasSlides}
+            className="rounded-md bg-amber-500 px-5 py-2.5 text-sm font-semibold text-slate-950 hover:bg-amber-400 disabled:opacity-50"
+          >
+            {busy ?? (ready && course.published ? "Re-generate" : "Generate learning material")}
+          </button>
+          <Link
+            to="/learn/$courseId"
+            params={{ courseId: course.id }}
+            className="rounded-md border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
+          >
+            Preview as learner →
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
