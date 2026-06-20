@@ -521,9 +521,9 @@ function SlidesSection({
                       className="w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-sm font-medium"
                     />
                     <textarea
-                      defaultValue={s.body_md ?? ""}
+                      defaultValue={stripGeneratedMaterial(s.body_md)}
                       onBlur={(e) =>
-                        e.target.value !== (s.body_md ?? "") &&
+                        e.target.value !== stripGeneratedMaterial(s.body_md) &&
                         updateSlide(s.id, { body_md: e.target.value || null })
                       }
                       placeholder="Bullets (markdown, one per line)"
@@ -873,7 +873,7 @@ function GenerateSection({
             courseTitle: course.title,
             slides: slides.map((s) => ({
               title: s.title,
-              bullets: (s.body_md ?? "")
+              bullets: stripGeneratedMaterial(s.body_md)
                 .split("\n")
                 .map((l) => l.replace(/^[-*]\s*/, "").trim())
                 .filter(Boolean),
