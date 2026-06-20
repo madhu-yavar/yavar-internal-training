@@ -152,6 +152,23 @@ function LearnDashboard() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {loading && <div className="text-sm text-slate-400">Loading…</div>}
 
+          {/* Original demo training — always visible */}
+          <a
+            href="/training"
+            className="group rounded-2xl border border-amber-400/30 bg-slate-900/60 p-5 hover:border-amber-400/70 transition"
+          >
+            <div className="aspect-video w-full overflow-hidden rounded-lg bg-gradient-to-br from-amber-500/30 to-rose-500/30 mb-4 grid place-items-center text-4xl">
+              🎬
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-lg font-semibold group-hover:text-amber-300">Enterprise AI — Original Training</h3>
+              <span className="shrink-0 rounded-full bg-amber-500/15 text-amber-300 px-2 py-0.5 text-[10px] font-medium">Featured</span>
+            </div>
+            <p className="mt-2 text-sm text-slate-400 line-clamp-2">Our first AI-narrated training video with Ari, quizzes and hints.</p>
+            <div className="mt-3 text-[11px] text-amber-300">Open original training →</div>
+          </a>
+
+
           {courses.map((c) => {
             const s = stats[c.id];
             const st = statusFor(s);
