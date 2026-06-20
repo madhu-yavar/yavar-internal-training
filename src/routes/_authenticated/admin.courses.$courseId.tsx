@@ -263,46 +263,91 @@ function Field({ label, children, className = "" }: { label: string; children: R
   );
 }
 
-/* ---------- Slides ---------- */
+/* ---------- Slides (deck-driven) ---------- */
 function SlidesSection({
   courseId,
+  courseTitle,
   slides,
   signedImages,
   onChanged,
   setErr,
 }: {
   courseId: string;
+  courseTitle: string;
   slides: Slide[];
   signedImages: Record<string, string>;
   onChanged: () => Promise<void>;
   setErr: (s: string | null) => void;
 }) {
-  const [uploading, setUploading] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [autoNarrate, setAutoNarrate] = useState(true);
+  const runNarrations = useServerFn(generateNarrations);
 
-  async function handleFiles(files: FileList | null) {
-    if (!files || files.length === 0) return;
+  async function handleDeck(file: File, replace: boolean) {
     setErr(null);
-    setUploading(true);
-    const startIdx = slides.length;
-    const sorted = Array.from(files).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+    setBusy("Parsing deck…");
     try {
-      for (let i = 0; i < sorted.length; i++) {
-        const file = sorted[i];
-        const ext = file.name.split(".").pop() || "png";
-        const path = `${courseId}/slides/${Date.now()}-${i}.${ext}`;
-        const up = await supabase.storage.from(COURSE_BUCKET).upload(path, file, { upsert: false });
-        if (up.error) throw up.error;
-        const titleGuess = file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ");
-        const ins = await supabase
-          .from("slides")
-          .insert({ course_id: courseId, idx: startIdx + i, title: titleGuess, image_url: path });
+      const parsed: ParsedSlide[] = await parseDeck(file);
+      if (parsed.length === 0) throw new Error("No slides found in file.");
+
+      // Optional AI narration for slides whose notes are empty
+      let aiNarrations: string[] = parsed.map((p) => p.notes);
+      if (autoNarrate) {
+        setBusy("Generating narration with AI…");
+        try {
+          const res = await runNarrations({
+            data: {
+              courseTitle,
+              slides: parsed.map((p) => ({ title: p.title, bullets: p.bullets })),
+            },
+          });
+          aiNarrations = parsed.map((p, i) => (p.notes && p.notes.length > 8 ? p.notes : res.narrations[i] || ""));
+        } catch (e) {
+          console.warn("narration failed, continuing without AI", e);
+        }
+      }
+
+      if (replace) {
+        setBusy("Removing existing slides…");
+        // best-effort cleanup of old image objects
+        const oldPaths = slides
+          .map((s) => s.image_url)
+          .filter((p): p is string => !!p && !/^https?:\/\//.test(p));
+        if (oldPaths.length) await supabase.storage.from(COURSE_BUCKET).remove(oldPaths);
+        await supabase.from("slides").delete().eq("course_id", courseId);
+      }
+      const startIdx = replace ? 0 : slides.length;
+
+      setProgress({ done: 0, total: parsed.length });
+      for (let i = 0; i < parsed.length; i++) {
+        const p = parsed[i];
+        setBusy(`Uploading slide ${i + 1} of ${parsed.length}…`);
+        let imagePath: string | null = null;
+        if (p.image) {
+          const ext = p.image.type.includes("png") ? "png" : p.image.type.includes("gif") ? "gif" : "jpg";
+          imagePath = `${courseId}/slides/${Date.now()}-${i}.${ext}`;
+          const up = await supabase.storage.from(COURSE_BUCKET).upload(imagePath, p.image, { upsert: false });
+          if (up.error) throw up.error;
+        }
+        const body_md = p.bullets.map((b) => `- ${b}`).join("\n");
+        const ins = await supabase.from("slides").insert({
+          course_id: courseId,
+          idx: startIdx + i,
+          title: p.title || `Slide ${startIdx + i + 1}`,
+          body_md: body_md || null,
+          image_url: imagePath,
+          narration_text: aiNarrations[i] || null,
+        });
         if (ins.error) throw ins.error;
+        setProgress({ done: i + 1, total: parsed.length });
       }
       await onChanged();
     } catch (e) {
       setErr((e as Error).message);
     } finally {
-      setUploading(false);
+      setBusy(null);
+      setProgress(null);
     }
   }
 
@@ -322,7 +367,6 @@ function SlidesSection({
       setErr(error.message);
       return;
     }
-    // re-index remaining
     const remaining = slides.filter((x) => x.id !== s.id);
     for (let i = 0; i < remaining.length; i++) {
       if (remaining[i].idx !== i) await supabase.from("slides").update({ idx: i }).eq("id", remaining[i].id);
@@ -341,25 +385,56 @@ function SlidesSection({
 
   return (
     <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
-      <div className="flex items-center justify-between">
-        <h2 className="text-base font-semibold">Slides ({slides.length})</h2>
-        <label className="cursor-pointer rounded-md bg-amber-500 px-3 py-1.5 text-sm font-medium text-slate-950 hover:bg-amber-400">
-          {uploading ? "Uploading…" : "+ Upload images"}
-          <input
-            type="file"
-            accept="image/*"
-            multiple
-            className="hidden"
-            disabled={uploading}
-            onChange={(e) => handleFiles(e.target.files)}
-          />
-        </label>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold">Slides ({slides.length})</h2>
+          <p className="mt-1 text-xs text-slate-500">
+            Upload a <strong>PDF or PPTX</strong>. We extract titles, bullets, speaker notes and embedded images —
+            the player renders each slide with its own animated design and AI voice-over.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="flex items-center gap-1.5 text-xs text-slate-300">
+            <input type="checkbox" checked={autoNarrate} onChange={(e) => setAutoNarrate(e.target.checked)} />
+            Auto-generate narration
+          </label>
+          {slides.length > 0 && (
+            <label className="cursor-pointer rounded-md border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800">
+              Replace deck
+              <input
+                type="file"
+                accept=".pdf,.pptx"
+                className="hidden"
+                disabled={!!busy}
+                onChange={(e) => e.target.files?.[0] && handleDeck(e.target.files[0], true)}
+              />
+            </label>
+          )}
+          <label className="cursor-pointer rounded-md bg-amber-500 px-3 py-1.5 text-sm font-medium text-slate-950 hover:bg-amber-400">
+            {busy ?? "+ Upload deck"}
+            <input
+              type="file"
+              accept=".pdf,.pptx"
+              className="hidden"
+              disabled={!!busy}
+              onChange={(e) => e.target.files?.[0] && handleDeck(e.target.files[0], false)}
+            />
+          </label>
+        </div>
       </div>
-      <p className="mt-1 text-xs text-slate-500">Upload PNG/JPG (one per slide). Files are sorted by filename.</p>
+
+      {progress && (
+        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
+          <div
+            className="h-full bg-amber-500 transition-all"
+            style={{ width: `${(progress.done / progress.total) * 100}%` }}
+          />
+        </div>
+      )}
 
       {slides.length === 0 ? (
         <div className="mt-4 rounded-xl border border-dashed border-slate-700 p-8 text-center text-sm text-slate-400">
-          No slides yet — upload images to get started.
+          No slides yet — upload a PDF or PPTX to get started.
         </div>
       ) : (
         <ol className="mt-4 space-y-3">
@@ -389,7 +464,9 @@ function SlidesSection({
                     {url ? (
                       <img src={url} alt={s.title} className="h-20 w-full object-cover" />
                     ) : (
-                      <div className="flex h-20 items-center justify-center text-xs text-slate-500">no image</div>
+                      <div className="flex h-20 items-center justify-center text-center text-[10px] text-slate-500">
+                        text-only
+                      </div>
                     )}
                   </div>
                   <div className="flex-1 space-y-2">
@@ -397,7 +474,17 @@ function SlidesSection({
                       defaultValue={s.title}
                       onBlur={(e) => e.target.value !== s.title && updateSlide(s.id, { title: e.target.value })}
                       placeholder="Slide title"
-                      className="w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-sm"
+                      className="w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-sm font-medium"
+                    />
+                    <textarea
+                      defaultValue={s.body_md ?? ""}
+                      onBlur={(e) =>
+                        e.target.value !== (s.body_md ?? "") &&
+                        updateSlide(s.id, { body_md: e.target.value || null })
+                      }
+                      placeholder="Bullets (markdown, one per line)"
+                      rows={3}
+                      className="w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-300"
                     />
                     <textarea
                       defaultValue={s.narration_text ?? ""}
@@ -405,9 +492,9 @@ function SlidesSection({
                         e.target.value !== (s.narration_text ?? "") &&
                         updateSlide(s.id, { narration_text: e.target.value || null })
                       }
-                      placeholder="Narration (optional — falls back to SRT)"
+                      placeholder="Narration (spoken aloud)"
                       rows={2}
-                      className="w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-300"
+                      className="w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-amber-200/80"
                     />
                   </div>
                   <button
