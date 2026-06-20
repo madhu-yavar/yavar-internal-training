@@ -130,8 +130,13 @@ function LearnDashboard() {
           </div>
           <div className="flex items-center gap-3 text-sm">
             <span className="hidden text-slate-400 sm:inline">{user?.email}</span>
-            <button onClick={() => setMsgOpen(true)} className="rounded-md border border-amber-400/40 bg-amber-500/10 px-3 py-1.5 text-amber-200 hover:bg-amber-500/20">
+            <button onClick={() => { markRepliesSeen(); setMsgOpen(true); }} className="relative rounded-md border border-amber-400/40 bg-amber-500/10 px-3 py-1.5 text-amber-200 hover:bg-amber-500/20">
               💬 Message team
+              {unreadReplies > 0 && (
+                <span className="absolute -right-2 -top-2 grid h-5 min-w-[20px] place-items-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
+                  {unreadReplies}
+                </span>
+              )}
             </button>
             {isAdmin && (
               <Link to="/admin" className="rounded-md border border-amber-400/40 px-3 py-1.5 text-amber-300 hover:bg-amber-500/10">Admin</Link>
