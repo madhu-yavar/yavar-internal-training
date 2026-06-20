@@ -1,5 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import slidesData from "@/assets/training/slides.json";
 import { SLIDE_META } from "@/assets/training/slide-meta";
 import { AIAvatar } from "@/components/AIAvatar";
@@ -59,8 +60,21 @@ function TrainingPage() {
   const [completed, setCompleted] = useState(false);
   const [revealed, setRevealed] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const slide = SLIDES[idx];
   const meta = SLIDE_META[slide.i];
+
+  useEffect(() => {
+    (async () => {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) return;
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", u.user.id);
+      setIsAdmin(!!roles?.some((r) => r.role === "admin"));
+    })();
+  }, []);
 
   const sentences = useMemo(
     () =>
@@ -337,6 +351,20 @@ function TrainingPage() {
             </h1>
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            <Link
+              to="/learn"
+              className="rounded-md border border-white/10 bg-white/5 px-2.5 py-1.5 text-[11px] font-semibold text-slate-300 transition hover:bg-white/10"
+            >
+              ← Library
+            </Link>
+            {isAdmin && (
+              <Link
+                to="/admin"
+                className="rounded-md border border-amber-400/40 bg-amber-500/15 px-2.5 py-1.5 text-[11px] font-semibold text-amber-100 transition hover:bg-amber-500/25"
+              >
+                Admin
+              </Link>
+            )}
             <button
               onClick={() => completed && setQuizOpen(true)}
               disabled={!completed}
