@@ -3,13 +3,22 @@ import { useEffect, useState, createContext, useContext } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-type AuthCtx = { user: User; isAdmin: boolean };
-const Ctx = createContext<AuthCtx | null>(null);
+type AuthCtx = { user: User; isAdmin: boolean } | null;
+const Ctx = createContext<{ value: AuthCtx; ready: boolean }>({ value: null, ready: false });
 
 export function useAuthCtx() {
-  const v = useContext(Ctx);
-  if (!v) throw new Error("useAuthCtx must be used within _authenticated");
-  return v;
+  const { value, ready } = useContext(Ctx);
+  if (!ready || !value) {
+    // Safe fallback during loading — components should also handle this
+    return { user: null as unknown as User, isAdmin: false, _loading: true } as unknown as {
+      user: User; isAdmin: boolean;
+    };
+  }
+  return value;
+}
+
+export function useAuthReady() {
+  return useContext(Ctx).ready;
 }
 
 export const Route = createFileRoute("/_authenticated")({
@@ -19,7 +28,7 @@ export const Route = createFileRoute("/_authenticated")({
 function AuthedLayout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [state, setState] = useState<AuthCtx | "loading" | "anon">("loading");
+  const [state, setState] = useState<{ value: AuthCtx; ready: boolean }>({ value: null, ready: false });
 
   useEffect(() => {
     let mounted = true;
@@ -27,7 +36,7 @@ function AuthedLayout() {
       const { data: u } = await supabase.auth.getUser();
       if (!mounted) return;
       if (!u.user) {
-        setState("anon");
+        setState({ value: null, ready: true });
         navigate({ to: "/auth" });
         return;
       }
@@ -37,8 +46,8 @@ function AuthedLayout() {
         .eq("user_id", u.user.id);
       if (!mounted) return;
       setState({
-        user: u.user,
-        isAdmin: !!roles?.some((r) => r.role === "admin"),
+        value: { user: u.user, isAdmin: !!roles?.some((r) => r.role === "admin") },
+        ready: true,
       });
       if (
         u.user.user_metadata?.must_change_password &&
@@ -52,10 +61,18 @@ function AuthedLayout() {
     };
   }, [navigate, location.pathname]);
 
-  if (state === "loading" || state === "anon") {
+  if (!state.ready) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-400">
         Loading…
+      </div>
+    );
+  }
+
+  if (!state.value) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-400">
+        Redirecting…
       </div>
     );
   }
