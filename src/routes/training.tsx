@@ -351,6 +351,20 @@ function TrainingPage() {
             </h1>
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            <Link
+              to="/learn"
+              className="rounded-md border border-white/10 bg-white/5 px-2.5 py-1.5 text-[11px] font-semibold text-slate-300 transition hover:bg-white/10"
+            >
+              ← Library
+            </Link>
+            {isAdmin && (
+              <Link
+                to="/admin"
+                className="rounded-md border border-amber-400/40 bg-amber-500/15 px-2.5 py-1.5 text-[11px] font-semibold text-amber-100 transition hover:bg-amber-500/25"
+              >
+                Admin
+              </Link>
+            )}
             <button
               onClick={() => completed && setQuizOpen(true)}
               disabled={!completed}
