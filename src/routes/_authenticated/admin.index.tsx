@@ -25,6 +25,7 @@ function AdminHome() {
   const [creating, setCreating] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [err, setErr] = useState<string | null>(null);
+  const [openRequests, setOpenRequests] = useState(0);
 
   useEffect(() => {
     if (!isAdmin) navigate({ to: "/learn" });
@@ -33,7 +34,18 @@ function AdminHome() {
   useEffect(() => {
     if (!isAdmin) return;
     void load();
+    void loadRequestCount();
+    const t = setInterval(loadRequestCount, 30000);
+    return () => clearInterval(t);
   }, [isAdmin]);
+
+  async function loadRequestCount() {
+    const { count } = await supabase
+      .from("course_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "open");
+    setOpenRequests(count ?? 0);
+  }
 
   async function load() {
     setLoading(true);
@@ -86,8 +98,13 @@ function AdminHome() {
             <h1 className="text-lg font-semibold">Course administration</h1>
           </div>
           <div className="flex items-center gap-2">
-            <Link to="/admin/requests" className="rounded-md border border-amber-400/40 bg-amber-500/10 px-3 py-1.5 text-sm text-amber-200 hover:bg-amber-500/20">
+            <Link to="/admin/requests" className="relative rounded-md border border-amber-400/40 bg-amber-500/10 px-3 py-1.5 text-sm text-amber-200 hover:bg-amber-500/20">
               💬 Requests
+              {openRequests > 0 && (
+                <span className="absolute -right-2 -top-2 grid h-5 min-w-[20px] place-items-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
+                  {openRequests}
+                </span>
+              )}
             </Link>
             <Link to="/learn" className="rounded-md border border-slate-700 px-3 py-1.5 text-sm hover:bg-slate-800">
               ← Library
