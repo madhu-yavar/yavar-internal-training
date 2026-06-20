@@ -278,7 +278,7 @@ function CoursePlayer() {
             </label>
             <button
               onClick={() => completed && setQuizOpen(true)}
-              disabled={!completed || sampled.length === 0}
+              disabled={!completed || quiz.length === 0}
               className="rounded-md border border-emerald-400/40 bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-100 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-500"
             >
               {completed ? "🎓 Quiz" : "🔒 Quiz"}
@@ -389,8 +389,8 @@ function CoursePlayer() {
             <div className="mt-6 rounded-2xl border border-emerald-400/40 bg-gradient-to-br from-emerald-500/15 to-emerald-500/5 p-6 text-center">
               <div className="text-[10px] uppercase tracking-[0.25em] text-emerald-300">End of material</div>
               <h3 className="mt-1 text-xl font-bold text-emerald-100">Ready for the quiz?</h3>
-              <p className="mt-1 text-sm text-emerald-200/80">{sampled.length} questions are attached to this course.</p>
-              <button onClick={() => setQuizOpen(true)} disabled={sampled.length === 0} className="mt-4 rounded-lg bg-emerald-500 px-5 py-2 text-sm font-semibold text-slate-900 hover:bg-emerald-400 disabled:opacity-40">🎓 Start Quiz</button>
+              <p className="mt-1 text-sm text-emerald-200/80">{quiz.length} questions are attached to this course.</p>
+              <button onClick={() => setQuizOpen(true)} disabled={quiz.length === 0} className="mt-4 rounded-lg bg-emerald-500 px-5 py-2 text-sm font-semibold text-slate-900 hover:bg-emerald-400 disabled:opacity-40">🎓 Start Quiz</button>
             </div>
           )}
         </section>
