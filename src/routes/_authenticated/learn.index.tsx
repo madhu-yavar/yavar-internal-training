@@ -87,11 +87,16 @@ function LearnDashboard() {
 
       const { data: reqs } = await supabase
         .from("course_requests")
-        .select("id,subject,type,status,admin_reply,created_at")
+        .select("id,subject,type,status,admin_reply,created_at,updated_at")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
-        .limit(5);
-      setRequests((reqs as Request[]) ?? []);
+        .limit(20);
+      const all = (reqs as Array<Request & { updated_at: string }>) ?? [];
+      setRequests(all.slice(0, 5));
+      const seenAt = seenKey ? localStorage.getItem(seenKey) : null;
+      const seenT = seenAt ? Date.parse(seenAt) : 0;
+      const unread = all.filter((r) => r.status === "responded" && !!r.admin_reply && Date.parse(r.updated_at) > seenT).length;
+      setUnreadReplies(unread);
 
       setLoading(false);
     })();
