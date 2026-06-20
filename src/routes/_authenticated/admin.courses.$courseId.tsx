@@ -199,12 +199,15 @@ function MetadataSection({ course, onSave }: { course: Course; onSave: (p: Parti
   const [speed, setSpeed] = useState<number>(course.speed);
 
   useEffect(() => {
+    // Only resync local form state when navigating to a different course.
+    // Resyncing on every saved field caused typing to "refresh"/lose focus.
     setTitle(course.title);
     setDescription(course.description ?? "");
     setVoice(course.voice);
     setLang(course.lang_code);
     setSpeed(course.speed);
-  }, [course.title, course.description, course.voice, course.lang_code, course.speed]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [course.id]);
 
   return (
     <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
@@ -396,9 +399,10 @@ function SlidesSection({
   }
 
   async function updateSlide(id: string, patch: Partial<Slide>) {
+    // Optimistic save — do NOT reload the whole editor on every blur,
+    // that's what caused the "refresh while typing" flash and focus loss.
     const { error } = await supabase.from("slides").update(patch).eq("id", id);
     if (error) setErr(error.message);
-    await onChanged();
   }
 
   async function deleteSlide(s: Slide) {
