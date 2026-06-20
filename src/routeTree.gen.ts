@@ -21,6 +21,7 @@ import { Route as AuthenticatedLearnRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedChangePasswordRouteImport } from './routes/_authenticated/change-password'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedLearnCourseIdRouteImport } from './routes/_authenticated/learn.$courseId'
+import { Route as AuthenticatedAdminCoursesCourseIdRouteImport } from './routes/_authenticated/admin.courses.$courseId'
 
 const TrainingRoute = TrainingRouteImport.update({
   id: '/training',
@@ -83,32 +84,40 @@ const AuthenticatedLearnCourseIdRoute =
     path: '/$courseId',
     getParentRoute: () => AuthenticatedLearnRoute,
   } as any)
+const AuthenticatedAdminCoursesCourseIdRoute =
+  AuthenticatedAdminCoursesCourseIdRouteImport.update({
+    id: '/courses/$courseId',
+    path: '/courses/$courseId',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/training': typeof TrainingRoute
-  '/admin': typeof AuthenticatedAdminRoute
+  '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/change-password': typeof AuthenticatedChangePasswordRoute
   '/learn': typeof AuthenticatedLearnRouteWithChildren
   '/api/chat': typeof ApiChatRoute
   '/api/quiz': typeof ApiQuizRoute
   '/api/tts': typeof ApiTtsRoute
   '/learn/$courseId': typeof AuthenticatedLearnCourseIdRoute
+  '/admin/courses/$courseId': typeof AuthenticatedAdminCoursesCourseIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/training': typeof TrainingRoute
-  '/admin': typeof AuthenticatedAdminRoute
+  '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/change-password': typeof AuthenticatedChangePasswordRoute
   '/learn': typeof AuthenticatedLearnRouteWithChildren
   '/api/chat': typeof ApiChatRoute
   '/api/quiz': typeof ApiQuizRoute
   '/api/tts': typeof ApiTtsRoute
   '/learn/$courseId': typeof AuthenticatedLearnCourseIdRoute
+  '/admin/courses/$courseId': typeof AuthenticatedAdminCoursesCourseIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -117,13 +126,14 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/training': typeof TrainingRoute
-  '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/change-password': typeof AuthenticatedChangePasswordRoute
   '/_authenticated/learn': typeof AuthenticatedLearnRouteWithChildren
   '/api/chat': typeof ApiChatRoute
   '/api/quiz': typeof ApiQuizRoute
   '/api/tts': typeof ApiTtsRoute
   '/_authenticated/learn/$courseId': typeof AuthenticatedLearnCourseIdRoute
+  '/_authenticated/admin/courses/$courseId': typeof AuthenticatedAdminCoursesCourseIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -139,6 +149,7 @@ export interface FileRouteTypes {
     | '/api/quiz'
     | '/api/tts'
     | '/learn/$courseId'
+    | '/admin/courses/$courseId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -152,6 +163,7 @@ export interface FileRouteTypes {
     | '/api/quiz'
     | '/api/tts'
     | '/learn/$courseId'
+    | '/admin/courses/$courseId'
   id:
     | '__root__'
     | '/'
@@ -166,6 +178,7 @@ export interface FileRouteTypes {
     | '/api/quiz'
     | '/api/tts'
     | '/_authenticated/learn/$courseId'
+    | '/_authenticated/admin/courses/$courseId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -265,8 +278,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLearnCourseIdRouteImport
       parentRoute: typeof AuthenticatedLearnRoute
     }
+    '/_authenticated/admin/courses/$courseId': {
+      id: '/_authenticated/admin/courses/$courseId'
+      path: '/courses/$courseId'
+      fullPath: '/admin/courses/$courseId'
+      preLoaderRoute: typeof AuthenticatedAdminCoursesCourseIdRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
   }
 }
+
+interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminCoursesCourseIdRoute: typeof AuthenticatedAdminCoursesCourseIdRoute
+}
+
+const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminCoursesCourseIdRoute:
+    AuthenticatedAdminCoursesCourseIdRoute,
+}
+
+const AuthenticatedAdminRouteWithChildren =
+  AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
 
 interface AuthenticatedLearnRouteChildren {
   AuthenticatedLearnCourseIdRoute: typeof AuthenticatedLearnCourseIdRoute
@@ -280,13 +312,13 @@ const AuthenticatedLearnRouteWithChildren =
   AuthenticatedLearnRoute._addFileChildren(AuthenticatedLearnRouteChildren)
 
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
   AuthenticatedChangePasswordRoute: typeof AuthenticatedChangePasswordRoute
   AuthenticatedLearnRoute: typeof AuthenticatedLearnRouteWithChildren
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
   AuthenticatedChangePasswordRoute: AuthenticatedChangePasswordRoute,
   AuthenticatedLearnRoute: AuthenticatedLearnRouteWithChildren,
 }
@@ -307,13 +339,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
