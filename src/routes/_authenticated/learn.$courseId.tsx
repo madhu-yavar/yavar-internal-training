@@ -508,7 +508,12 @@ function CourseQuiz({ quiz, courseTitle, courseId, userId, onClose }: { quiz: Qu
               <div className="mt-6 flex items-center justify-between">
                 <button disabled={current === 0} onClick={() => setCurrent((c) => Math.max(0, c - 1))} className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-sm disabled:opacity-30 hover:bg-white/10">← Prev</button>
                 <div className="text-xs text-slate-400">Answered: {Object.keys(answers).length}/{sampled.length}</div>
-                {current < sampled.length - 1 ? <button onClick={() => setCurrent((c) => c + 1)} className="rounded-md bg-amber-500 px-4 py-1.5 text-sm font-semibold text-slate-900 hover:bg-amber-400">Next →</button> : <button disabled={Object.keys(answers).length < sampled.length} onClick={() => setSubmitted(true)} className="rounded-md bg-emerald-500 px-4 py-1.5 text-sm font-semibold text-slate-900 disabled:opacity-30 hover:bg-emerald-400">Submit ✓</button>}
+                {current < sampled.length - 1 ? <button onClick={() => setCurrent((c) => c + 1)} className="rounded-md bg-amber-500 px-4 py-1.5 text-sm font-semibold text-slate-900 hover:bg-amber-400">Next →</button> : <button disabled={Object.keys(answers).length < sampled.length} onClick={async () => {
+                  setSubmitted(true);
+                  if (userId) {
+                    await supabase.from("quiz_attempts").insert({ user_id: userId, course_id: courseId, score, total: sampled.length });
+                  }
+                }} className="rounded-md bg-emerald-500 px-4 py-1.5 text-sm font-semibold text-slate-900 disabled:opacity-30 hover:bg-emerald-400">Submit ✓</button>}
               </div>
             </div>
           ) : (
