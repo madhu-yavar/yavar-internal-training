@@ -60,8 +60,21 @@ function TrainingPage() {
   const [completed, setCompleted] = useState(false);
   const [revealed, setRevealed] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const slide = SLIDES[idx];
   const meta = SLIDE_META[slide.i];
+
+  useEffect(() => {
+    (async () => {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) return;
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", u.user.id);
+      setIsAdmin(!!roles?.some((r) => r.role === "admin"));
+    })();
+  }, []);
 
   const sentences = useMemo(
     () =>
