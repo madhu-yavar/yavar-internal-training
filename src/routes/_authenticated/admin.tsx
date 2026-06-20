@@ -1,5 +1,6 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { useAuthCtx } from "./route";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { useAuthCtx } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminHome,
@@ -7,8 +8,16 @@ export const Route = createFileRoute("/_authenticated/admin")({
 
 function AdminHome() {
   const { isAdmin } = useAuthCtx();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (!isAdmin) navigate({ to: "/learn" });
+  }, [isAdmin, navigate]);
   if (!isAdmin) {
-    throw redirect({ to: "/learn" });
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-400">
+        Redirecting…
+      </div>
+    );
   }
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">

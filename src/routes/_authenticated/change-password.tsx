@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuthCtx } from "./route";
+import { useAuthCtx } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/_authenticated/change-password")({
   head: () => ({ meta: [{ title: "Change password — Yavar Training" }] }),

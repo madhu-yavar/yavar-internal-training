@@ -1,16 +1,9 @@
 import { createFileRoute, Outlet, useNavigate, useLocation } from "@tanstack/react-router";
-import { useEffect, useState, createContext, useContext } from "react";
-import type { User } from "@supabase/supabase-js";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { AuthCtx, type AuthState } from "@/lib/auth-context";
 
-type AuthCtx = { user: User; isAdmin: boolean };
-const Ctx = createContext<AuthCtx | null>(null);
-
-export function useAuthCtx() {
-  const v = useContext(Ctx);
-  if (!v) throw new Error("useAuthCtx must be used within _authenticated");
-  return v;
-}
+export { useAuthCtx, useAuthReady } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/_authenticated")({
   component: AuthedLayout,
@@ -19,7 +12,7 @@ export const Route = createFileRoute("/_authenticated")({
 function AuthedLayout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [state, setState] = useState<AuthCtx | "loading" | "anon">("loading");
+  const [state, setState] = useState<AuthState>({ value: null, ready: false });
 
   useEffect(() => {
     let mounted = true;
@@ -27,7 +20,7 @@ function AuthedLayout() {
       const { data: u } = await supabase.auth.getUser();
       if (!mounted) return;
       if (!u.user) {
-        setState("anon");
+        setState({ value: null, ready: true });
         navigate({ to: "/auth" });
         return;
       }
@@ -36,10 +29,8 @@ function AuthedLayout() {
         .select("role")
         .eq("user_id", u.user.id);
       if (!mounted) return;
-      setState({
-        user: u.user,
-        isAdmin: !!roles?.some((r) => r.role === "admin"),
-      });
+      const isAdmin = !!roles?.some((r) => r.role === "admin");
+      setState({ value: { user: u.user, isAdmin }, ready: true });
       if (
         u.user.user_metadata?.must_change_password &&
         location.pathname !== "/change-password"
@@ -52,7 +43,7 @@ function AuthedLayout() {
     };
   }, [navigate, location.pathname]);
 
-  if (state === "loading" || state === "anon") {
+  if (!state.ready) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-400">
         Loading…
@@ -60,9 +51,17 @@ function AuthedLayout() {
     );
   }
 
+  if (!state.value) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-400">
+        Redirecting…
+      </div>
+    );
+  }
+
   return (
-    <Ctx.Provider value={state}>
+    <AuthCtx.Provider value={state}>
       <Outlet />
-    </Ctx.Provider>
+    </AuthCtx.Provider>
   );
 }
