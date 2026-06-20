@@ -60,10 +60,6 @@ function Index() {
               Enterprise training,<br />
               <span className="bg-gradient-to-r from-amber-300 to-rose-300 bg-clip-text text-transparent">narrated by your AI tutor.</span>
             </h1>
-            <p className="mt-5 max-w-2xl text-lg text-slate-300">
-              Yavar Learn turns a PPT, a script, and a quiz bank into a self-paced course in minutes.
-              Your learners watch, listen, ask <span className="font-semibold text-amber-200">Ari</span> anything, and prove their skills with adaptive quizzes.
-            </p>
             <div className="mt-8 flex flex-wrap gap-3">
               {signedIn ? (
                 <Link to="/learn" className="rounded-lg bg-amber-500 px-6 py-3 font-semibold text-slate-900 hover:bg-amber-400">Go to library →</Link>
