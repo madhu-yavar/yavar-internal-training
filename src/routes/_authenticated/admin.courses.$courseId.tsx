@@ -170,6 +170,15 @@ function CourseEditor() {
         />
         <SrtSection courseId={courseId} cues={cues} onChanged={reload} setErr={setErr} />
         <QuizSection courseId={courseId} quiz={quiz} onChanged={reload} setErr={setErr} />
+        <GenerateSection
+          course={course}
+          slides={slides}
+          cues={cues}
+          quiz={quiz}
+          onSaveCourse={saveCourse}
+          onChanged={reload}
+          setErr={setErr}
+        />
       </main>
     </div>
   );
