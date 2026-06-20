@@ -6,7 +6,8 @@ import { useAuthCtx } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { COURSE_BUCKET, getSignedUrl } from "@/lib/storage";
 import { parseDeck, type ParsedSlide } from "@/lib/deckParser";
-import { generateNarrations } from "@/lib/narration.functions";
+import { generateCourseDescription, generateNarrations } from "@/lib/narration.functions";
+import { bindCuesToSlides, buildGeneratedSlideBody, formatMs, stripGeneratedMaterial } from "@/lib/courseMaterial";
 
 export const Route = createFileRoute("/_authenticated/admin/courses/$courseId")({
   component: CourseEditor,
@@ -44,6 +45,9 @@ type Quiz = {
   option_d: string | null;
   correct: string;
   explanation: string | null;
+  hint?: string | null;
+  topic?: string | null;
+  difficulty?: string | null;
 };
 
 const VOICES = ["default", "alloy", "verse", "shimmer", "fable", "nova"];
@@ -163,8 +167,10 @@ function CourseEditor() {
         <SlidesSection
           courseId={courseId}
           courseTitle={course.title}
+          courseDescription={course.description}
           slides={slides}
           signedImages={signedImages}
+          onSaveCourse={saveCourse}
           onChanged={reload}
           setErr={setErr}
         />
@@ -191,6 +197,14 @@ function MetadataSection({ course, onSave }: { course: Course; onSave: (p: Parti
   const [voice, setVoice] = useState(course.voice);
   const [lang, setLang] = useState(course.lang_code);
   const [speed, setSpeed] = useState<number>(course.speed);
+
+  useEffect(() => {
+    setTitle(course.title);
+    setDescription(course.description ?? "");
+    setVoice(course.voice);
+    setLang(course.lang_code);
+    setSpeed(course.speed);
+  }, [course.title, course.description, course.voice, course.lang_code, course.speed]);
 
   return (
     <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
@@ -277,15 +291,19 @@ function Field({ label, children, className = "" }: { label: string; children: R
 function SlidesSection({
   courseId,
   courseTitle,
+  courseDescription,
   slides,
   signedImages,
+  onSaveCourse,
   onChanged,
   setErr,
 }: {
   courseId: string;
   courseTitle: string;
+  courseDescription: string | null;
   slides: Slide[];
   signedImages: Record<string, string>;
+  onSaveCourse: (p: Partial<Course>) => Promise<void>;
   onChanged: () => Promise<void>;
   setErr: (s: string | null) => void;
 }) {
@@ -293,6 +311,7 @@ function SlidesSection({
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [autoNarrate, setAutoNarrate] = useState(true);
   const runNarrations = useServerFn(generateNarrations);
+  const runDescription = useServerFn(generateCourseDescription);
 
   async function handleDeck(file: File, replace: boolean) {
     setErr(null);
@@ -300,6 +319,21 @@ function SlidesSection({
     try {
       const parsed: ParsedSlide[] = await parseDeck(file);
       if (parsed.length === 0) throw new Error("No slides found in file.");
+
+      if (!courseDescription?.trim()) {
+        setBusy("Generating course description…");
+        try {
+          const res = await runDescription({
+            data: {
+              courseTitle,
+              slides: parsed.map((p) => ({ title: p.title, bullets: p.bullets })),
+            },
+          });
+          await onSaveCourse({ description: res.description });
+        } catch (e) {
+          console.warn("description failed, continuing without AI", e);
+        }
+      }
 
       // Optional AI narration for slides whose notes are empty
       let aiNarrations: string[] = parsed.map((p) => p.notes);
@@ -487,9 +521,9 @@ function SlidesSection({
                       className="w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-sm font-medium"
                     />
                     <textarea
-                      defaultValue={s.body_md ?? ""}
+                      defaultValue={stripGeneratedMaterial(s.body_md)}
                       onBlur={(e) =>
-                        e.target.value !== (s.body_md ?? "") &&
+                        e.target.value !== stripGeneratedMaterial(s.body_md) &&
                         updateSlide(s.id, { body_md: e.target.value || null })
                       }
                       placeholder="Bullets (markdown, one per line)"
@@ -826,7 +860,12 @@ function GenerateSection({
       setErr("Upload a PDF or PPTX deck first.");
       return;
     }
+    if (!hasQuiz) {
+      setErr("Upload the quiz Excel first. Generation must bind slides, narration, captions and quiz together.");
+      return;
+    }
     try {
+      let workingSlides = [...slides].sort((a, b) => a.idx - b.idx);
       if (missingNarration.length > 0) {
         setBusy(`Generating narration for ${missingNarration.length} slide(s)…`);
         const res = await runNarrations({
@@ -834,7 +873,7 @@ function GenerateSection({
             courseTitle: course.title,
             slides: slides.map((s) => ({
               title: s.title,
-              bullets: (s.body_md ?? "")
+              bullets: stripGeneratedMaterial(s.body_md)
                 .split("\n")
                 .map((l) => l.replace(/^[-*]\s*/, "").trim())
                 .filter(Boolean),
@@ -842,20 +881,36 @@ function GenerateSection({
           },
         });
         // Only update slides that were missing narration
+        const narrationById = new Map<string, string>();
         for (const s of missingNarration) {
           const text = res.narrations[s.idx];
           if (!text) continue;
+          narrationById.set(s.id, text);
           const { error } = await supabase
             .from("slides")
             .update({ narration_text: text })
             .eq("id", s.id);
           if (error) throw error;
         }
-        await onChanged();
+        workingSlides = workingSlides.map((s) => ({ ...s, narration_text: narrationById.get(s.id) ?? s.narration_text }));
       }
-      setBusy("Publishing course…");
+
+      setBusy("Binding SRT timings to slides…");
+      const segmentsBySlide = bindCuesToSlides(workingSlides, cues);
+      for (let i = 0; i < workingSlides.length; i++) {
+        const slide = workingSlides[i];
+        setBusy(`Compiling slide ${i + 1} of ${workingSlides.length}…`);
+        const body_md = buildGeneratedSlideBody(slide, segmentsBySlide[i] ?? [], quiz.length);
+        const { error } = await supabase.from("slides").update({ body_md }).eq("id", slide.id);
+        if (error) throw error;
+      }
+
+      setBusy("Publishing learner material…");
       if (!course.published) await onSaveCourse({ published: true });
-      setStatus("Learning material is ready. Learners can now play this course.");
+      await onChanged();
+      setStatus(
+        `Learning material is ready: ${workingSlides.length} animated slides, ${cues.length} SRT cues bound and ${quiz.length} quiz questions attached.`,
+      );
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -881,7 +936,7 @@ function GenerateSection({
               {missingNarration.length > 0 && `(${missingNarration.length} missing)`}
             </li>
             <li className={cues.length > 0 ? "text-emerald-300" : "text-slate-500"}>
-              {cues.length > 0 ? "✓" : "○"} Captions ({cues.length}) <span className="text-slate-600">— optional</span>
+              {cues.length > 0 ? "✓" : "○"} SRT timing cues ({cues.length})
             </li>
             <li className={hasQuiz ? "text-emerald-300" : "text-slate-500"}>
               {hasQuiz ? "✓" : "○"} Quiz ({quiz.length})

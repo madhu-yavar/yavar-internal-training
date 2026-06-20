@@ -13,6 +13,11 @@ const Input = z.object({
   slides: z.array(SlideIn).min(1).max(80),
 });
 
+const DescriptionInput = z.object({
+  courseTitle: z.string().default("this training"),
+  slides: z.array(SlideIn).min(1).max(80),
+});
+
 /**
  * Generates conversational narration text (~40-70 words) for each slide.
  * Returns one string per slide in the same order.
@@ -51,4 +56,39 @@ ${deckOutline}`;
     // Pad/trim to exact length
     const out = data.slides.map((_, i) => (parsed.narrations[i] ?? "").trim());
     return { narrations: out };
+  });
+
+export const generateCourseDescription = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => DescriptionInput.parse(d))
+  .handler(async ({ data }) => {
+    const key = process.env.LOVABLE_API_KEY;
+    if (!key) throw new Error("Missing LOVABLE_API_KEY");
+    const gateway = createLovableAiGatewayProvider(key);
+    const model = gateway("google/gemini-3-flash-preview");
+
+    const deckOutline = data.slides
+      .slice(0, 18)
+      .map((s, i) => `Slide ${i + 1}: ${s.title}\n${s.bullets.slice(0, 5).map((b) => `  • ${b}`).join("\n")}`)
+      .join("\n\n");
+
+    const prompt = `Write a concise learner-facing course description for "${data.courseTitle}" based on this uploaded deck.
+Keep it specific, practical and business-ready. 35-55 words. No markdown, no preamble.
+
+Return STRICT JSON: { "description": "..." }
+
+DECK:
+${deckOutline}`;
+
+    const { text } = await generateText({
+      model,
+      prompt,
+      temperature: 0.45,
+    });
+
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error("AI did not return JSON");
+    const parsed = JSON.parse(jsonMatch[0]) as { description?: string };
+    const description = (parsed.description ?? "").trim();
+    if (!description) throw new Error("AI did not return a description");
+    return { description };
   });
