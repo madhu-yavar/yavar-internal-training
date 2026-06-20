@@ -123,13 +123,13 @@ function AdminHome() {
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {courses.map((c) => (
-                <div key={c.id} className="group relative rounded-2xl border border-slate-800 bg-slate-900/60 hover:border-amber-400/50">
+                <div key={c.id} className="relative rounded-2xl border border-slate-800 bg-slate-900/60 hover:border-amber-400/50">
                   <Link
                     to="/admin/courses/$courseId"
                     params={{ courseId: c.id }}
                     className="block p-5"
                   >
-                    <div className="flex items-center justify-between pr-8">
+                    <div className="flex items-center justify-between pr-24">
                       <h3 className="text-base font-semibold">{c.title}</h3>
                       <span
                         className={`rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wider ${
@@ -144,20 +144,30 @@ function AdminHome() {
                       Voice: {c.voice} · {c.lang_code}
                     </div>
                   </Link>
-                  <button
-                    onClick={async (e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      if (!confirm(`Delete "${c.title}" and all its slides, narration, and quiz? This cannot be undone.`)) return;
-                      const { error } = await supabase.from("courses").delete().eq("id", c.id);
-                      if (error) { setErr(error.message); return; }
-                      setCourses((cs) => cs.filter((x) => x.id !== c.id));
-                    }}
-                    title="Delete course"
-                    className="absolute right-3 top-3 rounded-md border border-rose-500/30 bg-rose-500/10 px-2 py-1 text-[11px] text-rose-200 opacity-0 transition group-hover:opacity-100 hover:bg-rose-500/20"
-                  >
-                    🗑 Delete
-                  </button>
+                  <div className="absolute right-3 top-3 flex gap-1.5">
+                    <Link
+                      to="/admin/courses/$courseId"
+                      params={{ courseId: c.id }}
+                      title="Edit course"
+                      className="rounded-md border border-slate-600 bg-slate-800/80 px-2 py-1 text-[11px] text-slate-100 hover:bg-slate-700"
+                    >
+                      ✏️ Edit
+                    </Link>
+                    <button
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (!confirm(`Delete "${c.title}" and all its slides, narration, and quiz? This cannot be undone.`)) return;
+                        const { error } = await supabase.from("courses").delete().eq("id", c.id);
+                        if (error) { setErr(error.message); return; }
+                        setCourses((cs) => cs.filter((x) => x.id !== c.id));
+                      }}
+                      title="Delete course"
+                      className="rounded-md border border-rose-500/40 bg-rose-500/15 px-2 py-1 text-[11px] text-rose-100 hover:bg-rose-500/30"
+                    >
+                      🗑 Delete
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
