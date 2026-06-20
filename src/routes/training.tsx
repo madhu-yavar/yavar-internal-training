@@ -695,6 +695,7 @@ function TrainingPage() {
       </main>
       <TrainingChat currentSlide={slide.i} />
       {quizOpen && <TrainingQuiz onClose={() => setQuizOpen(false)} />}
+      <BrandFooter />
     </div>
   );
 }
