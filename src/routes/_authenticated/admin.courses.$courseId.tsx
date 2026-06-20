@@ -852,7 +852,12 @@ function GenerateSection({
       setErr("Upload a PDF or PPTX deck first.");
       return;
     }
+    if (!hasQuiz) {
+      setErr("Upload the quiz Excel first. Generation must bind slides, narration, captions and quiz together.");
+      return;
+    }
     try {
+      let workingSlides = [...slides].sort((a, b) => a.idx - b.idx);
       if (missingNarration.length > 0) {
         setBusy(`Generating narration for ${missingNarration.length} slide(s)…`);
         const res = await runNarrations({
@@ -868,20 +873,36 @@ function GenerateSection({
           },
         });
         // Only update slides that were missing narration
+        const narrationById = new Map<string, string>();
         for (const s of missingNarration) {
           const text = res.narrations[s.idx];
           if (!text) continue;
+          narrationById.set(s.id, text);
           const { error } = await supabase
             .from("slides")
             .update({ narration_text: text })
             .eq("id", s.id);
           if (error) throw error;
         }
-        await onChanged();
+        workingSlides = workingSlides.map((s) => ({ ...s, narration_text: narrationById.get(s.id) ?? s.narration_text }));
       }
-      setBusy("Publishing course…");
+
+      setBusy("Binding SRT timings to slides…");
+      const segmentsBySlide = bindCuesToSlides(workingSlides, cues);
+      for (let i = 0; i < workingSlides.length; i++) {
+        const slide = workingSlides[i];
+        setBusy(`Compiling slide ${i + 1} of ${workingSlides.length}…`);
+        const body_md = buildGeneratedSlideBody(slide, segmentsBySlide[i] ?? [], quiz.length);
+        const { error } = await supabase.from("slides").update({ body_md }).eq("id", slide.id);
+        if (error) throw error;
+      }
+
+      setBusy("Publishing learner material…");
       if (!course.published) await onSaveCourse({ published: true });
-      setStatus("Learning material is ready. Learners can now play this course.");
+      await onChanged();
+      setStatus(
+        `Learning material is ready: ${workingSlides.length} animated slides, ${cues.length} SRT cues bound and ${quiz.length} quiz questions attached.`,
+      );
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -907,7 +928,7 @@ function GenerateSection({
               {missingNarration.length > 0 && `(${missingNarration.length} missing)`}
             </li>
             <li className={cues.length > 0 ? "text-emerald-300" : "text-slate-500"}>
-              {cues.length > 0 ? "✓" : "○"} Captions ({cues.length}) <span className="text-slate-600">— optional</span>
+              {cues.length > 0 ? "✓" : "○"} SRT timing cues ({cues.length})
             </li>
             <li className={hasQuiz ? "text-emerald-300" : "text-slate-500"}>
               {hasQuiz ? "✓" : "○"} Quiz ({quiz.length})
