@@ -67,7 +67,7 @@ function LearnDashboard() {
           (viewedSets[v.course_id] ||= new Set()).add(v.slide_idx);
         });
         for (const id of ids) map[id].viewedSlides = viewedSets[id]?.size ?? 0;
-        (attempts ?? []).forEach((a: { course_id: string; score: number; total: number }) => {
+        ((attempts ?? []) as Array<{ course_id: string; score: number; total: number }>).forEach((a) => {
           const m = map[a.course_id];
           m.attempts++;
           const ratio = a.score / Math.max(1, a.total);
