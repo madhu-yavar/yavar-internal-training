@@ -244,6 +244,7 @@ function LearnDashboard() {
       {user?.id && (
         <MessageAdminDialog open={msgOpen} onClose={() => setMsgOpen(false)} userId={user.id} />
       )}
+      <BrandFooter />
     </div>
   );
 }
