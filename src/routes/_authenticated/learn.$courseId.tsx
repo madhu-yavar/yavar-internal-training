@@ -278,7 +278,7 @@ function CoursePlayer() {
             </label>
             <button
               onClick={() => completed && setQuizOpen(true)}
-              disabled={!completed || quiz.length === 0}
+              disabled={!completed || sampled.length === 0}
               className="rounded-md border border-emerald-400/40 bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-100 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-500"
             >
               {completed ? "🎓 Quiz" : "🔒 Quiz"}
@@ -389,8 +389,8 @@ function CoursePlayer() {
             <div className="mt-6 rounded-2xl border border-emerald-400/40 bg-gradient-to-br from-emerald-500/15 to-emerald-500/5 p-6 text-center">
               <div className="text-[10px] uppercase tracking-[0.25em] text-emerald-300">End of material</div>
               <h3 className="mt-1 text-xl font-bold text-emerald-100">Ready for the quiz?</h3>
-              <p className="mt-1 text-sm text-emerald-200/80">{quiz.length} questions are attached to this course.</p>
-              <button onClick={() => setQuizOpen(true)} disabled={quiz.length === 0} className="mt-4 rounded-lg bg-emerald-500 px-5 py-2 text-sm font-semibold text-slate-900 hover:bg-emerald-400 disabled:opacity-40">🎓 Start Quiz</button>
+              <p className="mt-1 text-sm text-emerald-200/80">{sampled.length} questions are attached to this course.</p>
+              <button onClick={() => setQuizOpen(true)} disabled={sampled.length === 0} className="mt-4 rounded-lg bg-emerald-500 px-5 py-2 text-sm font-semibold text-slate-900 hover:bg-emerald-400 disabled:opacity-40">🎓 Start Quiz</button>
             </div>
           )}
         </section>
@@ -450,10 +450,10 @@ function CourseQuiz({ quiz, courseTitle, onClose }: { quiz: Quiz[]; courseTitle:
           {!submitted ? (
             <div>
               <div className="mb-4 flex items-center justify-between text-xs text-slate-400">
-                <span>Question {current + 1} of {quiz.length}</span>
+                <span>Question {current + 1} of {sampled.length}</span>
                 <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-amber-200">{q.topic || q.difficulty || "Quiz"}</span>
               </div>
-              <div className="mb-2 h-1 w-full overflow-hidden rounded-full bg-white/5"><div className="h-full bg-amber-400" style={{ width: `${((current + 1) / quiz.length) * 100}%` }} /></div>
+              <div className="mb-2 h-1 w-full overflow-hidden rounded-full bg-white/5"><div className="h-full bg-amber-400" style={{ width: `${((current + 1) / sampled.length) * 100}%` }} /></div>
               <h3 className="mt-4 text-lg font-semibold text-slate-100">{q.prompt}</h3>
               {!answered && q.hint && (
                 <div className="mt-3">
@@ -472,14 +472,14 @@ function CourseQuiz({ quiz, courseTitle, onClose }: { quiz: Quiz[]; courseTitle:
               {answered && <div className={`mt-4 rounded-lg border p-3 text-sm ${answers[current] === correct ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-100" : "border-rose-500/40 bg-rose-500/10 text-rose-100"}`}><div className="font-semibold">{answers[current] === correct ? "✅ Correct" : "❌ Not quite"}</div>{q.explanation && <div className="mt-2 text-xs leading-relaxed text-slate-100/90">📘 {q.explanation}</div>}</div>}
               <div className="mt-6 flex items-center justify-between">
                 <button disabled={current === 0} onClick={() => setCurrent((c) => Math.max(0, c - 1))} className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-sm disabled:opacity-30 hover:bg-white/10">← Prev</button>
-                <div className="text-xs text-slate-400">Answered: {Object.keys(answers).length}/{quiz.length}</div>
-                {current < quiz.length - 1 ? <button onClick={() => setCurrent((c) => c + 1)} className="rounded-md bg-amber-500 px-4 py-1.5 text-sm font-semibold text-slate-900 hover:bg-amber-400">Next →</button> : <button disabled={Object.keys(answers).length < quiz.length} onClick={() => setSubmitted(true)} className="rounded-md bg-emerald-500 px-4 py-1.5 text-sm font-semibold text-slate-900 disabled:opacity-30 hover:bg-emerald-400">Submit ✓</button>}
+                <div className="text-xs text-slate-400">Answered: {Object.keys(answers).length}/{sampled.length}</div>
+                {current < sampled.length - 1 ? <button onClick={() => setCurrent((c) => c + 1)} className="rounded-md bg-amber-500 px-4 py-1.5 text-sm font-semibold text-slate-900 hover:bg-amber-400">Next →</button> : <button disabled={Object.keys(answers).length < sampled.length} onClick={() => setSubmitted(true)} className="rounded-md bg-emerald-500 px-4 py-1.5 text-sm font-semibold text-slate-900 disabled:opacity-30 hover:bg-emerald-400">Submit ✓</button>}
               </div>
             </div>
           ) : (
             <div className="rounded-xl border border-amber-400/40 bg-gradient-to-br from-amber-500/20 to-amber-500/5 p-6 text-center">
               <div className="text-[11px] uppercase tracking-[0.25em] text-amber-300">Your result</div>
-              <div className="mt-2 text-5xl font-bold text-amber-100">{score}/{quiz.length}</div>
+              <div className="mt-2 text-5xl font-bold text-amber-100">{score}/{sampled.length}</div>
               <div className="mt-1 text-2xl font-semibold text-amber-200">{pct}%</div>
               <button onClick={onClose} className="mt-5 rounded-md border border-white/10 bg-white/5 px-4 py-1.5 text-sm text-slate-200 hover:bg-white/10">Done</button>
             </div>
