@@ -90,11 +90,16 @@ function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+      <div className="flex-1 flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900/60 p-8 shadow-2xl">
-        <div className="text-xs uppercase tracking-[0.25em] text-amber-400 mb-2">Yavar Training</div>
+        <Link to="/" className="mb-5 flex items-center gap-2">
+          <img src={yavarLogo.url} alt="Yavar" className="h-7 w-auto" />
+          <span className="text-[10px] uppercase tracking-[0.25em] text-amber-400">Yavar Learn</span>
+        </Link>
         <h1 className="text-2xl font-semibold mb-1">
           {mode === "signin" ? "Sign in" : mode === "signup" ? "Create account" : "Reset password"}
+
         </h1>
         <p className="text-sm text-slate-400 mb-6">
           {mode === "signin"
