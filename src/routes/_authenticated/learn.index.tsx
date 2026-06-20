@@ -123,13 +123,13 @@ function LearnDashboard() {
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <header className="border-b border-slate-800 bg-slate-900/60">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
-          <div className="flex items-center gap-2">
-            <div className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-amber-400 to-rose-400 text-sm font-bold text-slate-900">A</div>
-            <div>
+          <Link to="/" className="flex items-center gap-2">
+            <img src={yavarLogo.url} alt="Yavar" className="h-8 w-auto" />
+            <div className="border-l border-white/10 pl-2">
               <div className="text-sm font-semibold leading-none">Yavar Learn</div>
               <div className="text-[10px] uppercase tracking-[0.2em] text-amber-300">with Ari</div>
             </div>
-          </div>
+          </Link>
           <div className="flex items-center gap-2 text-sm">
             <span className="hidden text-slate-400 sm:inline">{user?.email}</span>
             <button onClick={() => { markRepliesSeen(); setMsgOpen(true); }} title="Message team" aria-label="Message team" className="relative grid h-9 w-9 place-items-center rounded-md border border-amber-400/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20">
