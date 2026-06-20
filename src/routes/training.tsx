@@ -9,6 +9,8 @@ import { TrainingQuiz } from "@/components/TrainingQuiz";
 import { LovableTtsPlayer } from "@/lib/lovableTts";
 import { WsTtsPlayer, buildTtsUrl } from "@/lib/wsTts";
 import { AmbientMusic } from "@/lib/ambientMusic";
+import { BrandFooter } from "@/components/BrandFooter";
+import yavarLogo from "@/assets/yavar-logo.png.asset.json";
 
 type Slide = { i: number; title: string; notes: string };
 const SLIDES = slidesData as Slide[];
