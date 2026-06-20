@@ -251,7 +251,31 @@ function CoursePlayer() {
             <Link to="/learn" className="text-[11px] font-semibold text-amber-300 hover:text-amber-200">← Library</Link>
             <h1 className="truncate text-base font-semibold">{course.title}</h1>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            <label className="flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-300">
+              <span className="text-slate-400">Voice</span>
+              <select
+                value={voice}
+                onChange={(e) => setVoice(e.target.value)}
+                className="bg-transparent text-xs text-slate-100 outline-none"
+              >
+                {["alloy","ash","ballad","coral","echo","sage","shimmer","verse"].map((v) => (
+                  <option key={v} value={v} className="bg-slate-900">{v}</option>
+                ))}
+              </select>
+            </label>
+            <label className="flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-300">
+              <span className="text-slate-400">Speed</span>
+              <select
+                value={speed}
+                onChange={(e) => setSpeed(Number(e.target.value))}
+                className="bg-transparent text-xs text-slate-100 outline-none"
+              >
+                {[0.75, 0.9, 1, 1.15, 1.25, 1.5, 1.75, 2].map((s) => (
+                  <option key={s} value={s} className="bg-slate-900">{s}×</option>
+                ))}
+              </select>
+            </label>
             <button
               onClick={() => completed && setQuizOpen(true)}
               disabled={!completed || quiz.length === 0}
