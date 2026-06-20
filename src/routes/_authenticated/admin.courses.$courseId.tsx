@@ -738,7 +738,7 @@ function QuizSection({
         <div>
           <h2 className="text-base font-semibold">Quiz ({quiz.length} questions)</h2>
           <p className="mt-1 text-xs text-slate-500">
-            Upload an Excel (.xlsx) with columns: <code className="text-slate-300">prompt, option_a, option_b, option_c, option_d, correct, explanation</code>.
+            Upload an Excel (.xlsx) with columns: <code className="text-slate-300">prompt, option_a, option_b, option_c, option_d, correct, explanation, hint</code>.
           </p>
         </div>
         <div className="flex gap-2">
