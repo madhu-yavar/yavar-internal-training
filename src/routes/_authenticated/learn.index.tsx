@@ -161,11 +161,12 @@ function LearnDashboard() {
               🎬
             </div>
             <div className="flex items-center justify-between gap-2">
-              <h3 className="text-lg font-semibold group-hover:text-amber-300">Enterprise AI — Original Training</h3>
+              <h3 className="text-lg font-semibold group-hover:text-amber-300">Enterprise AI Training — Private LLM</h3>
               <span className="shrink-0 rounded-full bg-amber-500/15 text-amber-300 px-2 py-0.5 text-[10px] font-medium">Featured</span>
             </div>
-            
-            <div className="mt-3 text-[11px] text-amber-300">Open original training →</div>
+            <p className="mt-2 text-sm text-slate-400">Deploy and operate secure, on-premise LLMs for enterprise workflows.</p>
+            <div className="mt-3 text-[11px] text-amber-300">Start course →</div>
+
           </a>
 
 
