@@ -71,6 +71,8 @@ function CoursePlayer() {
   const [completed, setCompleted] = useState(false);
   const [quizOpen, setQuizOpen] = useState(false);
   const [musicOn, setMusicOn] = useState(false);
+  const [voice, setVoice] = useState<string>("shimmer");
+  const [speed, setSpeed] = useState<number>(1);
   const playerRef = useRef<LovableTtsPlayer | null>(null);
   const musicRef = useRef<AmbientMusic | null>(null);
   const cancelledRef = useRef(false);
