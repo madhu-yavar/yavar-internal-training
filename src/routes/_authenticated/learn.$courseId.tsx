@@ -2,6 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AIAvatar } from "@/components/AIAvatar";
 import { TrainingChat } from "@/components/TrainingChat";
+import { MessageAdminDialog } from "@/components/MessageAdminDialog";
+import { useAuthCtx } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { AmbientMusic } from "@/lib/ambientMusic";
 import { bindCuesToSlides, formatMs, narrationSentences, readGeneratedSegments, slideBullets, stripGeneratedMaterial, type TimedSegment } from "@/lib/courseMaterial";
@@ -59,9 +61,11 @@ const ACCENT_BG: Record<string, string> = {
 
 function CoursePlayer() {
   const { courseId } = Route.useParams();
+  const { user } = useAuthCtx();
   const [course, setCourse] = useState<Course | null>(null);
   const [slides, setSlides] = useState<Slide[]>([]);
   const [cues, setCues] = useState<Cue[]>([]);
+  const [msgOpen, setMsgOpen] = useState(false);
   const [quiz, setQuiz] = useState<Quiz[]>([]);
   const [signedImages, setSignedImages] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -301,6 +305,13 @@ function CoursePlayer() {
             >
               {musicOn ? "🎵 On" : "🎵 Music"}
             </button>
+            <button
+              onClick={() => setMsgOpen(true)}
+              title="Suggest a correction to this course"
+              className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-white/10"
+            >
+              ✏️ Suggest correction
+            </button>
           </div>
         </div>
       </header>
@@ -410,7 +421,17 @@ function CoursePlayer() {
           </ol>
         </aside>
       </main>
-      {quizOpen && <CourseQuiz quiz={quiz} courseTitle={course.title} onClose={() => setQuizOpen(false)} />}
+      {quizOpen && <CourseQuiz quiz={quiz} courseTitle={course.title} courseId={courseId} userId={user?.id ?? null} onClose={() => setQuizOpen(false)} />}
+      {user?.id && (
+        <MessageAdminDialog
+          open={msgOpen}
+          onClose={() => setMsgOpen(false)}
+          userId={user.id}
+          courseId={courseId}
+          defaultType="correction"
+          defaultSubject={`Correction for "${course.title}" (slide ${idx + 1})`}
+        />
+      )}
       <TrainingChat
         currentSlide={idx + 1}
         course={{
@@ -428,7 +449,7 @@ function CoursePlayer() {
   );
 }
 
-function CourseQuiz({ quiz, courseTitle, onClose }: { quiz: Quiz[]; courseTitle: string; onClose: () => void }) {
+function CourseQuiz({ quiz, courseTitle, courseId, userId, onClose }: { quiz: Quiz[]; courseTitle: string; courseId: string; userId: string | null; onClose: () => void }) {
   const sampled = useMemo(() => {
     const arr = [...quiz];
     for (let i = arr.length - 1; i > 0; i--) {
@@ -487,7 +508,12 @@ function CourseQuiz({ quiz, courseTitle, onClose }: { quiz: Quiz[]; courseTitle:
               <div className="mt-6 flex items-center justify-between">
                 <button disabled={current === 0} onClick={() => setCurrent((c) => Math.max(0, c - 1))} className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-sm disabled:opacity-30 hover:bg-white/10">← Prev</button>
                 <div className="text-xs text-slate-400">Answered: {Object.keys(answers).length}/{sampled.length}</div>
-                {current < sampled.length - 1 ? <button onClick={() => setCurrent((c) => c + 1)} className="rounded-md bg-amber-500 px-4 py-1.5 text-sm font-semibold text-slate-900 hover:bg-amber-400">Next →</button> : <button disabled={Object.keys(answers).length < sampled.length} onClick={() => setSubmitted(true)} className="rounded-md bg-emerald-500 px-4 py-1.5 text-sm font-semibold text-slate-900 disabled:opacity-30 hover:bg-emerald-400">Submit ✓</button>}
+                {current < sampled.length - 1 ? <button onClick={() => setCurrent((c) => c + 1)} className="rounded-md bg-amber-500 px-4 py-1.5 text-sm font-semibold text-slate-900 hover:bg-amber-400">Next →</button> : <button disabled={Object.keys(answers).length < sampled.length} onClick={async () => {
+                  setSubmitted(true);
+                  if (userId) {
+                    await supabase.from("quiz_attempts").insert({ user_id: userId, course_id: courseId, score, total: sampled.length });
+                  }
+                }} className="rounded-md bg-emerald-500 px-4 py-1.5 text-sm font-semibold text-slate-900 disabled:opacity-30 hover:bg-emerald-400">Submit ✓</button>}
               </div>
             </div>
           ) : (

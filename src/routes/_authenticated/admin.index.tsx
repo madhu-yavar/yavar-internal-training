@@ -82,12 +82,17 @@ function AdminHome() {
       <header className="border-b border-slate-800 bg-slate-900/60">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
           <div>
-            <div className="text-[10px] uppercase tracking-[0.3em] text-amber-400">Admin Panel</div>
-            <h1 className="text-lg font-semibold">Training Administration</h1>
+            <div className="text-[10px] uppercase tracking-[0.3em] text-amber-400">Yavar Learn · Admin</div>
+            <h1 className="text-lg font-semibold">Course administration</h1>
           </div>
-          <Link to="/learn" className="rounded-md border border-slate-700 px-3 py-1.5 text-sm hover:bg-slate-800">
-            ← Library
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link to="/admin/requests" className="rounded-md border border-amber-400/40 bg-amber-500/10 px-3 py-1.5 text-sm text-amber-200 hover:bg-amber-500/20">
+              💬 Requests
+            </Link>
+            <Link to="/learn" className="rounded-md border border-slate-700 px-3 py-1.5 text-sm hover:bg-slate-800">
+              ← Library
+            </Link>
+          </div>
         </div>
       </header>
 
