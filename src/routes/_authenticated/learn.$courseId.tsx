@@ -3,6 +3,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AIAvatar } from "@/components/AIAvatar";
 import { TrainingChat } from "@/components/TrainingChat";
 import { MessageAdminDialog } from "@/components/MessageAdminDialog";
+import { BrandFooter } from "@/components/BrandFooter";
+import yavarLogo from "@/assets/yavar-logo.png.asset.json";
 import { useAuthCtx } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { AmbientMusic } from "@/lib/ambientMusic";
