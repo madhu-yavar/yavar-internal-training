@@ -3,6 +3,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AIAvatar } from "@/components/AIAvatar";
 import { TrainingChat } from "@/components/TrainingChat";
 import { MessageAdminDialog } from "@/components/MessageAdminDialog";
+import { BrandFooter } from "@/components/BrandFooter";
+import yavarLogo from "@/assets/yavar-logo.png.asset.json";
 import { useAuthCtx } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { AmbientMusic } from "@/lib/ambientMusic";
@@ -252,9 +254,14 @@ function CoursePlayer() {
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <header className="sticky top-0 z-20 border-b border-white/10 bg-slate-900/75 backdrop-blur">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
-          <div className="min-w-0 flex-1">
-            <Link to="/learn" className="text-[11px] font-semibold text-amber-300 hover:text-amber-200">← Library</Link>
-            <h1 className="truncate text-base font-semibold">{course.title}</h1>
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <Link to="/learn" aria-label="Library">
+              <img src={yavarLogo.url} alt="Yavar" className="h-7 w-auto shrink-0" />
+            </Link>
+            <div className="min-w-0">
+              <Link to="/learn" className="text-[11px] font-semibold text-amber-300 hover:text-amber-200">← Library</Link>
+              <h1 className="truncate text-base font-semibold">{course.title}</h1>
+            </div>
           </div>
           <div className="flex shrink-0 flex-wrap items-center gap-2">
             <label className="flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-300">
@@ -447,6 +454,7 @@ function CoursePlayer() {
           })),
         }}
       />
+      <BrandFooter />
     </div>
   );
 }

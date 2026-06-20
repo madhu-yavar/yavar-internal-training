@@ -9,6 +9,8 @@ import { TrainingQuiz } from "@/components/TrainingQuiz";
 import { LovableTtsPlayer } from "@/lib/lovableTts";
 import { WsTtsPlayer, buildTtsUrl } from "@/lib/wsTts";
 import { AmbientMusic } from "@/lib/ambientMusic";
+import { BrandFooter } from "@/components/BrandFooter";
+import yavarLogo from "@/assets/yavar-logo.png.asset.json";
 
 type Slide = { i: number; title: string; notes: string };
 const SLIDES = slidesData as Slide[];
@@ -342,13 +344,18 @@ function TrainingPage() {
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <header className="border-b border-white/10 bg-slate-900/70 backdrop-blur sticky top-0 z-20">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
-          <div className="min-w-0 flex-1">
-            <div className="text-[10px] uppercase tracking-[0.25em] text-amber-400">
-              Yavar · Interactive Training
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <Link to="/" aria-label="Home">
+              <img src={yavarLogo.url} alt="Yavar" className="h-7 w-auto shrink-0" />
+            </Link>
+            <div className="min-w-0">
+              <div className="text-[10px] uppercase tracking-[0.25em] text-amber-400">
+                Yavar · Interactive Training
+              </div>
+              <h1 className="truncate text-sm font-semibold sm:text-base">
+                Enterprise AI with Private LLM
+              </h1>
             </div>
-            <h1 className="truncate text-sm font-semibold sm:text-base">
-              Enterprise AI with Private LLM
-            </h1>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <Link
@@ -688,6 +695,7 @@ function TrainingPage() {
       </main>
       <TrainingChat currentSlide={slide.i} />
       {quizOpen && <TrainingQuiz onClose={() => setQuizOpen(false)} />}
+      <BrandFooter />
     </div>
   );
 }
