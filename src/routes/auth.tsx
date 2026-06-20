@@ -45,11 +45,27 @@ function AuthPage() {
     }
   };
 
+  const PUBLIC_EMAIL_DOMAINS = new Set([
+    "gmail.com","googlemail.com","yahoo.com","yahoo.co.in","yahoo.co.uk","ymail.com","rocketmail.com",
+    "outlook.com","hotmail.com","hotmail.co.uk","live.com","msn.com",
+    "icloud.com","me.com","mac.com",
+    "aol.com","protonmail.com","proton.me","pm.me",
+    "mail.com","gmx.com","gmx.net","zoho.com",
+    "rediffmail.com","yandex.com","yandex.ru","qq.com","163.com","126.com","sina.com",
+  ]);
+
   const signUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErr(null); setMsg(null); setLoading(true);
+    setErr(null); setMsg(null);
+    const cleaned = email.trim().toLowerCase();
+    const domain = cleaned.split("@")[1] ?? "";
+    if (!domain || PUBLIC_EMAIL_DOMAINS.has(domain)) {
+      setErr("Please sign up with your official work email. Public email providers (gmail, yahoo, outlook, etc.) are not allowed.");
+      return;
+    }
+    setLoading(true);
     const { error } = await supabase.auth.signUp({
-      email: email.trim().toLowerCase(),
+      email: cleaned,
       password,
       options: { emailRedirectTo: `${window.location.origin}/learn` },
     });
@@ -81,7 +97,7 @@ function AuthPage() {
           {mode === "signin"
             ? "Use your email and password."
             : mode === "signup"
-            ? "Pick a password (8+ characters)."
+            ? "Use your official work email (public providers like gmail/yahoo are not allowed). Password must be 8+ characters."
             : "We'll send a password reset link to your email."}
         </p>
 

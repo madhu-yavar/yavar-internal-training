@@ -40,6 +40,14 @@ function LearnDashboard() {
   const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(true);
   const [msgOpen, setMsgOpen] = useState(false);
+  const [unreadReplies, setUnreadReplies] = useState(0);
+
+  const seenKey = user?.id ? `ari_replies_seen_${user.id}` : "";
+  const markRepliesSeen = () => {
+    if (!seenKey) return;
+    localStorage.setItem(seenKey, new Date().toISOString());
+    setUnreadReplies(0);
+  };
 
   useEffect(() => {
     if (!user?.id) return;
@@ -79,11 +87,16 @@ function LearnDashboard() {
 
       const { data: reqs } = await supabase
         .from("course_requests")
-        .select("id,subject,type,status,admin_reply,created_at")
+        .select("id,subject,type,status,admin_reply,created_at,updated_at")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
-        .limit(5);
-      setRequests((reqs as Request[]) ?? []);
+        .limit(20);
+      const all = (reqs as Array<Request & { updated_at: string }>) ?? [];
+      setRequests(all.slice(0, 5));
+      const seenAt = seenKey ? localStorage.getItem(seenKey) : null;
+      const seenT = seenAt ? Date.parse(seenAt) : 0;
+      const unread = all.filter((r) => r.status === "responded" && !!r.admin_reply && Date.parse(r.updated_at) > seenT).length;
+      setUnreadReplies(unread);
 
       setLoading(false);
     })();
@@ -117,8 +130,13 @@ function LearnDashboard() {
           </div>
           <div className="flex items-center gap-3 text-sm">
             <span className="hidden text-slate-400 sm:inline">{user?.email}</span>
-            <button onClick={() => setMsgOpen(true)} className="rounded-md border border-amber-400/40 bg-amber-500/10 px-3 py-1.5 text-amber-200 hover:bg-amber-500/20">
+            <button onClick={() => { markRepliesSeen(); setMsgOpen(true); }} className="relative rounded-md border border-amber-400/40 bg-amber-500/10 px-3 py-1.5 text-amber-200 hover:bg-amber-500/20">
               💬 Message team
+              {unreadReplies > 0 && (
+                <span className="absolute -right-2 -top-2 grid h-5 min-w-[20px] place-items-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
+                  {unreadReplies}
+                </span>
+              )}
             </button>
             {isAdmin && (
               <Link to="/admin" className="rounded-md border border-amber-400/40 px-3 py-1.5 text-amber-300 hover:bg-amber-500/10">Admin</Link>
@@ -133,6 +151,23 @@ function LearnDashboard() {
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {loading && <div className="text-sm text-slate-400">Loading…</div>}
+
+          {/* Original demo training — always visible */}
+          <a
+            href="/training"
+            className="group rounded-2xl border border-amber-400/30 bg-slate-900/60 p-5 hover:border-amber-400/70 transition"
+          >
+            <div className="aspect-video w-full overflow-hidden rounded-lg bg-gradient-to-br from-amber-500/30 to-rose-500/30 mb-4 grid place-items-center text-4xl">
+              🎬
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-lg font-semibold group-hover:text-amber-300">Enterprise AI — Original Training</h3>
+              <span className="shrink-0 rounded-full bg-amber-500/15 text-amber-300 px-2 py-0.5 text-[10px] font-medium">Featured</span>
+            </div>
+            <p className="mt-2 text-sm text-slate-400 line-clamp-2">Our first AI-narrated training video with Ari, quizzes and hints.</p>
+            <div className="mt-3 text-[11px] text-amber-300">Open original training →</div>
+          </a>
+
 
           {courses.map((c) => {
             const s = stats[c.id];
