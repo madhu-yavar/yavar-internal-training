@@ -147,7 +147,7 @@ function CoursePlayer() {
       }
       const u = new SpeechSynthesisUtterance(text);
       u.lang = "en-US";
-      u.rate = course?.speed ?? 1;
+      u.rate = speed;
       u.pitch = 1.04;
       u.onend = () => resolve();
       u.onerror = () => resolve();
@@ -162,8 +162,8 @@ function CoursePlayer() {
         player.prime();
         playerRef.current = player;
       }
-      player.setRate(course?.speed ?? 1);
-      await player.speak(text, course?.voice === "default" ? "shimmer" : course?.voice ?? "shimmer");
+      player.setRate(speed);
+      await player.speak(text, voice);
     } catch {
       if (!cancelledRef.current) await speakBrowser(text);
     }
