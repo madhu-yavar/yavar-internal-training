@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { COURSE_BUCKET, getSignedUrl } from "@/lib/storage";
 import { parseDeck, type ParsedSlide } from "@/lib/deckParser";
 import { generateCourseDescription, generateNarrations } from "@/lib/narration.functions";
+import { bindCuesToSlides, buildGeneratedSlideBody, formatMs, stripGeneratedMaterial } from "@/lib/courseMaterial";
 
 export const Route = createFileRoute("/_authenticated/admin/courses/$courseId")({
   component: CourseEditor,
@@ -34,12 +35,6 @@ type Slide = {
 };
 
 type Cue = { id: string; idx: number; start_ms: number; end_ms: number; text: string };
-type TimedSegment = {
-  slideIdx: number;
-  startMs: number;
-  endMs: number;
-  text: string;
-};
 type Quiz = {
   id: string;
   idx: number;
@@ -54,9 +49,6 @@ type Quiz = {
   topic?: string | null;
   difficulty?: string | null;
 };
-
-const GENERATED_PREFIX = "<!-- generated-learning-material-v1";
-const GENERATED_SUFFIX = "generated-learning-material-v1 -->";
 
 const VOICES = ["default", "alloy", "verse", "shimmer", "fable", "nova"];
 const LANGS = [
