@@ -52,6 +52,14 @@ SCENE OUTPUT CONTRACT — ignore any older template instructions that ask for na
 Return exactly one JSON object with this shape and no markdown:
 { "slides": [ { "sourceSlideIdx": 0, "scenes": [ { "concept": "short concept name", "intro": "one direct teaching sentence", "analogy": { "caption": "human analogy", "nodes": ["start", "middle", "end"] }, "example": { "caption": "real-world example", "nodes": ["input", "action", "outcome"] }, "technical": { "caption": "technical pipeline", "nodes": ["input", "processing", "model", "output"] }, "takeaway": "one memorable sentence", "narration": { "intro": "25-45 spoken words", "analogy": "25-45 spoken words", "example": "25-45 spoken words", "technical": "25-45 spoken words", "takeaway": "25-45 spoken words" }, "keywords": ["data", "model"] } ] } ] }`;
 
+const TOPIC_LOCK = `
+
+TOPIC LOCK — non-negotiable:
+- The slide TITLE below is the authoritative topic. Every scene's "concept" MUST be a direct sub-aspect of that title, using vocabulary present in the slide's title or bullets.
+- Do NOT invent unrelated topics, do NOT swap the subject (e.g. if the slide is "Document AI", do not pivot to "Self-driving cars").
+- If an EXTRA INSTRUCTION is provided, treat it as STYLE/TONE guidance ONLY — it must never change the slide's topic.
+- If the slide has only one concept, return ONE scene; only split into multiple scenes when the title or bullets explicitly enumerate distinct concepts.`;
+
 type CourseCfg = {
   tone: string;
   audience: string;
@@ -103,11 +111,56 @@ function sceneTemplateFrom(template: string): string {
 }
 
 function scenePromptFrom(basePrompt: string): string {
-  return `${basePrompt}${SCENE_OUTPUT_CONTRACT}`;
+  return `${basePrompt}${SCENE_OUTPUT_CONTRACT}${TOPIC_LOCK}`;
 }
 
 function renderTemplate(tpl: string, vars: Record<string, string | number>) {
   return tpl.replace(/\{\{(\w+)\}\}/g, (_, k) => String(vars[k] ?? ""));
+}
+
+/** Extract teachable bullets from slide body_md.
+ *  Drops headings, image refs, fenced code, blockquotes, tables.
+ *  Keeps list items and prose, split into sentences. */
+function bulletsFromBody(bodyMd: string | null | undefined): string[] {
+  const raw = (bodyMd ?? "").replace(/\r\n/g, "\n").replace(/```[\s\S]*?```/g, "");
+  const lines = raw.split("\n");
+  const out: string[] = [];
+  let para: string[] = [];
+  const flushPara = () => {
+    if (!para.length) return;
+    const text = para.join(" ").trim();
+    para = [];
+    if (!text) return;
+    for (const p of text.split(/(?<=[.!?])\s+(?=[A-Z0-9])/)) {
+      const t = p.trim();
+      if (t.length > 2) out.push(t);
+    }
+  };
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) { flushPara(); continue; }
+    if (/^#{1,6}\s/.test(line)) { flushPara(); continue; }
+    if (/^!\[.*?\]\(.*?\)\s*$/.test(line)) { flushPara(); continue; }
+    if (/^>\s?/.test(line)) { flushPara(); continue; }
+    if (/^[-*_]{3,}\s*$/.test(line)) { flushPara(); continue; }
+    if (/^\|.*\|$/.test(line)) { flushPara(); continue; }
+    const bullet = line.match(/^\s*(?:[-*•]|\d+\.)\s+(.*)$/);
+    if (bullet) {
+      flushPara();
+      const t = bullet[1].replace(/!\[.*?\]\(.*?\)/g, "").trim();
+      if (t.length > 1) out.push(t);
+      continue;
+    }
+    para.push(line);
+  }
+  flushPara();
+  const seen = new Set<string>();
+  return out.filter((b) => {
+    const k = b.toLowerCase();
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
 }
 
 type ModelUsed = "gemini-3.1-pro" | "gemini-flash-fallback";
@@ -553,10 +606,7 @@ export const regenerateSlideNarration = createServerFn({ method: "POST" })
       .single();
 
     const cleanBody = stripScenes(slide.body_md as string | null);
-    const bullets = cleanBody
-      .split("\n")
-      .map((l) => l.replace(/^[-*]\s*/, "").trim())
-      .filter(Boolean);
+    const bullets = bulletsFromBody(cleanBody);
 
     const cfg = await loadCourseCfg(slide.course_id as string);
     const template = sceneTemplateFrom(cfg.prompt_override?.trim() || (await loadGlobalTemplate()));
@@ -651,10 +701,7 @@ export const regenerateSlideRange = createServerFn({ method: "POST" })
 
     for (const slide of slides) {
       const cleanBody = stripScenes(slide.body_md as string | null);
-      const bullets = cleanBody
-        .split("\n")
-        .map((l) => l.replace(/^[-*]\s*/, "").trim())
-        .filter(Boolean);
+      const bullets = bulletsFromBody(cleanBody);
       try {
         const r = await generateScenesForSingleSlide({
           slide: { title: slide.title as string, bullets },

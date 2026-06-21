@@ -9,6 +9,7 @@ type Props = {
   speaking: boolean;
   accent: string;
   illustrationUrl?: string | null;
+  slideImageUrl?: string | null;
   sceneNumber: number;
   totalScenes: number;
   sourceSlideTitle: string;
@@ -70,7 +71,7 @@ function Diagram({
 }
 
 export function LearningScene({
-  scene, phase, speaking, accent, illustrationUrl, sceneNumber, totalScenes, sourceSlideTitle,
+  scene, phase, speaking, accent, illustrationUrl, slideImageUrl, sceneNumber, totalScenes, sourceSlideTitle,
 }: Props) {
   const textAccent = ACCENT_TEXT[accent] ?? "text-amber-300";
   const ring = ACCENT_RING[accent] ?? "ring-amber-400/50 bg-amber-500/10";
@@ -85,8 +86,8 @@ export function LearningScene({
     <div className="space-y-4">
       <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}`}</style>
 
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
           <div className={`text-[10px] uppercase tracking-[0.3em] ${textAccent}`}>
             {PHASE_LABELS[phase]} · Scene {sceneNumber} of {totalScenes}
           </div>
@@ -98,9 +99,20 @@ export function LearningScene({
           )}
         </div>
         {illustrationUrl && (
-          <img src={illustrationUrl} alt="" className="hidden h-24 w-auto rounded-xl border border-white/10 bg-white/5 object-contain sm:block" />
+          <img src={illustrationUrl} alt="" className="hidden h-20 w-auto shrink-0 rounded-xl border border-white/10 bg-white/5 object-contain sm:block" />
         )}
       </div>
+
+      {/* Hero: admin-uploaded slide image */}
+      {slideImageUrl && (
+        <div className="overflow-hidden rounded-2xl border border-white/10 bg-white">
+          <img
+            src={slideImageUrl}
+            alt={sourceSlideTitle || "Slide"}
+            className="block max-h-[420px] w-full object-contain"
+          />
+        </div>
+      )}
 
       {/* Intro card — always visible once scene starts */}
       <div className={`rounded-2xl border p-5 transition-all ${phase === "intro" && speaking ? `ring-2 ${ring} border-transparent` : "border-white/10 bg-slate-950/40"}`}>
