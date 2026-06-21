@@ -689,18 +689,68 @@ function SlidesSection({
               onChange={(e) => e.target.files?.[0] && handleDeck(e.target.files[0], false)}
             />
           </label>
-          {slides.length > 0 && (
-            <button
-              onClick={() => regenerateFirstN(Math.min(10, slides.length))}
-              disabled={rangeBusy}
-              className="rounded-md border border-sky-400/40 bg-sky-500/10 px-3 py-1.5 text-xs text-sky-200 hover:bg-sky-500/20 disabled:opacity-50"
-              title="Strict per-slide regeneration. One Gemini call per slide. No silent fallback."
-            >
-              {rangeBusy ? "Regenerating first 10…" : "↻ Regenerate first 10 (1 slide / call)"}
-            </button>
-          )}
         </div>
       </div>
+
+      {slides.length > 0 && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-sky-400/30 bg-sky-500/5 p-2 text-xs">
+          <span className="font-semibold text-sky-200">Per-slide regen:</span>
+          <label className="flex items-center gap-1 text-slate-300">
+            From
+            <input
+              type="number"
+              min={1}
+              max={slides.length}
+              value={fromIdx}
+              disabled={rangeBusy}
+              onChange={(e) => setFromIdx(Math.max(1, Number(e.target.value) || 1))}
+              className="w-16 rounded border border-slate-700 bg-slate-900 px-1.5 py-1 text-slate-100"
+            />
+          </label>
+          <label className="flex items-center gap-1 text-slate-300">
+            To
+            <input
+              type="number"
+              min={1}
+              max={slides.length}
+              value={toIdx}
+              disabled={rangeBusy}
+              onChange={(e) => setToIdx(Math.max(1, Number(e.target.value) || 1))}
+              className="w-16 rounded border border-slate-700 bg-slate-900 px-1.5 py-1 text-slate-100"
+            />
+          </label>
+          <label className="flex items-center gap-1.5 text-slate-300">
+            <input
+              type="checkbox"
+              checked={alsoIllustrate}
+              disabled={rangeBusy}
+              onChange={(e) => setAlsoIllustrate(e.target.checked)}
+            />
+            Also generate illustration (Gemini image)
+          </label>
+          <button
+            onClick={regenerateRange}
+            disabled={rangeBusy}
+            className="rounded-md border border-sky-400/40 bg-sky-500/10 px-3 py-1.5 text-sky-200 hover:bg-sky-500/20 disabled:opacity-50"
+            title="Regenerate the slide range you picked, one slide at a time."
+          >
+            ↻ Regenerate range
+          </button>
+          <button
+            onClick={regenerateAllRemaining}
+            disabled={rangeBusy}
+            className="rounded-md border border-emerald-400/40 bg-emerald-500/10 px-3 py-1.5 text-emerald-200 hover:bg-emerald-500/20 disabled:opacity-50"
+            title="Walks every slide missing narration (or illustration if checked)."
+          >
+            ⟳ Regenerate all remaining
+          </button>
+          <span className="text-slate-400">
+            ({slides.length} slides ·{" "}
+            {slides.filter((s) => !s.narration_text).length} missing narration ·{" "}
+            {slides.filter((s) => !s.illustration_url).length} missing illustration)
+          </span>
+        </div>
+      )}
 
       {progress && (
         <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
