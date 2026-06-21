@@ -405,11 +405,37 @@ export const getAdminSettings = createServerFn({ method: "GET" })
       .select("template, updated_at")
       .eq("scope", "global")
       .maybeSingle();
+    const hasGeminiKey = !!process.env.GEMINI_API_KEY;
     return {
       template: (data?.template as string) || DEFAULT_TEMPLATE,
       updatedAt: (data?.updated_at as string) || null,
-      hasGeminiKey: !!process.env.GEMINI_API_KEY,
+      hasGeminiKey,
+      narrationModel: hasGeminiKey ? MODEL_LABEL["gemini-3.1-pro"] : MODEL_LABEL["gemini-flash-fallback"],
+      tts: {
+        provider: "Yavar TTS (self-hosted)",
+        endpoint: "wss://agentic-rag.yavar.ai/stream/tts",
+        voice: "af_heart",
+        sampleRate: 24000,
+      },
     };
+  });
+
+export const getRecentGenerationLogs = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("Forbidden");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
+      .from("generation_logs")
+      .select("id, created_at, kind, model, provider, status, detail, slide_count, duration_ms, course_id")
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (error) throw error;
+    return { logs: data ?? [] };
   });
 
 const SaveTemplateInput = z.object({ template: z.string().min(20).max(20000) });
