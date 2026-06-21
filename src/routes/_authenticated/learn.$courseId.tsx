@@ -113,7 +113,10 @@ function CoursePlayer() {
       setSlides(orderedSlides);
       setCues((cu as Cue[]) ?? []);
       setQuiz((q as Quiz[]) ?? []);
-      const paths = orderedSlides.map((slide) => slide.image_url).filter((p): p is string => !!p);
+      const paths = [
+        ...orderedSlides.map((s) => s.image_url),
+        ...orderedSlides.map((s) => s.illustration_url),
+      ].filter((p): p is string => !!p);
       setSignedImages(paths.length ? await signMany(paths, 3600) : {});
       setLoading(false);
     })();
