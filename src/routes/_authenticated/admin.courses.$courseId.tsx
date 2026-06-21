@@ -1009,53 +1009,49 @@ function GenerateSection({
       return;
     }
     try {
+      const { embedScenes, stripScenes } = await import("@/lib/learningScenes");
       let workingSlides = [...slides].sort((a, b) => a.idx - b.idx);
-      {
-        setBusy(`Generating narration for ${workingSlides.length} slide(s) with admin prompt…`);
-        const res = await runNarrations({
-          data: {
-            courseTitle: course.title,
-            courseId: course.id,
-            slides: workingSlides.map((s) => ({
-              title: s.title,
-              bullets: stripGeneratedMaterial(s.body_md)
-                .split("\n")
-                .map((l) => l.replace(/^[-*]\s*/, "").trim())
-                .filter(Boolean),
-            })),
-          },
-        });
-        setLastModel(res.modelUsed === "gemini-3.1-pro" ? "Gemini 3.1 Pro" : "Gemini Flash fallback");
-        const narrationById = new Map<string, string>();
-        for (let i = 0; i < workingSlides.length; i++) {
-          const s = workingSlides[i];
-          const text = res.narrations[i];
-          if (!text) continue;
-          narrationById.set(s.id, text);
-          const { error } = await supabase
-            .from("slides")
-            .update({ narration_text: text, icon_keywords: res.keywords?.[i] ?? [] })
-            .eq("id", s.id);
-          if (error) throw error;
-        }
-        workingSlides = workingSlides.map((s) => ({ ...s, narration_text: narrationById.get(s.id) ?? s.narration_text }));
-      }
+      setBusy(`Generating teaching scenes for ${workingSlides.length} slide(s) with admin prompt…`);
+      const res = await runNarrations({
+        data: {
+          courseTitle: course.title,
+          courseId: course.id,
+          slides: workingSlides.map((s) => ({
+            title: s.title,
+            bullets: stripScenes(stripGeneratedMaterial(s.body_md))
+              .split("\n")
+              .map((l) => l.replace(/^[-*]\s*/, "").trim())
+              .filter(Boolean),
+          })),
+        },
+      });
+      setLastModel(res.modelUsed === "gemini-3.1-pro" ? "Gemini 3.1 Pro" : "Gemini Flash fallback");
 
-      setBusy("Binding SRT timings to slides…");
-      const segmentsBySlide = bindCuesToSlides(workingSlides, cues);
+      let totalScenes = 0;
       for (let i = 0; i < workingSlides.length; i++) {
-        const slide = workingSlides[i];
-        setBusy(`Compiling slide ${i + 1} of ${workingSlides.length}…`);
-        const body_md = buildGeneratedSlideBody(slide, segmentsBySlide[i] ?? [], quiz.length);
-        const { error } = await supabase.from("slides").update({ body_md }).eq("id", slide.id);
+        const s = workingSlides[i];
+        const slideScenes = res.scenes?.[i]?.scenes ?? [];
+        totalScenes += slideScenes.length;
+        const narration = res.narrations[i] ?? "";
+        const cleanBody = stripScenes(stripGeneratedMaterial(s.body_md));
+        const newBody = slideScenes.length > 0 ? embedScenes(cleanBody, slideScenes) : cleanBody;
+        const { error } = await supabase
+          .from("slides")
+          .update({
+            narration_text: narration,
+            icon_keywords: res.keywords?.[i] ?? [],
+            body_md: newBody,
+          })
+          .eq("id", s.id);
         if (error) throw error;
+        setBusy(`Saved scenes for slide ${i + 1} of ${workingSlides.length}…`);
       }
 
       setBusy("Publishing learner material…");
       if (!course.published) await onSaveCourse({ published: true });
       await onChanged();
       setStatus(
-        `Learning material is ready: ${workingSlides.length} animated slides, ${cues.length} SRT cues bound and ${quiz.length} quiz questions attached.`,
+        `Generated ${totalScenes} teaching scenes from ${workingSlides.length} source slide(s) using ${res.modelUsed === "gemini-3.1-pro" ? "Gemini 3.1 Pro" : "Gemini Flash"}. ${quiz.length} quiz questions attached.`,
       );
     } catch (e) {
       setErr((e as Error).message);
