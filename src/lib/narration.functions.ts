@@ -29,15 +29,15 @@ Think like a great YouTube educator. NEVER just read the bullets. Teach concepts
 INTRO -> ANALOGY -> REAL-WORLD EXAMPLE -> TECHNICAL EXPLANATION -> TAKEAWAY.
 ONE concept per scene. If a source slide contains multiple concepts (e.g. "Perception, Language, Prediction, Decision"), SPLIT it into multiple scenes — one per concept. Dense slides should have 2-4 scenes.
 
-For EACH scene, return:
-- concept (1-3 word noun, e.g. "Perception")
-- intro: one sentence introducing the idea, addressing the learner as "you"
-- analogy: { caption, nodes[2-4] } — a simple human analogy as a left-to-right flow (e.g. ["Human Eye","Brain","Decision"])
-- example: { caption, nodes[2-4] } — a concrete real-world scenario as a flow (e.g. ["Traffic Camera","Detect Pedestrian","Warn Driver"])
-- technical: { caption, nodes[2-5] } — the under-the-hood pipeline (e.g. ["Image","Feature Extraction","Model","Classification"])
-- takeaway: one sentence the learner should remember
-- narration: { intro, analogy, example, technical, takeaway } — each 25-45 spoken words, conversational, paraphrased, addresses the learner as "you", never reads node labels verbatim
-- keywords: 1-3 single-word lowercase nouns for iconography
+For EACH scene, return a JSON object with:
+- "concept": (1-3 word noun)
+- "intro": (one sentence, address learner as "you")
+- "analogy": { "caption": "string", "nodes": ["string", "string"] } (2-4 nodes)
+- "example": { "caption": "string", "nodes": ["string", "string"] } (2-4 nodes)
+- "technical": { "caption": "string", "nodes": ["string", "string"] } (2-5 nodes)
+- "takeaway": (one sentence)
+- "narration": { "intro": "...", "analogy": "...", "example": "...", "technical": "...", "takeaway": "..." } (each 25-45 words)
+- "keywords": ["word1", "word2", "word3"]
 
 Return STRICT JSON ONLY:
 { "slides": [ { "sourceSlideIdx": 0, "scenes": [ { ... }, ... ] }, ... ] }
@@ -45,6 +45,12 @@ with exactly {{slideCount}} entries in "slides", in the same order as the deck.
 
 DECK:
 {{deck}}`;
+
+const SCENE_OUTPUT_CONTRACT = `
+
+SCENE OUTPUT CONTRACT — ignore any older template instructions that ask for narrations/keywords only.
+Return exactly one JSON object with this shape and no markdown:
+{ "slides": [ { "sourceSlideIdx": 0, "scenes": [ { "concept": "short concept name", "intro": "one direct teaching sentence", "analogy": { "caption": "human analogy", "nodes": ["start", "middle", "end"] }, "example": { "caption": "real-world example", "nodes": ["input", "action", "outcome"] }, "technical": { "caption": "technical pipeline", "nodes": ["input", "processing", "model", "output"] }, "takeaway": "one memorable sentence", "narration": { "intro": "25-45 spoken words", "analogy": "25-45 spoken words", "example": "25-45 spoken words", "technical": "25-45 spoken words", "takeaway": "25-45 spoken words" }, "keywords": ["data", "model"] } ] } ] }`;
 
 type CourseCfg = {
   tone: string;
@@ -55,7 +61,12 @@ type CourseCfg = {
 
 async function loadCourseCfg(courseId: string | undefined): Promise<CourseCfg> {
   if (!courseId) {
-    return { tone: "conversational", audience: "business professionals", tech_depth: 3, prompt_override: null };
+    return {
+      tone: "conversational",
+      audience: "business professionals",
+      tech_depth: 3,
+      prompt_override: null,
+    };
   }
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data } = await supabaseAdmin
@@ -85,6 +96,16 @@ async function loadGlobalTemplate(): Promise<string> {
   }
 }
 
+function sceneTemplateFrom(template: string): string {
+  // Older saved templates return { narrations, keywords }. The slide player now
+  // needs structured learning scenes, so fall back to the scene contract here.
+  return /"scenes"|\bscenes\b|technical pipeline/i.test(template) ? template : DEFAULT_TEMPLATE;
+}
+
+function scenePromptFrom(basePrompt: string): string {
+  return `${basePrompt}${SCENE_OUTPUT_CONTRACT}`;
+}
+
 function renderTemplate(tpl: string, vars: Record<string, string | number>) {
   return tpl.replace(/\{\{(\w+)\}\}/g, (_, k) => String(vars[k] ?? ""));
 }
@@ -93,7 +114,10 @@ type ModelUsed = "gemini-3.1-pro" | "gemini-flash-fallback";
 
 const MODEL_LABEL: Record<ModelUsed, { provider: string; model: string }> = {
   "gemini-3.1-pro": { provider: "Google (admin key)", model: "gemini-3.1-pro-preview" },
-  "gemini-flash-fallback": { provider: "Lovable AI Gateway", model: "google/gemini-3-flash-preview" },
+  "gemini-flash-fallback": {
+    provider: "Lovable AI Gateway",
+    model: "google/gemini-3-flash-preview",
+  },
 };
 
 type LogCtx = {
@@ -101,6 +125,11 @@ type LogCtx = {
   courseId?: string | null;
   kind: string;
   slideCount?: number;
+};
+
+type ParsedScenePayload = {
+  scenes?: unknown[];
+  slides?: Array<{ scenes?: unknown[] }> | { scenes?: unknown[] };
 };
 
 async function writeLog(
@@ -129,7 +158,10 @@ async function writeLog(
   }
 }
 
-async function generateJson(prompt: string, ctx: LogCtx): Promise<{ text: string; modelUsed: ModelUsed }> {
+async function generateJson(
+  prompt: string,
+  ctx: LogCtx,
+): Promise<{ text: string; modelUsed: ModelUsed }> {
   const started = Date.now();
   const geminiKey = process.env.GEMINI_API_KEY;
   const modelUsed: ModelUsed = geminiKey ? "gemini-3.1-pro" : "gemini-flash-fallback";
@@ -142,19 +174,30 @@ async function generateJson(prompt: string, ctx: LogCtx): Promise<{ text: string
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             contents: [{ role: "user", parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.6, maxOutputTokens: 16384, responseMimeType: "application/json" },
+            generationConfig: {
+              temperature: 0.2,
+              maxOutputTokens: 16384,
+              responseMimeType: "application/json",
+            },
           }),
         },
       );
       const raw = await res.text();
       if (!res.ok) throw new Error(`Gemini 3.1 Pro failed (${res.status}): ${raw.slice(0, 300)}`);
       const json = JSON.parse(raw) as {
-        candidates?: Array<{ finishReason?: string; content?: { parts?: Array<{ text?: string }> } }>;
+        candidates?: Array<{
+          finishReason?: string;
+          content?: { parts?: Array<{ text?: string }> };
+        }>;
       };
       const candidate = json.candidates?.[0];
       const text = candidate?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
-      if (candidate?.finishReason === "MAX_TOKENS") throw new Error("Gemini 3.1 Pro response was truncated.");
-      if (!text) throw new Error(`Gemini 3.1 Pro returned no JSON. Finish reason: ${candidate?.finishReason ?? "unknown"}`);
+      if (candidate?.finishReason === "MAX_TOKENS")
+        throw new Error("Gemini 3.1 Pro response was truncated.");
+      if (!text)
+        throw new Error(
+          `Gemini 3.1 Pro returned no JSON. Finish reason: ${candidate?.finishReason ?? "unknown"}`,
+        );
       await writeLog(ctx, modelUsed, "ok", null, Date.now() - started);
       return { text, modelUsed };
     }
@@ -164,7 +207,7 @@ async function generateJson(prompt: string, ctx: LogCtx): Promise<{ text: string
     const { text } = await generateText({
       model: gateway("google/gemini-3-flash-preview"),
       prompt,
-      temperature: 0.6,
+      temperature: 0.2,
     });
     await writeLog(ctx, modelUsed, "ok", null, Date.now() - started);
     return { text, modelUsed };
@@ -174,74 +217,66 @@ async function generateJson(prompt: string, ctx: LogCtx): Promise<{ text: string
   }
 }
 
-function extractJson<T>(text: string): T {
-  // Strip markdown fences
-  let cleaned = text.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
-
-  // Find first { or [ and matching last } or ]
-  const startIdx = cleaned.search(/[\{\[]/);
-  if (startIdx === -1) throw new Error("AI did not return JSON");
-  const startChar = cleaned[startIdx];
-  const endChar = startChar === "[" ? "]" : "}";
-  const endIdx = cleaned.lastIndexOf(endChar);
-  if (endIdx === -1 || endIdx < startIdx) throw new Error("AI did not return JSON");
-  cleaned = cleaned.substring(startIdx, endIdx + 1);
-
+function safeParseJson(text: string): unknown {
   try {
-    return JSON.parse(cleaned) as T;
-  } catch {
-    // Walk the string respecting strings/escapes to find the first balanced object/array.
-    let depth = 0;
-    let inStr = false;
-    let esc = false;
-    let balancedEnd = -1;
-    for (let i = 0; i < cleaned.length; i++) {
-      const ch = cleaned[i];
-      if (inStr) {
-        if (esc) esc = false;
-        else if (ch === "\\") esc = true;
-        else if (ch === '"') inStr = false;
-        continue;
-      }
-      if (ch === '"') { inStr = true; continue; }
-      if (ch === "{" || ch === "[") depth++;
-      else if (ch === "}" || ch === "]") {
-        depth--;
-        if (depth === 0) { balancedEnd = i; break; }
-      }
-    }
-    if (balancedEnd > 0) {
-      const slice = cleaned.substring(0, balancedEnd + 1);
-      try { return JSON.parse(slice) as T; } catch {}
-    }
-
-    // Last-resort repairs: strip control chars, trailing commas, balance brackets.
-    let repaired = cleaned
+    return JSON.parse(text);
+  } catch (firstErr) {
+    const repaired = text
+      // eslint-disable-next-line no-control-regex
       .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "")
-      .replace(/,\s*}/g, "}")
-      .replace(/,\s*]/g, "]");
-    let braces = 0, brackets = 0, inStr2 = false, esc2 = false;
-    for (const ch of repaired) {
-      if (inStr2) {
-        if (esc2) esc2 = false;
-        else if (ch === "\\") esc2 = true;
-        else if (ch === '"') inStr2 = false;
-        continue;
-      }
-      if (ch === '"') inStr2 = true;
-      else if (ch === "{") braces++;
-      else if (ch === "}") braces--;
-      else if (ch === "[") brackets++;
-      else if (ch === "]") brackets--;
+      .replace(/,\s*([}\]])/g, "$1")
+      .replace(/"\s*\n\s*"/g, '" "');
+    try {
+      return JSON.parse(repaired);
+    } catch {
+      throw firstErr;
     }
-    while (brackets-- > 0) repaired += "]";
-    while (braces-- > 0) repaired += "}";
-    return JSON.parse(repaired) as T;
   }
 }
 
+function extractJson<T>(text: string): T {
+  // Strip markdown fences
+  let cleaned = text
+    .replace(/```json\s*/gi, "")
+    .replace(/```\s*/g, "")
+    .trim();
+
+  // Find first { or [ and the first balanced matching close. This ignores
+  // accidental trailing prose or a second JSON object after the valid answer.
+  const startIdx = cleaned.search(/[{[]/);
+  if (startIdx === -1) throw new Error("AI did not return JSON");
+  let depth = 0;
+  let inStr = false;
+  let esc = false;
+  let endIdx = -1;
+  for (let i = startIdx; i < cleaned.length; i++) {
+    const ch = cleaned[i];
+    if (inStr) {
+      if (esc) esc = false;
+      else if (ch === "\\") esc = true;
+      else if (ch === '"') inStr = false;
+      continue;
+    }
+    if (ch === '"') inStr = true;
+    else if (ch === "{" || ch === "[") depth++;
+    else if (ch === "}" || ch === "]") {
+      depth--;
+      if (depth === 0) {
+        endIdx = i;
+        break;
+      }
+    }
+  }
+  if (endIdx === -1) throw new Error("AI returned incomplete JSON");
+  cleaned = cleaned.substring(startIdx, endIdx + 1);
+
+  return safeParseJson(cleaned) as T;
+}
+
 function sceneNarrationToText(scene: LearningScene): string {
-  return scenePhaseLines(scene).map((p) => p.text).join(" ");
+  return scenePhaseLines(scene)
+    .map((p) => p.text)
+    .join(" ");
 }
 
 /** Repair OCR-fragmented bullets: merge lines that don't end with sentence
@@ -269,8 +304,7 @@ function repairBullets(raw: string[]): string[] {
     const key = m.toLowerCase();
     if (seen.has(key)) return false;
     seen.add(key);
-    const wordCount = m.split(/\s+/).length;
-    return wordCount >= 3 || /[.!?]$/.test(m);
+    return m.length > 0;
   });
 }
 
@@ -278,7 +312,10 @@ function diagramBlock(b: unknown): { caption: string; nodes: string[] } | null {
   if (!b || typeof b !== "object") return null;
   const bb = b as Record<string, unknown>;
   const nodes = Array.isArray(bb.nodes)
-    ? bb.nodes.map((n) => String(n).trim()).filter(Boolean).slice(0, 5)
+    ? bb.nodes
+        .map((n) => String(n).trim())
+        .filter(Boolean)
+        .slice(0, 5)
     : [];
   const caption = String(bb.caption ?? "").trim();
   if (nodes.length < 2) return null;
@@ -337,15 +374,17 @@ async function generateScenesForSingleSlide(opts: {
 }): Promise<{ scenes: LearningScene[]; modelUsed: ModelUsed; attempts: number }> {
   const bullets = repairBullets(opts.slide.bullets);
   const deckOutline = `Slide 1: ${opts.slide.title}\n${bullets.map((b) => `  - ${b}`).join("\n")}`;
-  const basePrompt = renderTemplate(opts.template, {
-    title: opts.courseTitle,
-    courseTitle: opts.courseTitle,
-    tone: opts.cfg.tone,
-    audience: opts.cfg.audience,
-    depth: opts.cfg.tech_depth,
-    slideCount: 1,
-    deck: deckOutline,
-  });
+  const basePrompt = scenePromptFrom(
+    renderTemplate(opts.template, {
+      title: opts.courseTitle,
+      courseTitle: opts.courseTitle,
+      tone: opts.cfg.tone,
+      audience: opts.cfg.audience,
+      depth: opts.cfg.tech_depth,
+      slideCount: 1,
+      deck: deckOutline,
+    }),
+  );
   const withHint = opts.hint?.trim()
     ? `${basePrompt}\n\nEXTRA INSTRUCTION FOR THIS SLIDE: ${opts.hint.trim()}`
     : basePrompt;
@@ -353,9 +392,10 @@ async function generateScenesForSingleSlide(opts: {
   let lastErr = "";
   let modelUsed: ModelUsed = "gemini-3.1-pro";
   for (let attempt = 1; attempt <= 2; attempt++) {
-    const prompt = attempt === 1
-      ? withHint
-      : `${withHint}\n\nIMPORTANT: previous attempt failed validation (${lastErr}). Every scene MUST include both an analogy diagram AND a technical pipeline diagram (2-5 nodes each), with multi-phase narration covering analogy, example AND technical phases. One concept per scene.`;
+    const prompt =
+      attempt === 1
+        ? withHint
+        : `${withHint}\n\nIMPORTANT: previous attempt failed validation (${lastErr}). Every scene MUST include both an analogy diagram AND a technical pipeline diagram (2-5 nodes each), with multi-phase narration covering analogy, example AND technical phases. One concept per scene.`;
     const { text, modelUsed: m } = await generateJson(prompt, {
       userId: opts.userId,
       courseId: opts.courseId,
@@ -364,9 +404,20 @@ async function generateScenesForSingleSlide(opts: {
     });
     modelUsed = m;
     try {
-      type Raw = { slides?: Array<{ scenes?: unknown[] }> };
-      const parsed = extractJson<Raw>(text);
-      const rawScenes = parsed.slides?.[0]?.scenes ?? [];
+      const parsed = extractJson<ParsedScenePayload | unknown[]>(text);
+      let rawScenes: unknown[] = [];
+      if (Array.isArray(parsed)) {
+        rawScenes = parsed;
+      } else if (parsed && typeof parsed === "object") {
+        if (Array.isArray(parsed.scenes)) rawScenes = parsed.scenes;
+        else if (Array.isArray(parsed.slides)) rawScenes = parsed.slides[0]?.scenes ?? [];
+        else if (
+          parsed.slides &&
+          typeof parsed.slides === "object" &&
+          Array.isArray(parsed.slides.scenes)
+        )
+          rawScenes = parsed.slides.scenes;
+      }
       const scenes = rawScenes.map(normalizeScene).filter((s): s is LearningScene => !!s);
       if (scenes.length === 0) {
         lastErr = "no valid scenes parsed";
@@ -395,7 +446,7 @@ export const generateNarrations = createServerFn({ method: "POST" })
     });
     if (!isAdmin) throw new Error("Forbidden");
     const cfg = await loadCourseCfg(data.courseId);
-    const template = cfg.prompt_override?.trim() || (await loadGlobalTemplate());
+    const template = sceneTemplateFrom(cfg.prompt_override?.trim() || (await loadGlobalTemplate()));
 
     const slidesOut: SlideScenes[] = [];
     const narrations: string[] = [];
@@ -442,7 +493,13 @@ export const generateCourseDescription = createServerFn({ method: "POST" })
     if (!isAdmin) throw new Error("Forbidden");
     const deckOutline = data.slides
       .slice(0, 18)
-      .map((s, i) => `Slide ${i + 1}: ${s.title}\n${s.bullets.slice(0, 5).map((b) => `  - ${b}`).join("\n")}`)
+      .map(
+        (s, i) =>
+          `Slide ${i + 1}: ${s.title}\n${s.bullets
+            .slice(0, 5)
+            .map((b) => `  - ${b}`)
+            .join("\n")}`,
+      )
       .join("\n\n");
 
     const prompt = `Write a concise learner-facing course description for "${data.courseTitle}" based on this uploaded deck.
@@ -502,11 +559,14 @@ export const regenerateSlideNarration = createServerFn({ method: "POST" })
       .filter(Boolean);
 
     const cfg = await loadCourseCfg(slide.course_id as string);
-    const template = cfg.prompt_override?.trim() || (await loadGlobalTemplate());
+    const template = sceneTemplateFrom(cfg.prompt_override?.trim() || (await loadGlobalTemplate()));
     const hint = (data.hint ?? slide.generation_hint ?? "").trim() || undefined;
 
     if (data.hint !== undefined) {
-      await supabaseAdmin.from("slides").update({ generation_hint: data.hint || null }).eq("id", data.slideId);
+      await supabaseAdmin
+        .from("slides")
+        .update({ generation_hint: data.hint || null })
+        .eq("id", data.slideId);
     }
 
     const r = await generateScenesForSingleSlide({
@@ -529,7 +589,14 @@ export const regenerateSlideNarration = createServerFn({ method: "POST" })
       .update({ narration_text: narration, icon_keywords: kws, body_md: newBody })
       .eq("id", data.slideId);
 
-    return { narration, keywords: kws, scenes: r.scenes, sceneCount: r.scenes.length, modelUsed: r.modelUsed, attempts: r.attempts };
+    return {
+      narration,
+      keywords: kws,
+      scenes: r.scenes,
+      sceneCount: r.scenes.length,
+      modelUsed: r.modelUsed,
+      attempts: r.attempts,
+    };
   });
 
 /* ---- Regenerate a contiguous slide range, one slide per Gemini call ---- */
@@ -579,7 +646,7 @@ export const regenerateSlideRange = createServerFn({ method: "POST" })
     if (error || !slides) throw new Error("Slides not found");
 
     const cfg = await loadCourseCfg(data.courseId);
-    const template = cfg.prompt_override?.trim() || (await loadGlobalTemplate());
+    const template = sceneTemplateFrom(cfg.prompt_override?.trim() || (await loadGlobalTemplate()));
     const results: SlideRangeResult[] = [];
 
     for (const slide of slides) {
@@ -725,7 +792,9 @@ export const getAdminSettings = createServerFn({ method: "GET" })
       defaultTemplate: DEFAULT_TEMPLATE,
       updatedAt: (data?.updated_at as string) || null,
       hasGeminiKey,
-      narrationModel: hasGeminiKey ? MODEL_LABEL["gemini-3.1-pro"] : MODEL_LABEL["gemini-flash-fallback"],
+      narrationModel: hasGeminiKey
+        ? MODEL_LABEL["gemini-3.1-pro"]
+        : MODEL_LABEL["gemini-flash-fallback"],
       tts: {
         provider: "Yavar TTS (self-hosted)",
         endpoint: "wss://agentic-rag.yavar.ai/stream/tts",
@@ -746,7 +815,9 @@ export const getRecentGenerationLogs = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin
       .from("generation_logs")
-      .select("id, created_at, kind, model, provider, status, detail, slide_count, duration_ms, course_id")
+      .select(
+        "id, created_at, kind, model, provider, status, detail, slide_count, duration_ms, course_id",
+      )
       .order("created_at", { ascending: false })
       .limit(50);
     if (error) throw error;
@@ -767,7 +838,10 @@ export const saveGlobalTemplate = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
       .from("prompt_templates")
-      .upsert({ scope: "global", template: data.template, updated_at: new Date().toISOString() }, { onConflict: "scope" });
+      .upsert(
+        { scope: "global", template: data.template, updated_at: new Date().toISOString() },
+        { onConflict: "scope" },
+      );
     if (error) throw error;
     return { ok: true };
   });
