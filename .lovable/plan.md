@@ -1,53 +1,57 @@
-RCA
-- The admin prompt currently affects only `narration_text` and keyword extraction. It does not change the visual scene structure in the learner player.
-- The original deck rows remain as `body_md`; the player still renders those original bullets as cards/flow/grid. So even if narration improves, the visible “video” looks mostly identical.
-- Regeneration creates one output per original slide. It does not split a dense slide like “Perception / Language / Prediction / Decision” into four learning scenes, which your prompt explicitly requires.
-- The player reveals narration sentence-by-sentence, but the visual state is driven by bullet index. This causes voice-over and visuals to feel loosely connected.
-- The current scene component uses generic templates (`flow`, `grid`, `spotlight`, `takeaway`) rather than concept-specific diagrams such as `Camera -> AI Model -> Prediction`.
+## Plan: per-slide strict generation, regenerate first 10, then audit
 
-Plan
-1. Change AI generation output from “narrations + keywords” to structured learning scenes.
-   - Each generated scene will contain: concept, analogy steps, real-world example steps, technical explanation steps, takeaway, narration, visual keywords.
-   - The prompt will explicitly require splitting multi-concept slides into multiple scenes.
-   - Keep backward compatibility so old courses still play.
+### Hard rule (per your instruction)
+**Work one slide at a time.** Every Gemini call sends exactly ONE slide. No batching of multiple slides into a single request — that was the root cause of truncated/empty output.
 
-2. Store generated scenes inside each slide’s generated metadata.
-   - Reuse the existing hidden generated-material block in `body_md` instead of adding unnecessary tables.
-   - During “Generate learning material”, replace the old generated block every time so regeneration visibly changes the learner material.
+### What I will change
 
-3. Update the learner player to render generated scenes first.
-   - If generated learning scenes exist, the learner view will play those scenes, not the original raw deck bullets.
-   - Dense source slides can become multiple learner scenes.
-   - Progress will count learner scenes, while retaining source slide references for admin traceability.
+1. **Per-slide generation loop**
+   - Both initial generation and "regenerate first N" loop through slides sequentially.
+   - Each iteration: one slide -> one Gemini call -> validate -> save -> next.
+   - Progress is visible per slide in the admin UI.
 
-4. Replace generic bullet animation with concept teaching diagrams.
-   - Render one concept per screen.
-   - Show three focused diagram modes based on the scene data:
-     ```text
-     Analogy:       Human Eye -> Brain -> Decision
-     Example:       Traffic Camera -> Detect Pedestrian -> Warn Driver
-     Technical:     Image -> Feature Extraction -> Model -> Classification
-     ```
-   - Animate icons/nodes/arrows, not line-by-line text blocks.
-   - Keep screen density to one concept, one diagram, one example.
+2. **Bullet repair before sending to AI**
+   - Merge broken OCR fragments into whole sentences.
+   - Drop noise, deduplicate.
+   - Gives Gemini coherent source content instead of mid-sentence pieces.
 
-5. Make voice and visuals coincide.
-   - Narration lines will map to the active phase: introduce, analogy, example, technical, recap.
-   - The current visual phase will advance with the spoken line instead of unrelated bullet index.
+3. **Strict scene quality gate (no silent fallback)**
+   Each scene must have:
+   - 1-3 word concept name
+   - Intro, takeaway
+   - At least an analogy OR example diagram, AND a technical pipeline diagram
+   - Multi-phase narration covering at least 2 of analogy/example/technical
+   
+   Invalid -> automatic retry with a stricter follow-up prompt (max 2 attempts). If still invalid, the slide is marked failed in the admin UI rather than saving weak content.
 
-6. Improve admin transparency and logs.
-   - Log `scene-generation` separately from single-slide narration.
-   - Show the exact Gemini model used, slide count in, scene count out, duration, and whether the admin prompt/course override was used.
-   - Keep Yavar TTS model/voice visible in settings and learner/admin UI.
+4. **Force concept splitting**
+   - Prompt instructs Gemini to split multi-concept slides (e.g. Perception / Language / Prediction / Decision) into separate scenes — one concept per scene.
 
-7. Guard against “same video produced”.
-   - Add a clear admin status after regeneration: “Generated X learner scenes from Y source slides using [model]”.
-   - Ensure regenerate always rewrites generated scene metadata and narration, not just fills missing values.
+5. **New "Regenerate first 10 slides" admin control**
+   - Button in the Slides section of the course editor.
+   - Calls a new server function that processes slides 1-10 one at a time.
+   - Shows per-slide result: scene count, attempts, model used, or error.
+   - Reloads the slide list when done.
 
-Files expected to change
-- `src/lib/narration.functions.ts`
-- `src/lib/courseMaterial.ts`
-- `src/components/LearningScene.tsx`
-- `src/routes/_authenticated/learn.$courseId.tsx`
-- `src/routes/_authenticated/admin.courses.$courseId.tsx`
-- `src/routes/_authenticated/admin.settings.tsx`
+6. **Better generation logs**
+   - Each per-slide call is its own log row, with kind `scene-range` / `scene-regenerate` / `scene-generation`.
+   - Existing admin Logs view already surfaces these — no new UI needed.
+
+7. **Re-investigate after regeneration**
+   - Once you regenerate the first 10 slides of the AI beginner course, I will query the database, read the stored scene blocks, and report honestly:
+     - Scenes per source slide
+     - Which scenes have analogy / example / technical diagrams
+     - Whether narration phases line up
+     - Whether the strict gate actually rejected weak output
+     - Which model was used per slide
+
+### Files touched
+- `src/lib/narration.functions.ts` — bullet repair, validation, per-slide helper, new `regenerateSlideRange` server fn, removed silent fallback.
+- `src/routes/_authenticated/admin.courses.$courseId.tsx` — add "Regenerate first 10" button + per-slide progress + result list.
+
+### Acceptance criteria
+- Each Gemini request contains exactly one slide.
+- No scene is stored unless it passes the quality gate.
+- First-10 regeneration completes with a clear per-slide report.
+- Multi-concept source slides produce multiple scenes.
+- Post-run audit is provided honestly, not as a generic success message.

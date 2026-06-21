@@ -184,43 +184,145 @@ function sceneNarrationToText(scene: LearningScene): string {
   return scenePhaseLines(scene).map((p) => p.text).join(" ");
 }
 
+/** Repair OCR-fragmented bullets: merge lines that don't end with sentence
+ *  punctuation with the next line, drop noise, deduplicate. */
+function repairBullets(raw: string[]): string[] {
+  const cleaned = raw.map((b) => b.replace(/\s+/g, " ").trim()).filter((b) => b.length > 1);
+  const merged: string[] = [];
+  let buffer = "";
+  for (const line of cleaned) {
+    const next = buffer ? `${buffer} ${line}` : line;
+    const endsSentence = /[.!?:]$/.test(line) || line.length > 90;
+    const startsLower = /^[a-z]/.test(line);
+    if (buffer && startsLower) {
+      buffer = next;
+    } else if (!endsSentence && line.length < 60) {
+      buffer = next;
+    } else {
+      merged.push(next);
+      buffer = "";
+    }
+  }
+  if (buffer) merged.push(buffer);
+  const seen = new Set<string>();
+  return merged.filter((m) => {
+    const key = m.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    const wordCount = m.split(/\s+/).length;
+    return wordCount >= 3 || /[.!?]$/.test(m);
+  });
+}
+
+function diagramBlock(b: unknown): { caption: string; nodes: string[] } | null {
+  if (!b || typeof b !== "object") return null;
+  const bb = b as Record<string, unknown>;
+  const nodes = Array.isArray(bb.nodes)
+    ? bb.nodes.map((n) => String(n).trim()).filter(Boolean).slice(0, 5)
+    : [];
+  const caption = String(bb.caption ?? "").trim();
+  if (nodes.length < 2) return null;
+  return { caption, nodes };
+}
+
 function normalizeScene(raw: unknown): LearningScene | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
   const concept = String(r.concept ?? r.title ?? "").trim();
   const intro = String(r.intro ?? "").trim();
   const takeaway = String(r.takeaway ?? "").trim();
-  if (!concept || !intro) return null;
-  const block = (b: unknown): { caption: string; nodes: string[] } | null => {
-    if (!b || typeof b !== "object") return null;
-    const bb = b as Record<string, unknown>;
-    const nodes = Array.isArray(bb.nodes)
-      ? bb.nodes.map((n) => String(n).trim()).filter(Boolean).slice(0, 5)
-      : [];
-    const caption = String(bb.caption ?? "").trim();
-    if (nodes.length < 2) return null;
-    return { caption: caption || "", nodes };
-  };
+  if (!concept || !intro || !takeaway) return null;
   const narration = (r.narration ?? {}) as Record<string, unknown>;
-  const scene: LearningScene = {
+  return {
     concept,
     intro,
-    analogy: block(r.analogy),
-    example: block(r.example),
-    technical: block(r.technical),
-    takeaway: takeaway || `Remember: ${concept} is the key idea here.`,
+    analogy: diagramBlock(r.analogy),
+    example: diagramBlock(r.example),
+    technical: diagramBlock(r.technical),
+    takeaway,
     narration: {
-      intro: String(narration.intro ?? intro).trim(),
+      intro: String(narration.intro ?? "").trim() || intro,
       analogy: narration.analogy ? String(narration.analogy).trim() : undefined,
       example: narration.example ? String(narration.example).trim() : undefined,
       technical: narration.technical ? String(narration.technical).trim() : undefined,
-      takeaway: String(narration.takeaway ?? takeaway).trim(),
+      takeaway: String(narration.takeaway ?? "").trim() || takeaway,
     },
     keywords: Array.isArray(r.keywords)
       ? r.keywords.slice(0, 3).map((k) => String(k).toLowerCase())
       : [],
   };
-  return scene;
+}
+
+/** Strict quality gate. Returns reason if invalid, else null. */
+function sceneQualityIssue(scene: LearningScene): string | null {
+  if (!scene.analogy && !scene.example) return "missing analogy AND example diagrams";
+  if (!scene.technical) return "missing technical pipeline diagram";
+  const n = scene.narration;
+  const phases = [n.analogy, n.example, n.technical].filter(Boolean).length;
+  if (phases < 2) return "narration must cover at least 2 of analogy/example/technical phases";
+  if (scene.concept.length > 60) return "concept name too long (must be 1-3 words)";
+  if (scene.intro.split(/\s+/).length < 5) return "intro too short";
+  return null;
+}
+
+async function generateScenesForSingleSlide(opts: {
+  slide: { title: string; bullets: string[] };
+  courseTitle: string;
+  courseId: string | null;
+  cfg: CourseCfg;
+  template: string;
+  hint?: string;
+  userId?: string;
+  logKind: string;
+}): Promise<{ scenes: LearningScene[]; modelUsed: ModelUsed; attempts: number }> {
+  const bullets = repairBullets(opts.slide.bullets);
+  const deckOutline = `Slide 1: ${opts.slide.title}\n${bullets.map((b) => `  - ${b}`).join("\n")}`;
+  const basePrompt = renderTemplate(opts.template, {
+    title: opts.courseTitle,
+    courseTitle: opts.courseTitle,
+    tone: opts.cfg.tone,
+    audience: opts.cfg.audience,
+    depth: opts.cfg.tech_depth,
+    slideCount: 1,
+    deck: deckOutline,
+  });
+  const withHint = opts.hint?.trim()
+    ? `${basePrompt}\n\nEXTRA INSTRUCTION FOR THIS SLIDE: ${opts.hint.trim()}`
+    : basePrompt;
+
+  let lastErr = "";
+  let modelUsed: ModelUsed = "gemini-3.1-pro";
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const prompt = attempt === 1
+      ? withHint
+      : `${withHint}\n\nIMPORTANT: previous attempt failed validation (${lastErr}). Every scene MUST include both an analogy diagram AND a technical pipeline diagram (2-5 nodes each), with multi-phase narration covering analogy, example AND technical phases. One concept per scene.`;
+    const { text, modelUsed: m } = await generateJson(prompt, {
+      userId: opts.userId,
+      courseId: opts.courseId,
+      kind: opts.logKind,
+      slideCount: 1,
+    });
+    modelUsed = m;
+    try {
+      type Raw = { slides?: Array<{ scenes?: unknown[] }> };
+      const parsed = extractJson<Raw>(text);
+      const rawScenes = parsed.slides?.[0]?.scenes ?? [];
+      const scenes = rawScenes.map(normalizeScene).filter((s): s is LearningScene => !!s);
+      if (scenes.length === 0) {
+        lastErr = "no valid scenes parsed";
+        continue;
+      }
+      const issues = scenes.map(sceneQualityIssue).filter(Boolean) as string[];
+      if (issues.length > 0) {
+        lastErr = issues[0];
+        continue;
+      }
+      return { scenes, modelUsed, attempts: attempt };
+    } catch (e) {
+      lastErr = (e as Error).message;
+    }
+  }
+  throw new Error(`Scene generation failed after 2 attempts: ${lastErr}`);
 }
 
 export const generateNarrations = createServerFn({ method: "POST" })
@@ -234,55 +336,39 @@ export const generateNarrations = createServerFn({ method: "POST" })
     if (!isAdmin) throw new Error("Forbidden");
     const cfg = await loadCourseCfg(data.courseId);
     const template = cfg.prompt_override?.trim() || (await loadGlobalTemplate());
-    const deckOutline = data.slides
-      .map((s, i) => `Slide ${i + 1}: ${s.title}\n${s.bullets.map((b) => `  - ${b}`).join("\n")}`)
-      .join("\n\n");
-    const prompt = renderTemplate(template, {
-      title: data.courseTitle,
-      courseTitle: data.courseTitle,
-      tone: cfg.tone,
-      audience: cfg.audience,
-      depth: cfg.tech_depth,
-      slideCount: data.slides.length,
-      deck: deckOutline,
-    });
 
-    const { text, modelUsed } = await generateJson(prompt, {
-      userId: context.userId,
-      courseId: data.courseId ?? null,
-      kind: "scene-generation",
-      slideCount: data.slides.length,
-    });
+    const slidesOut: SlideScenes[] = [];
+    const narrations: string[] = [];
+    const keywords: string[][] = [];
+    let modelUsed: ModelUsed = "gemini-3.1-pro";
+    const failures: { idx: number; error: string }[] = [];
 
-    type Raw = { slides?: Array<{ sourceSlideIdx?: number; scenes?: unknown[] }> };
-    const parsed = extractJson<Raw>(text);
-    const slidesOut: SlideScenes[] = data.slides.map((src, i) => {
-      const found = parsed.slides?.find((s) => Number(s?.sourceSlideIdx) === i) ?? parsed.slides?.[i];
-      const rawScenes = Array.isArray(found?.scenes) ? found!.scenes : [];
-      const scenes = rawScenes.map(normalizeScene).filter((s): s is LearningScene => !!s);
-      if (scenes.length === 0) {
-        // Synthesize a minimal single scene from the source bullets so the learner is never empty.
-        scenes.push({
-          concept: src.title.slice(0, 40) || `Concept ${i + 1}`,
-          intro: `Let's look at ${src.title || "this idea"}.`,
-          analogy: null,
-          example: src.bullets.length >= 2 ? { caption: "Example", nodes: src.bullets.slice(0, 4) } : null,
-          technical: null,
-          takeaway: src.bullets[0] ?? src.title,
-          narration: {
-            intro: `Let's look at ${src.title}. ${src.bullets[0] ?? ""}`.trim(),
-            takeaway: src.bullets[src.bullets.length - 1] ?? src.title,
-          },
-          keywords: [],
+    // Per-slide sequential generation. ONE slide per Gemini call.
+    for (let i = 0; i < data.slides.length; i++) {
+      const src = data.slides[i];
+      try {
+        const r = await generateScenesForSingleSlide({
+          slide: src,
+          courseTitle: data.courseTitle,
+          courseId: data.courseId ?? null,
+          cfg,
+          template,
+          userId: context.userId,
+          logKind: "scene-generation",
         });
+        modelUsed = r.modelUsed;
+        slidesOut.push({ sourceSlideIdx: i, scenes: r.scenes });
+        narrations.push(r.scenes.map(sceneNarrationToText).join("  "));
+        keywords.push(Array.from(new Set(r.scenes.flatMap((sc) => sc.keywords ?? []))).slice(0, 3));
+      } catch (e) {
+        failures.push({ idx: i, error: (e as Error).message });
+        slidesOut.push({ sourceSlideIdx: i, scenes: [] });
+        narrations.push("");
+        keywords.push([]);
       }
-      return { sourceSlideIdx: i, scenes };
-    });
+    }
 
-    const narrations = slidesOut.map((s) => s.scenes.map(sceneNarrationToText).join("  "));
-    const keywords = slidesOut.map((s) => Array.from(new Set(s.scenes.flatMap((sc) => sc.keywords ?? []))).slice(0, 3));
-
-    return { narrations, keywords, scenes: slidesOut, modelUsed };
+    return { narrations, keywords, scenes: slidesOut, modelUsed, failures };
   });
 
 export const generateCourseDescription = createServerFn({ method: "POST" })
@@ -357,47 +443,131 @@ export const regenerateSlideNarration = createServerFn({ method: "POST" })
 
     const cfg = await loadCourseCfg(slide.course_id as string);
     const template = cfg.prompt_override?.trim() || (await loadGlobalTemplate());
-    const deckOutline = `Slide 1: ${slide.title}\n${bullets.map((b) => `  - ${b}`).join("\n")}`;
-    let prompt = renderTemplate(template, {
-      title: course?.title ?? "this training",
-      courseTitle: course?.title ?? "this training",
-      tone: cfg.tone,
-      audience: cfg.audience,
-      depth: cfg.tech_depth,
-      slideCount: 1,
-      deck: deckOutline,
-    });
-
-    const hint = (data.hint ?? slide.generation_hint ?? "").trim();
-    if (hint) prompt += `\n\nEXTRA INSTRUCTION FOR THIS SLIDE: ${hint}`;
+    const hint = (data.hint ?? slide.generation_hint ?? "").trim() || undefined;
 
     if (data.hint !== undefined) {
       await supabaseAdmin.from("slides").update({ generation_hint: data.hint || null }).eq("id", data.slideId);
     }
 
-    const { text, modelUsed } = await generateJson(prompt, {
-      userId: context.userId,
+    const r = await generateScenesForSingleSlide({
+      slide: { title: slide.title as string, bullets },
+      courseTitle: course?.title ?? "this training",
       courseId: slide.course_id as string,
-      kind: "scene-regenerate",
-      slideCount: 1,
+      cfg,
+      template,
+      hint,
+      userId: context.userId,
+      logKind: "scene-regenerate",
     });
 
-    type Raw = { slides?: Array<{ scenes?: unknown[] }> };
-    const parsed = extractJson<Raw>(text);
-    const rawScenes = parsed.slides?.[0]?.scenes ?? [];
-    const scenes = rawScenes.map(normalizeScene).filter((s): s is LearningScene => !!s);
-    if (scenes.length === 0) throw new Error("AI returned no valid scenes");
-
-    const narration = scenes.map(sceneNarrationToText).join("  ");
-    const keywords = Array.from(new Set(scenes.flatMap((s) => s.keywords ?? []))).slice(0, 3);
-    const newBody = embedScenes(cleanBody, scenes);
+    const narration = r.scenes.map(sceneNarrationToText).join("  ");
+    const kws = Array.from(new Set(r.scenes.flatMap((s) => s.keywords ?? []))).slice(0, 3);
+    const newBody = embedScenes(cleanBody, r.scenes);
 
     await supabaseAdmin
       .from("slides")
-      .update({ narration_text: narration, icon_keywords: keywords, body_md: newBody })
+      .update({ narration_text: narration, icon_keywords: kws, body_md: newBody })
       .eq("id", data.slideId);
 
-    return { narration, keywords, scenes, sceneCount: scenes.length, modelUsed };
+    return { narration, keywords: kws, scenes: r.scenes, sceneCount: r.scenes.length, modelUsed: r.modelUsed, attempts: r.attempts };
+  });
+
+/* ---- Regenerate a contiguous slide range, one slide per Gemini call ---- */
+const RangeInput = z.object({
+  courseId: z.string(),
+  startIdx: z.number().int().min(0),
+  endIdx: z.number().int().min(0),
+});
+
+export type SlideRangeResult = {
+  slideId: string;
+  idx: number;
+  title: string;
+  ok: boolean;
+  sceneCount: number;
+  attempts: number;
+  modelUsed?: ModelUsed;
+  error?: string;
+};
+
+export const regenerateSlideRange = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => RangeInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("Forbidden");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { stripScenes, embedScenes } = await import("@/lib/learningScenes");
+
+    const { data: course } = await supabaseAdmin
+      .from("courses")
+      .select("title")
+      .eq("id", data.courseId)
+      .single();
+
+    const { data: slides, error } = await supabaseAdmin
+      .from("slides")
+      .select("id, idx, title, body_md, generation_hint")
+      .eq("course_id", data.courseId)
+      .gte("idx", data.startIdx)
+      .lte("idx", data.endIdx)
+      .order("idx");
+    if (error || !slides) throw new Error("Slides not found");
+
+    const cfg = await loadCourseCfg(data.courseId);
+    const template = cfg.prompt_override?.trim() || (await loadGlobalTemplate());
+    const results: SlideRangeResult[] = [];
+
+    for (const slide of slides) {
+      const cleanBody = stripScenes(slide.body_md as string | null);
+      const bullets = cleanBody
+        .split("\n")
+        .map((l) => l.replace(/^[-*]\s*/, "").trim())
+        .filter(Boolean);
+      try {
+        const r = await generateScenesForSingleSlide({
+          slide: { title: slide.title as string, bullets },
+          courseTitle: course?.title ?? "this training",
+          courseId: data.courseId,
+          cfg,
+          template,
+          hint: (slide.generation_hint as string | null) ?? undefined,
+          userId: context.userId,
+          logKind: "scene-range",
+        });
+        const narration = r.scenes.map(sceneNarrationToText).join("  ");
+        const kws = Array.from(new Set(r.scenes.flatMap((s) => s.keywords ?? []))).slice(0, 3);
+        const newBody = embedScenes(cleanBody, r.scenes);
+        await supabaseAdmin
+          .from("slides")
+          .update({ narration_text: narration, icon_keywords: kws, body_md: newBody })
+          .eq("id", slide.id);
+        results.push({
+          slideId: slide.id as string,
+          idx: slide.idx as number,
+          title: slide.title as string,
+          ok: true,
+          sceneCount: r.scenes.length,
+          attempts: r.attempts,
+          modelUsed: r.modelUsed,
+        });
+      } catch (e) {
+        results.push({
+          slideId: slide.id as string,
+          idx: slide.idx as number,
+          title: slide.title as string,
+          ok: false,
+          sceneCount: 0,
+          attempts: 2,
+          error: (e as Error).message,
+        });
+      }
+    }
+    return { results };
   });
 
 /* ---- Per-slide illustration generation (opt-in) ---- */
