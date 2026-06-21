@@ -171,6 +171,7 @@ function CourseEditor() {
 
       <main className="mx-auto grid max-w-6xl gap-8 px-4 py-8 sm:px-6">
         <MetadataSection course={course} onSave={saveCourse} />
+        <NarrationSettingsSection course={course} onSave={saveCourse} />
         <SlidesSection
           courseId={courseId}
           courseTitle={course.title}
