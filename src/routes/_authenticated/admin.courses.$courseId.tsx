@@ -1088,6 +1088,7 @@ function GenerateSection({
               {hasQuiz ? "✓" : "○"} Quiz ({quiz.length})
             </li>
           </ul>
+          {lastModel && <div className="mt-2 text-xs text-amber-300">Narration model used: {lastModel}</div>}
           {status && <div className="mt-3 text-xs text-emerald-300">{status}</div>}
         </div>
         <div className="flex flex-col items-end gap-2">
