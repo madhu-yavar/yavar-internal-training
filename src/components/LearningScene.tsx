@@ -1,4 +1,6 @@
 import { useMemo } from "react";
+import * as LucideIcons from "lucide-react";
+import { iconForKeyword } from "@/lib/iconMap";
 
 type Props = {
   slideIdx: number;
@@ -8,9 +10,26 @@ type Props = {
   speaking: boolean;
   currentLine: string;
   accent: string;
+  illustrationUrl?: string | null;
+  iconKeywords?: string[] | null;
 };
 
-const ICONS = ["✦", "◆", "▲", "●", "■", "◇", "★", "❖"];
+const FALLBACK_ICONS = ["sparkles", "diamond", "triangle", "circle", "square", "star", "zap", "flame"];
+
+function toPascal(name: string) {
+  return name.split("-").map((s) => s.charAt(0).toUpperCase() + s.slice(1)).join("");
+}
+
+function LucideIcon({ name, className }: { name: string; className?: string }) {
+  const Comp = (LucideIcons as unknown as Record<string, React.ComponentType<{ className?: string; size?: number }>>)[toPascal(name)]
+    ?? LucideIcons.Sparkles;
+  return <Comp className={className} />;
+}
+
+function iconAt(i: number, keywords?: string[] | null) {
+  const kw = keywords?.[i % (keywords?.length || 1)];
+  return iconForKeyword(kw ?? FALLBACK_ICONS[i % FALLBACK_ICONS.length]);
+}
 
 const SCENE_LABELS = ["Concept", "How it works", "Capabilities", "Example", "Key takeaway"];
 
