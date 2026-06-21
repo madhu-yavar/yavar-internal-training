@@ -175,9 +175,69 @@ async function generateJson(prompt: string, ctx: LogCtx): Promise<{ text: string
 }
 
 function extractJson<T>(text: string): T {
-  const m = text.match(/\{[\s\S]*\}/);
-  if (!m) throw new Error("AI did not return JSON");
-  return JSON.parse(m[0]) as T;
+  // Strip markdown fences
+  let cleaned = text.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+
+  // Find first { or [ and matching last } or ]
+  const startIdx = cleaned.search(/[\{\[]/);
+  if (startIdx === -1) throw new Error("AI did not return JSON");
+  const startChar = cleaned[startIdx];
+  const endChar = startChar === "[" ? "]" : "}";
+  const endIdx = cleaned.lastIndexOf(endChar);
+  if (endIdx === -1 || endIdx < startIdx) throw new Error("AI did not return JSON");
+  cleaned = cleaned.substring(startIdx, endIdx + 1);
+
+  try {
+    return JSON.parse(cleaned) as T;
+  } catch {
+    // Walk the string respecting strings/escapes to find the first balanced object/array.
+    let depth = 0;
+    let inStr = false;
+    let esc = false;
+    let balancedEnd = -1;
+    for (let i = 0; i < cleaned.length; i++) {
+      const ch = cleaned[i];
+      if (inStr) {
+        if (esc) esc = false;
+        else if (ch === "\\") esc = true;
+        else if (ch === '"') inStr = false;
+        continue;
+      }
+      if (ch === '"') { inStr = true; continue; }
+      if (ch === "{" || ch === "[") depth++;
+      else if (ch === "}" || ch === "]") {
+        depth--;
+        if (depth === 0) { balancedEnd = i; break; }
+      }
+    }
+    if (balancedEnd > 0) {
+      const slice = cleaned.substring(0, balancedEnd + 1);
+      try { return JSON.parse(slice) as T; } catch {}
+    }
+
+    // Last-resort repairs: strip control chars, trailing commas, balance brackets.
+    let repaired = cleaned
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "")
+      .replace(/,\s*}/g, "}")
+      .replace(/,\s*]/g, "]");
+    let braces = 0, brackets = 0, inStr2 = false, esc2 = false;
+    for (const ch of repaired) {
+      if (inStr2) {
+        if (esc2) esc2 = false;
+        else if (ch === "\\") esc2 = true;
+        else if (ch === '"') inStr2 = false;
+        continue;
+      }
+      if (ch === '"') inStr2 = true;
+      else if (ch === "{") braces++;
+      else if (ch === "}") braces--;
+      else if (ch === "[") brackets++;
+      else if (ch === "]") brackets--;
+    }
+    while (brackets-- > 0) repaired += "]";
+    while (braces-- > 0) repaired += "}";
+    return JSON.parse(repaired) as T;
+  }
 }
 
 function sceneNarrationToText(scene: LearningScene): string {
