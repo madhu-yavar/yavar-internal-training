@@ -357,6 +357,7 @@ function CoursePlayer() {
                 speaking={speaking}
                 accent={accent}
                 illustrationUrl={illustrationUrl}
+                slideImageUrl={slideImageUrl}
                 sceneNumber={unit.sceneIndexInSlide + 1}
                 totalScenes={unit.scenesInSlide}
                 sourceSlideTitle={unit.sourceSlide.title}
