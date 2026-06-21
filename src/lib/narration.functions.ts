@@ -119,6 +119,11 @@ type LogCtx = {
   slideCount?: number;
 };
 
+type ParsedScenePayload = {
+  scenes?: unknown[];
+  slides?: Array<{ scenes?: unknown[] }> | { scenes?: unknown[] };
+};
+
 async function writeLog(
   ctx: LogCtx,
   modelUsed: ModelUsed,
@@ -366,8 +371,8 @@ async function generateScenesForSingleSlide(opts: {
     });
     modelUsed = m;
     try {
-      const parsed = extractJson<any>(text);
-      let rawScenes: any[] = [];
+      const parsed = extractJson<ParsedScenePayload | unknown[]>(text);
+      let rawScenes: unknown[] = [];
       if (Array.isArray(parsed)) {
         rawScenes = parsed;
       } else if (parsed && typeof parsed === "object") {
