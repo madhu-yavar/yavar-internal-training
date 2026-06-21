@@ -251,18 +251,9 @@ function CoursePlayer() {
             </div>
           </div>
           <div className="flex shrink-0 flex-wrap items-center gap-2">
-            <label className="flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-300">
-              <span className="text-slate-400">Voice</span>
-              <select
-                value={voice}
-                onChange={(e) => setVoice(e.target.value)}
-                className="bg-transparent text-xs text-slate-100 outline-none"
-              >
-                {["alloy","ash","ballad","coral","echo","sage","shimmer","verse"].map((v) => (
-                  <option key={v} value={v} className="bg-slate-900">{v}</option>
-                ))}
-              </select>
-            </label>
+            <div className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-300">
+              Voice <span className="text-slate-100">Yavar</span>
+            </div>
             <label className="flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-300">
               <span className="text-slate-400">Speed</span>
               <select
