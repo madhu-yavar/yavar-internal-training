@@ -63,41 +63,53 @@ export type Database = {
       }
       courses: {
         Row: {
+          audience: string | null
           cover_url: string | null
           created_at: string
           created_by: string | null
           description: string | null
           id: string
           lang_code: string
+          prompt_override: string | null
           published: boolean
           speed: number
+          tech_depth: number | null
           title: string
+          tone: string | null
           updated_at: string
           voice: string
         }
         Insert: {
+          audience?: string | null
           cover_url?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           id?: string
           lang_code?: string
+          prompt_override?: string | null
           published?: boolean
           speed?: number
+          tech_depth?: number | null
           title: string
+          tone?: string | null
           updated_at?: string
           voice?: string
         }
         Update: {
+          audience?: string | null
           cover_url?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           id?: string
           lang_code?: string
+          prompt_override?: string | null
           published?: boolean
           speed?: number
+          tech_depth?: number | null
           title?: string
+          tone?: string | null
           updated_at?: string
           voice?: string
         }
@@ -140,6 +152,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      prompt_templates: {
+        Row: {
+          id: string
+          scope: string
+          template: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          scope?: string
+          template: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          scope?: string
+          template?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       quiz_attempts: {
         Row: {
@@ -269,8 +302,11 @@ export type Database = {
           body_md: string | null
           course_id: string
           created_at: string
+          generation_hint: string | null
+          icon_keywords: string[] | null
           id: string
           idx: number
+          illustration_url: string | null
           image_url: string | null
           narration_text: string | null
           title: string
@@ -279,8 +315,11 @@ export type Database = {
           body_md?: string | null
           course_id: string
           created_at?: string
+          generation_hint?: string | null
+          icon_keywords?: string[] | null
           id?: string
           idx: number
+          illustration_url?: string | null
           image_url?: string | null
           narration_text?: string | null
           title?: string
@@ -289,8 +328,11 @@ export type Database = {
           body_md?: string | null
           course_id?: string
           created_at?: string
+          generation_hint?: string | null
+          icon_keywords?: string[] | null
           id?: string
           idx?: number
+          illustration_url?: string | null
           image_url?: string | null
           narration_text?: string | null
           title?: string
