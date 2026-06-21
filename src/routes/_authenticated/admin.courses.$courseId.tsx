@@ -389,18 +389,76 @@ function SlidesSection({
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [autoNarrate, setAutoNarrate] = useState(true);
   const [rangeBusy, setRangeBusy] = useState(false);
-  const [rangeResults, setRangeResults] = useState<Awaited<ReturnType<typeof regenerateSlideRange>>["results"] | null>(null);
+  const [rangeStatus, setRangeStatus] = useState<string | null>(null);
+  type RangeRow = {
+    slideId: string;
+    idx: number;
+    title: string;
+    status: "pending" | "running" | "ok" | "error";
+    sceneCount?: number;
+    attempts?: number;
+    modelUsed?: string;
+    error?: string;
+    scenes?: Array<{
+      concept: string;
+      intro: string;
+      takeaway: string;
+      analogy?: { caption: string; nodes: string[] } | null;
+      example?: { caption: string; nodes: string[] } | null;
+      technical?: { caption: string; nodes: string[] } | null;
+      narration?: Record<string, string>;
+    }>;
+  };
+  const [rangeResults, setRangeResults] = useState<RangeRow[] | null>(null);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const runNarrations = useServerFn(generateNarrations);
   const runDescription = useServerFn(generateCourseDescription);
-  const runRange = useServerFn(regenerateSlideRange);
+  const runRegenOne = useServerFn(regenerateSlideNarration);
 
   async function regenerateFirstN(n: number) {
     setErr(null);
     setRangeBusy(true);
-    setRangeResults(null);
+    setExpanded({});
+    const targets = [...slides].sort((a, b) => a.idx - b.idx).slice(0, n);
+    const initial: RangeRow[] = targets.map((s) => ({
+      slideId: s.id,
+      idx: s.idx,
+      title: s.title,
+      status: "pending",
+    }));
+    setRangeResults(initial);
     try {
-      const res = await runRange({ data: { courseId, startIdx: 0, endIdx: n - 1 } });
-      setRangeResults(res.results);
+      for (let i = 0; i < targets.length; i++) {
+        const s = targets[i];
+        setRangeStatus(`Slide ${i + 1} of ${targets.length} — calling Gemini for "${s.title}"…`);
+        setRangeResults((prev) =>
+          prev?.map((r) => (r.slideId === s.id ? { ...r, status: "running" } : r)) ?? prev,
+        );
+        try {
+          const res = await runRegenOne({ data: { slideId: s.id } });
+          setRangeResults((prev) =>
+            prev?.map((r) =>
+              r.slideId === s.id
+                ? {
+                    ...r,
+                    status: "ok",
+                    sceneCount: res.sceneCount,
+                    attempts: res.attempts,
+                    modelUsed: res.modelUsed,
+                    scenes: res.scenes as RangeRow["scenes"],
+                  }
+                : r,
+            ) ?? prev,
+          );
+        } catch (e) {
+          setRangeResults((prev) =>
+            prev?.map((r) =>
+              r.slideId === s.id ? { ...r, status: "error", error: (e as Error).message } : r,
+            ) ?? prev,
+          );
+        }
+      }
+      setRangeStatus(`Done — regenerated ${targets.length} slide${targets.length === 1 ? "" : "s"}.`);
       await onChanged();
     } catch (e) {
       setErr((e as Error).message);
