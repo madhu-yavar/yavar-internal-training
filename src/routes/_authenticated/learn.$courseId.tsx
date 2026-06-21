@@ -270,6 +270,9 @@ function CoursePlayer() {
   const illustrationUrl = unit.sourceSlide.illustration_url
     ? signedImages[unit.sourceSlide.illustration_url] || unit.sourceSlide.illustration_url
     : null;
+  const slideImageUrl = unit.sourceSlide.image_url
+    ? signedImages[unit.sourceSlide.image_url] || unit.sourceSlide.image_url
+    : null;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
