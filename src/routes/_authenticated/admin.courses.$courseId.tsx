@@ -580,6 +580,124 @@ function SlidesSection({
   );
 }
 
+
+/* ---------- Slide row with regen / hint / illustration ---------- */
+function SlideRow({
+  s, slides, signedImages, onMove, onDelete, onUpdate, onChanged, setErr,
+}: {
+  s: Slide;
+  slides: Slide[];
+  signedImages: Record<string, string>;
+  onMove: (s: Slide, dir: -1 | 1) => Promise<void>;
+  onDelete: (s: Slide) => Promise<void>;
+  onUpdate: (id: string, patch: Partial<Slide>) => Promise<void>;
+  onChanged: () => Promise<void>;
+  setErr: (s: string | null) => void;
+}) {
+  const [hint, setHint] = useState(s.generation_hint ?? "");
+  const [regenBusy, setRegenBusy] = useState(false);
+  const [illBusy, setIllBusy] = useState(false);
+  const [modelBadge, setModelBadge] = useState<string | null>(null);
+  const runRegen = useServerFn(regenerateSlideNarration);
+  const runIll = useServerFn(generateSlideIllustrations);
+  const url = s.image_url ? signedImages[s.image_url] || s.image_url : null;
+  const illUrl = s.illustration_url ? signedImages[s.illustration_url] || s.illustration_url : null;
+
+  async function regen() {
+    setRegenBusy(true); setErr(null);
+    try {
+      const res = await runRegen({ data: { slideId: s.id, hint: hint || undefined } });
+      setModelBadge(res.modelUsed === "gemini-3-pro" ? "Gemini 3 Pro" : "Gemini Flash (fallback)");
+      await onChanged();
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally { setRegenBusy(false); }
+  }
+  async function makeIllustration() {
+    setIllBusy(true); setErr(null);
+    try {
+      const res = await runIll({ data: { slideIds: [s.id] } });
+      const r = res.results[0];
+      if (r?.error) throw new Error(r.error);
+      await onChanged();
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally { setIllBusy(false); }
+  }
+
+  return (
+    <li className="rounded-xl border border-slate-800 bg-slate-950/50 p-3">
+      <div className="flex gap-3">
+        <div className="flex w-12 flex-col items-center gap-1">
+          <span className="text-xs text-slate-500">#{s.idx + 1}</span>
+          <button onClick={() => onMove(s, -1)} disabled={s.idx === 0} className="rounded border border-slate-700 px-1 text-xs disabled:opacity-30">↑</button>
+          <button onClick={() => onMove(s, 1)} disabled={s.idx === slides.length - 1} className="rounded border border-slate-700 px-1 text-xs disabled:opacity-30">↓</button>
+        </div>
+        <div className="w-32 shrink-0 space-y-1">
+          <div className="overflow-hidden rounded-md bg-slate-800">
+            {url ? <img src={url} alt={s.title} className="h-20 w-full object-cover" /> : (
+              <div className="flex h-20 items-center justify-center text-center text-[10px] text-slate-500">text-only</div>
+            )}
+          </div>
+          {illUrl && <img src={illUrl} alt="illustration" className="h-20 w-full rounded-md border border-amber-400/30 object-contain bg-white/5" />}
+        </div>
+        <div className="flex-1 space-y-2">
+          <input
+            defaultValue={s.title}
+            onBlur={(e) => e.target.value !== s.title && onUpdate(s.id, { title: e.target.value })}
+            placeholder="Slide title"
+            className="w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-sm font-medium"
+          />
+          <textarea
+            defaultValue={stripGeneratedMaterial(s.body_md)}
+            onBlur={(e) => e.target.value !== stripGeneratedMaterial(s.body_md) && onUpdate(s.id, { body_md: e.target.value || null })}
+            placeholder="Bullets (markdown, one per line)"
+            rows={3}
+            className="w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-300"
+          />
+          <textarea
+            defaultValue={s.narration_text ?? ""}
+            onBlur={(e) => e.target.value !== (s.narration_text ?? "") && onUpdate(s.id, { narration_text: e.target.value || null })}
+            placeholder="Narration (spoken aloud)"
+            rows={2}
+            key={s.narration_text ?? ""}
+            className="w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-amber-200/80"
+          />
+          <textarea
+            value={hint}
+            onChange={(e) => setHint(e.target.value)}
+            onBlur={() => hint !== (s.generation_hint ?? "") && onUpdate(s.id, { generation_hint: hint || null })}
+            placeholder="Per-slide generation hint (optional — e.g. 'explain with an apple/orange analogy')"
+            rows={2}
+            className="w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-sky-200/80"
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={regen} disabled={regenBusy}
+              className="rounded-md border border-amber-400/40 bg-amber-500/10 px-2 py-1 text-xs text-amber-200 hover:bg-amber-500/20 disabled:opacity-50"
+            >
+              {regenBusy ? "Regenerating…" : "↻ Regenerate narration"}
+            </button>
+            <button
+              onClick={makeIllustration} disabled={illBusy}
+              className="rounded-md border border-violet-400/40 bg-violet-500/10 px-2 py-1 text-xs text-violet-200 hover:bg-violet-500/20 disabled:opacity-50"
+            >
+              {illBusy ? "Generating…" : illUrl ? "↻ Regenerate illustration" : "✨ Generate illustration"}
+            </button>
+            {modelBadge && <span className="text-[10px] text-slate-400">via {modelBadge}</span>}
+            {s.icon_keywords && s.icon_keywords.length > 0 && (
+              <span className="text-[10px] text-slate-500">icons: {s.icon_keywords.join(", ")}</span>
+            )}
+          </div>
+        </div>
+        <button onClick={() => onDelete(s)} className="self-start rounded-md border border-red-500/40 px-2 py-1 text-xs text-red-300 hover:bg-red-500/10">
+          Delete
+        </button>
+      </div>
+    </li>
+  );
+}
+
 /* ---------- SRT ---------- */
 function parseSrt(text: string): { idx: number; start_ms: number; end_ms: number; text: string }[] {
   const out: { idx: number; start_ms: number; end_ms: number; text: string }[] = [];
