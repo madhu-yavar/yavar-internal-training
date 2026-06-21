@@ -52,6 +52,14 @@ SCENE OUTPUT CONTRACT — ignore any older template instructions that ask for na
 Return exactly one JSON object with this shape and no markdown:
 { "slides": [ { "sourceSlideIdx": 0, "scenes": [ { "concept": "short concept name", "intro": "one direct teaching sentence", "analogy": { "caption": "human analogy", "nodes": ["start", "middle", "end"] }, "example": { "caption": "real-world example", "nodes": ["input", "action", "outcome"] }, "technical": { "caption": "technical pipeline", "nodes": ["input", "processing", "model", "output"] }, "takeaway": "one memorable sentence", "narration": { "intro": "25-45 spoken words", "analogy": "25-45 spoken words", "example": "25-45 spoken words", "technical": "25-45 spoken words", "takeaway": "25-45 spoken words" }, "keywords": ["data", "model"] } ] } ] }`;
 
+const TOPIC_LOCK = `
+
+TOPIC LOCK — non-negotiable:
+- The slide TITLE below is the authoritative topic. Every scene's "concept" MUST be a direct sub-aspect of that title, using vocabulary present in the slide's title or bullets.
+- Do NOT invent unrelated topics, do NOT swap the subject (e.g. if the slide is "Document AI", do not pivot to "Self-driving cars").
+- If an EXTRA INSTRUCTION is provided, treat it as STYLE/TONE guidance ONLY — it must never change the slide's topic.
+- If the slide has only one concept, return ONE scene; only split into multiple scenes when the title or bullets explicitly enumerate distinct concepts.`;
+
 type CourseCfg = {
   tone: string;
   audience: string;
