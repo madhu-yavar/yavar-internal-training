@@ -421,22 +421,31 @@ function SlidesSection({
   const runRegenOne = useServerFn(regenerateSlideNarration);
   const runIll = useServerFn(generateSlideIllustrations);
 
-  async function regenerateFirstN(n: number) {
+  async function regenerateSlides(
+    targets: Slide[],
+    opts: { withIllustration: boolean; label: string },
+  ) {
+    if (targets.length === 0) {
+      setRangeStatus("Nothing to do — no matching slides.");
+      return;
+    }
     setErr(null);
     setRangeBusy(true);
     setExpanded({});
-    const targets = [...slides].sort((a, b) => a.idx - b.idx).slice(0, n);
     const initial: RangeRow[] = targets.map((s) => ({
       slideId: s.id,
       idx: s.idx,
       title: s.title,
       status: "pending",
+      illStatus: opts.withIllustration ? "pending" : "skipped",
     }));
     setRangeResults(initial);
     try {
       for (let i = 0; i < targets.length; i++) {
         const s = targets[i];
-        setRangeStatus(`Slide ${i + 1} of ${targets.length} — calling Gemini for "${s.title}"…`);
+        setRangeStatus(
+          `${opts.label} ${i + 1}/${targets.length} — slide #${s.idx} "${s.title}"…`,
+        );
         setRangeResults((prev) =>
           prev?.map((r) => (r.slideId === s.id ? { ...r, status: "running" } : r)) ?? prev,
         );
@@ -462,15 +471,69 @@ function SlidesSection({
               r.slideId === s.id ? { ...r, status: "error", error: (e as Error).message } : r,
             ) ?? prev,
           );
+          continue;
+        }
+
+        if (opts.withIllustration) {
+          setRangeStatus(
+            `${opts.label} ${i + 1}/${targets.length} — generating illustration for "${s.title}"…`,
+          );
+          setRangeResults((prev) =>
+            prev?.map((r) => (r.slideId === s.id ? { ...r, illStatus: "running" } : r)) ?? prev,
+          );
+          try {
+            const ill = await runIll({ data: { slideIds: [s.id] } });
+            const row = ill.results?.[0];
+            if (row?.error || !row?.url) {
+              throw new Error(row?.error ?? "No image returned");
+            }
+            setRangeResults((prev) =>
+              prev?.map((r) => (r.slideId === s.id ? { ...r, illStatus: "ok" } : r)) ?? prev,
+            );
+          } catch (e) {
+            setRangeResults((prev) =>
+              prev?.map((r) =>
+                r.slideId === s.id
+                  ? { ...r, illStatus: "error", illError: (e as Error).message }
+                  : r,
+              ) ?? prev,
+            );
+          }
         }
       }
-      setRangeStatus(`Done — regenerated ${targets.length} slide${targets.length === 1 ? "" : "s"}.`);
+      setRangeStatus(
+        `Done — processed ${targets.length} slide${targets.length === 1 ? "" : "s"}.`,
+      );
       await onChanged();
     } catch (e) {
       setErr((e as Error).message);
     } finally {
       setRangeBusy(false);
     }
+  }
+
+  async function regenerateRange() {
+    const lo = Math.max(1, Math.min(fromIdx, toIdx));
+    const hi = Math.max(1, Math.max(fromIdx, toIdx));
+    const targets = [...slides]
+      .sort((a, b) => a.idx - b.idx)
+      .filter((s) => s.idx >= lo && s.idx <= hi);
+    await regenerateSlides(targets, {
+      withIllustration: alsoIllustrate,
+      label: `Range ${lo}–${hi}`,
+    });
+  }
+
+  async function regenerateAllRemaining() {
+    const targets = [...slides].sort((a, b) => a.idx - b.idx).filter((s) => {
+      const needsNarration = !s.narration_text || s.narration_text.trim().length === 0;
+      const needsIll = alsoIllustrate && !s.illustration_url;
+      return needsNarration || needsIll;
+    });
+    await regenerateSlides(targets, {
+      withIllustration: alsoIllustrate,
+      label: "Remaining",
+    });
   }
 
   async function handleDeck(file: File, replace: boolean) {
