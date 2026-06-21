@@ -57,7 +57,7 @@ type Quiz = {
   difficulty?: string | null;
 };
 
-const VOICES = ["default", "alloy", "verse", "shimmer", "fable", "nova"];
+const VOICES = ["af_heart"];
 const LANGS = [
   { code: "en", label: "English" },
   { code: "hi", label: "Hindi" },
@@ -232,7 +232,7 @@ function MetadataSection({ course, onSave }: { course: Course; onSave: (p: Parti
             className="input"
           />
         </Field>
-        <Field label="Voice">
+        <Field label="Voice (Yavar TTS only)">
           <select
             value={voice}
             onChange={(e) => {
@@ -421,10 +421,11 @@ function SlidesSection({
           const res = await runNarrations({
             data: {
               courseTitle,
+              courseId,
               slides: parsed.map((p) => ({ title: p.title, bullets: p.bullets })),
             },
           });
-          aiNarrations = parsed.map((p, i) => (p.notes && p.notes.length > 8 ? p.notes : res.narrations[i] || ""));
+          aiNarrations = parsed.map((_, i) => res.narrations[i] || "");
         } catch (e) {
           console.warn("narration failed, continuing without AI", e);
         }
@@ -607,7 +608,7 @@ function SlideRow({
     setRegenBusy(true); setErr(null);
     try {
       const res = await runRegen({ data: { slideId: s.id, hint: hint || undefined } });
-      setModelBadge(res.modelUsed === "gemini-3-pro" ? "Gemini 3 Pro" : "Gemini Flash (fallback)");
+      setModelBadge(res.modelUsed === "gemini-3.1-pro" ? "Gemini 3.1 Pro" : "Gemini Flash (fallback)");
       await onChanged();
     } catch (e) {
       setErr((e as Error).message);
@@ -987,6 +988,7 @@ function GenerateSection({
 }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
+  const [lastModel, setLastModel] = useState<string | null>(null);
   const runNarrations = useServerFn(generateNarrations);
 
   const missingNarration = slides.filter((s) => !s.narration_text || s.narration_text.trim().length < 4);
@@ -997,6 +999,7 @@ function GenerateSection({
   async function generate() {
     setErr(null);
     setStatus(null);
+    setLastModel(null);
     if (!hasSlides) {
       setErr("Upload a PDF or PPTX deck first.");
       return;
@@ -1007,12 +1010,13 @@ function GenerateSection({
     }
     try {
       let workingSlides = [...slides].sort((a, b) => a.idx - b.idx);
-      if (missingNarration.length > 0) {
-        setBusy(`Generating narration for ${missingNarration.length} slide(s)…`);
+      {
+        setBusy(`Generating narration for ${workingSlides.length} slide(s) with admin prompt…`);
         const res = await runNarrations({
           data: {
             courseTitle: course.title,
-            slides: slides.map((s) => ({
+            courseId: course.id,
+            slides: workingSlides.map((s) => ({
               title: s.title,
               bullets: stripGeneratedMaterial(s.body_md)
                 .split("\n")
@@ -1021,15 +1025,16 @@ function GenerateSection({
             })),
           },
         });
-        // Only update slides that were missing narration
+        setLastModel(res.modelUsed === "gemini-3.1-pro" ? "Gemini 3.1 Pro" : "Gemini Flash fallback");
         const narrationById = new Map<string, string>();
-        for (const s of missingNarration) {
-          const text = res.narrations[s.idx];
+        for (let i = 0; i < workingSlides.length; i++) {
+          const s = workingSlides[i];
+          const text = res.narrations[i];
           if (!text) continue;
           narrationById.set(s.id, text);
           const { error } = await supabase
             .from("slides")
-            .update({ narration_text: text })
+            .update({ narration_text: text, icon_keywords: res.keywords?.[i] ?? [] })
             .eq("id", s.id);
           if (error) throw error;
         }
@@ -1083,6 +1088,7 @@ function GenerateSection({
               {hasQuiz ? "✓" : "○"} Quiz ({quiz.length})
             </li>
           </ul>
+          {lastModel && <div className="mt-2 text-xs text-amber-300">Narration model used: {lastModel}</div>}
           {status && <div className="mt-3 text-xs text-emerald-300">{status}</div>}
         </div>
         <div className="flex flex-col items-end gap-2">

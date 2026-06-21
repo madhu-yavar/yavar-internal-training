@@ -6,7 +6,6 @@ import { SLIDE_META } from "@/assets/training/slide-meta";
 import { AIAvatar } from "@/components/AIAvatar";
 import { TrainingChat } from "@/components/TrainingChat";
 import { TrainingQuiz } from "@/components/TrainingQuiz";
-import { LovableTtsPlayer } from "@/lib/lovableTts";
 import { WsTtsPlayer, buildTtsUrl } from "@/lib/wsTts";
 import { AmbientMusic } from "@/lib/ambientMusic";
 import { BrandFooter } from "@/components/BrandFooter";
@@ -92,12 +91,8 @@ function TrainingPage() {
 
   // Track which sentence is currently being narrated
   const cursorRef = useRef(0);
-  const voiceRef = useRef<SpeechSynthesisVoice | null>(null);
   const userStartedRef = useRef(false);
-  const [ttsSupported, setTtsSupported] = useState(true);
-  const [ttsSource, setTtsSource] = useState<"lovable" | "browser" | "ws">("ws");
   const [ttsVoice, setTtsVoice] = useState<string>("af_heart");
-  const lovablePlayerRef = useRef<LovableTtsPlayer | null>(null);
   const wsPlayerRef = useRef<WsTtsPlayer | null>(null);
   const cancelledRef = useRef(false);
   const idxRef = useRef(0);
@@ -106,98 +101,26 @@ function TrainingPage() {
   const [rate, setRate] = useState(1);
   const rateRef = useRef(1);
   const slideResetMountedRef = useRef(false);
-  useEffect(() => { rateRef.current = rate; lovablePlayerRef.current?.setRate(rate); }, [rate]);
+  useEffect(() => { rateRef.current = rate; wsPlayerRef.current?.setUrl(buildTtsUrl(rate, ttsVoice, "a")); }, [rate, ttsVoice]);
   useEffect(() => { idxRef.current = idx; }, [idx]);
-
-  // Pick a good English voice when available (browser fallback)
-  useEffect(() => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-      setTtsSupported(false);
-      return;
-    }
-    const pick = () => {
-      const voices = window.speechSynthesis.getVoices();
-      const preferred =
-        voices.find((v) => /en[-_]?(US|GB)/i.test(v.lang) && /female|samantha|jenny|aria|zira|google us english/i.test(v.name)) ||
-        voices.find((v) => /en[-_]?(US|GB)/i.test(v.lang)) ||
-        voices[0] ||
-        null;
-      voiceRef.current = preferred;
-    };
-    pick();
-    window.speechSynthesis.onvoiceschanged = pick;
-  }, []);
 
   const stopAll = () => {
     cancelledRef.current = true;
     // stop() keeps the AudioContext alive (prime/unlock survives) — only
     // dispose() on unmount or voice change.
-    lovablePlayerRef.current?.stop();
     wsPlayerRef.current?.stop();
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-    }
   };
 
-
-  const speakBrowser = (text: string) =>
-    new Promise<void>((resolve) => {
-      if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-        resolve();
-        return;
-      }
-      const u = new SpeechSynthesisUtterance(text);
-      if (voiceRef.current) u.voice = voiceRef.current;
-      u.lang = voiceRef.current?.lang || "en-US";
-      u.rate = rateRef.current;
-      u.pitch = 1.05;
-      u.onend = () => resolve();
-      u.onerror = () => resolve();
-      window.speechSynthesis.speak(u);
-    });
-
   const speakOne = async (text: string): Promise<void> => {
-    if (ttsSource === "ws") {
-      try {
-        let player = wsPlayerRef.current;
-        if (!player) {
-          player = new WsTtsPlayer({ url: buildTtsUrl(rateRef.current, ttsVoice, "a") });
-          player.prime();
-          wsPlayerRef.current = player;
-        } else {
-          player.setUrl(buildTtsUrl(rateRef.current, ttsVoice, "a"));
-        }
-        wsPlayerRef.current = player;
-        await player.speak(text);
-        return;
-      } catch (e: any) {
-        if (cancelledRef.current) return;
-        console.warn("Yavar WS TTS failed, falling back to browser TTS:", e);
-        setTtsSource("browser");
-      }
+    let player = wsPlayerRef.current;
+    if (!player) {
+      player = new WsTtsPlayer({ url: buildTtsUrl(rateRef.current, ttsVoice, "a") });
+      player.prime();
+      wsPlayerRef.current = player;
+    } else {
+      player.setUrl(buildTtsUrl(rateRef.current, ttsVoice, "a"));
     }
-    if (ttsSource === "lovable") {
-      try {
-        // Reuse the player primed by togglePlay so the AudioContext stays
-        // unlocked across sentences/slides — creating a fresh context
-        // after an await loses the user-gesture and plays nothing.
-        let player = lovablePlayerRef.current;
-        if (!player) {
-          player = new LovableTtsPlayer();
-          player.prime();
-          lovablePlayerRef.current = player;
-        }
-        player.setRate(rateRef.current);
-        await player.speak(text, ttsVoice);
-        return;
-      } catch (e: any) {
-        if (cancelledRef.current || e?.name === "AbortError") return;
-        console.warn("Lovable TTS failed, falling back to browser TTS:", e);
-        setTtsSource("browser");
-      }
-    }
-    if (cancelledRef.current) return;
-    await speakBrowser(text);
+    await player.speak(text);
   };
 
   const estimatedSentenceMs = (text: string) => {
@@ -218,11 +141,7 @@ function TrainingPage() {
       }),
     ]);
     if (timedOut && !cancelledRef.current) {
-      lovablePlayerRef.current?.stop();
       wsPlayerRef.current?.stop();
-      if (typeof window !== "undefined" && "speechSynthesis" in window) {
-        window.speechSynthesis.cancel();
-      }
     }
   };
 
@@ -270,8 +189,6 @@ function TrainingPage() {
   useEffect(() => {
     return () => {
       stopAll();
-      lovablePlayerRef.current?.dispose();
-      lovablePlayerRef.current = null;
       wsPlayerRef.current?.dispose();
       wsPlayerRef.current = null;
       musicRef.current?.stop();
@@ -297,17 +214,10 @@ function TrainingPage() {
       // click handler. Doing this after any await loses the user gesture and
       // the context stays suspended (no audio, no error) — that's why the
       // first slide was silent.
-      if (ttsSource === "lovable") {
-        const player = new LovableTtsPlayer();
-        player.prime();
-        lovablePlayerRef.current?.stop();
-        lovablePlayerRef.current = player;
-      } else if (ttsSource === "ws") {
-        const player = new WsTtsPlayer({ url: buildTtsUrl(rateRef.current, ttsVoice, "a") });
-        player.prime();
-        wsPlayerRef.current?.stop();
-        wsPlayerRef.current = player;
-      }
+      const player = new WsTtsPlayer({ url: buildTtsUrl(rateRef.current, ttsVoice, "a") });
+      player.prime();
+      wsPlayerRef.current?.stop();
+      wsPlayerRef.current = player;
       setPlaying(true);
       void speakFrom(Math.max(0, revealed - 1));
     }
@@ -519,7 +429,7 @@ function TrainingPage() {
                   onClick={togglePlay}
                   className="rounded-md border border-amber-400/40 bg-amber-500/15 px-3 py-1 text-xs text-amber-100 hover:bg-amber-500/25"
                 >
-                  {playing ? "⏸ Pause" : ttsSupported ? "▶ Play" : "▶ Play"}
+                  {playing ? "⏸ Pause" : "▶ Play"}
                 </button>
                 <button
                   onClick={() => {
@@ -532,49 +442,16 @@ function TrainingPage() {
                   Reveal all
                 </button>
                 <select
-                  value={
-                    ttsSource === "browser"
-                      ? "__browser__"
-                      : `${ttsSource}:${ttsVoice}`
-                  }
+                  value={ttsVoice}
                   onChange={(e) => {
                     stopAll();
                     setPlaying(false);
-                    const v = e.target.value;
-                    if (v === "__browser__") {
-                      setTtsSource("browser");
-                    } else {
-                      const [src, voice] = v.split(":") as [
-                        "lovable" | "ws",
-                        string,
-                      ];
-                      setTtsSource(src);
-                      setTtsVoice(voice);
-                    }
+                    setTtsVoice(e.target.value);
                   }}
                   title="Choose narrator voice"
                   className="max-w-[50%] rounded-md border border-white/10 bg-slate-900 px-2 py-1 text-[11px] text-slate-200 hover:bg-white/10 focus:outline-none"
                 >
-                  <optgroup label="Yavar (self-hosted GPU)">
-                    <option value="ws:af_heart">🇮🇳 Heart (warm, female)</option>
-                    <option value="ws:af_bella">🇮🇳 Bella (female)</option>
-                    <option value="ws:af_nicole">🇮🇳 Nicole (female)</option>
-                    <option value="ws:af_sarah">🇮🇳 Sarah (female)</option>
-                    <option value="ws:am_michael">🇮🇳 Michael (male)</option>
-                    <option value="ws:am_adam">🇮🇳 Adam (male)</option>
-                  </optgroup>
-                  <optgroup label="Lovable AI (expressive)">
-                    <option value="lovable:shimmer">🎙 Ari – Shimmer</option>
-                    <option value="lovable:coral">🎙 Coral</option>
-                    <option value="lovable:sage">🎙 Sage</option>
-                    <option value="lovable:ballad">🎙 Ballad</option>
-                    <option value="lovable:verse">🎙 Verse</option>
-                    <option value="lovable:alloy">🎙 Alloy</option>
-                    <option value="lovable:ash">🎙 Ash</option>
-                  </optgroup>
-                  <optgroup label="Fallback">
-                    <option value="__browser__">🗣 Browser</option>
-                  </optgroup>
+                  <option value="af_heart">Yavar Heart</option>
                 </select>
 
                 <select

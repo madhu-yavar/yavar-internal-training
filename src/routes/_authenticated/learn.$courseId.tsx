@@ -10,7 +10,7 @@ import { useAuthCtx } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { AmbientMusic } from "@/lib/ambientMusic";
 import { bindCuesToSlides, formatMs, narrationSentences, readGeneratedSegments, slideBullets, stripGeneratedMaterial, type TimedSegment } from "@/lib/courseMaterial";
-import { LovableTtsPlayer } from "@/lib/lovableTts";
+import { WsTtsPlayer, buildTtsUrl } from "@/lib/wsTts";
 import { signMany } from "@/lib/storage";
 
 export const Route = createFileRoute("/_authenticated/learn/$courseId")({
@@ -81,9 +81,9 @@ function CoursePlayer() {
   const [completed, setCompleted] = useState(false);
   const [quizOpen, setQuizOpen] = useState(false);
   const [musicOn, setMusicOn] = useState(false);
-  const [voice, setVoice] = useState<string>("shimmer");
+  const [voice, setVoice] = useState<string>("af_heart");
   const [speed, setSpeed] = useState<number>(1);
-  const playerRef = useRef<LovableTtsPlayer | null>(null);
+  const playerRef = useRef<WsTtsPlayer | null>(null);
   const musicRef = useRef<AmbientMusic | null>(null);
   const cancelledRef = useRef(false);
   const idxRef = useRef(0);
@@ -108,7 +108,7 @@ function CoursePlayer() {
       }
       const orderedSlides = ((s as Slide[]) ?? []).sort((a, b) => a.idx - b.idx);
       setCourse(c as Course);
-      setVoice(((c as Course).voice && (c as Course).voice !== "default") ? (c as Course).voice : "shimmer");
+      setVoice("af_heart");
       setSpeed((c as Course).speed ?? 1);
       setSlides(orderedSlides);
       setCues((cu as Cue[]) ?? []);
@@ -134,9 +134,12 @@ function CoursePlayer() {
   }, [generatedSegments, idx, slide]);
   const lines = useMemo(() => {
     if (!slide) return [];
-    return segments.length
-      ? segments.map((s) => s.text).filter(Boolean)
-      : narrationSentences(slide.narration_text || [slide.title, ...slideBullets(slide)].join(". "));
+    const generatedNarration = narrationSentences(slide.narration_text);
+    return generatedNarration.length
+      ? generatedNarration
+      : segments.length
+        ? segments.map((s) => s.text).filter(Boolean)
+        : narrationSentences([slide.title, ...slideBullets(slide)].join(". "));
   }, [segments, slide]);
   const bullets = useMemo(() => (slide ? slideBullets(slide).slice(0, 6) : []), [slide]);
   const currentLine = lines[Math.min(revealed, Math.max(0, lines.length - 1))] ?? slide?.title ?? "";
@@ -152,34 +155,15 @@ function CoursePlayer() {
     if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
   };
 
-  const speakBrowser = (text: string) =>
-    new Promise<void>((resolve) => {
-      if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-        resolve();
-        return;
-      }
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = "en-US";
-      u.rate = speed;
-      u.pitch = 1.04;
-      u.onend = () => resolve();
-      u.onerror = () => resolve();
-      window.speechSynthesis.speak(u);
-    });
-
   const speakOne = async (text: string) => {
-    try {
-      let player = playerRef.current;
-      if (!player) {
-        player = new LovableTtsPlayer();
-        player.prime();
-        playerRef.current = player;
-      }
-      player.setRate(speed);
-      await player.speak(text, voice);
-    } catch {
-      if (!cancelledRef.current) await speakBrowser(text);
+    let player = playerRef.current;
+    if (!player) {
+      player = new WsTtsPlayer({ url: buildTtsUrl(speed, voice, "a") });
+      player.prime();
+      playerRef.current = player;
     }
+    player.setUrl(buildTtsUrl(speed, voice, "a"));
+    await player.speak(text);
   };
 
   const speakFrom = async (start: number) => {
@@ -223,7 +207,7 @@ function CoursePlayer() {
   }, [speaking]);
 
   useEffect(() => {
-    playerRef.current?.setRate(speed);
+    playerRef.current?.setUrl(buildTtsUrl(speed, voice, "a"));
   }, [speed]);
 
   const togglePlay = () => {
@@ -233,7 +217,7 @@ function CoursePlayer() {
       setPlaying(false);
       return;
     }
-    const player = new LovableTtsPlayer();
+    const player = new WsTtsPlayer({ url: buildTtsUrl(speed, voice, "a") });
     player.prime();
     playerRef.current?.stop();
     playerRef.current = player;
@@ -270,18 +254,9 @@ function CoursePlayer() {
             </div>
           </div>
           <div className="flex shrink-0 flex-wrap items-center gap-2">
-            <label className="flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-300">
-              <span className="text-slate-400">Voice</span>
-              <select
-                value={voice}
-                onChange={(e) => setVoice(e.target.value)}
-                className="bg-transparent text-xs text-slate-100 outline-none"
-              >
-                {["alloy","ash","ballad","coral","echo","sage","shimmer","verse"].map((v) => (
-                  <option key={v} value={v} className="bg-slate-900">{v}</option>
-                ))}
-              </select>
-            </label>
+            <div className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-300">
+              Voice <span className="text-slate-100">Yavar</span>
+            </div>
             <label className="flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-300">
               <span className="text-slate-400">Speed</span>
               <select

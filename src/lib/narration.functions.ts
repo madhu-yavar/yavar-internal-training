@@ -75,33 +75,33 @@ function renderTemplate(tpl: string, vars: Record<string, string | number>) {
   return tpl.replace(/\{\{(\w+)\}\}/g, (_, k) => String(vars[k] ?? ""));
 }
 
-type ModelUsed = "gemini-3-pro" | "gemini-flash-fallback";
+type ModelUsed = "gemini-3.1-pro" | "gemini-flash-fallback";
 
 async function generateJson(prompt: string): Promise<{ text: string; modelUsed: ModelUsed }> {
   const geminiKey = process.env.GEMINI_API_KEY;
   if (geminiKey) {
-    try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent?key=${geminiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ role: "user", parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.6, responseMimeType: "application/json" },
-          }),
-        },
-      );
-      if (res.ok) {
-        const json = (await res.json()) as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
-        const text = json.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
-        if (text) return { text, modelUsed: "gemini-3-pro" };
-      } else {
-        console.warn("Gemini 3 Pro call failed", res.status, await res.text().catch(() => ""));
-      }
-    } catch (e) {
-      console.warn("Gemini 3 Pro error, falling back", e);
-    }
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent?key=${geminiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.55, maxOutputTokens: 8192, responseMimeType: "application/json" },
+        }),
+      },
+    );
+    const raw = await res.text();
+    if (!res.ok) throw new Error(`Gemini 3.1 Pro failed (${res.status}): ${raw.slice(0, 300)}`);
+    const json = JSON.parse(raw) as {
+      candidates?: Array<{ finishReason?: string; content?: { parts?: Array<{ text?: string }> } }>;
+      usageMetadata?: unknown;
+    };
+    const candidate = json.candidates?.[0];
+    const text = candidate?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
+    if (candidate?.finishReason === "MAX_TOKENS") throw new Error("Gemini 3.1 Pro response was truncated. Reduce deck size or regenerate fewer slides.");
+    if (!text) throw new Error(`Gemini 3.1 Pro returned no JSON. Finish reason: ${candidate?.finishReason ?? "unknown"}`);
+    return { text, modelUsed: "gemini-3.1-pro" };
   }
   const key = process.env.LOVABLE_API_KEY;
   if (!key) throw new Error("Missing LOVABLE_API_KEY");
@@ -121,14 +121,21 @@ function extractJson<T>(text: string): T {
 }
 
 export const generateNarrations = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => Input.parse(d))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("Forbidden");
     const cfg = await loadCourseCfg(data.courseId);
     const template = cfg.prompt_override?.trim() || (await loadGlobalTemplate());
     const deckOutline = data.slides
       .map((s, i) => `Slide ${i + 1}: ${s.title}\n${s.bullets.map((b) => `  - ${b}`).join("\n")}`)
       .join("\n\n");
     const prompt = renderTemplate(template, {
+      title: data.courseTitle,
       courseTitle: data.courseTitle,
       tone: cfg.tone,
       audience: cfg.audience,
@@ -148,8 +155,14 @@ export const generateNarrations = createServerFn({ method: "POST" })
   });
 
 export const generateCourseDescription = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => DescriptionInput.parse(d))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("Forbidden");
     const deckOutline = data.slides
       .slice(0, 18)
       .map((s, i) => `Slide ${i + 1}: ${s.title}\n${s.bullets.slice(0, 5).map((b) => `  - ${b}`).join("\n")}`)
@@ -209,6 +222,7 @@ export const regenerateSlideNarration = createServerFn({ method: "POST" })
     const template = cfg.prompt_override?.trim() || (await loadGlobalTemplate());
     const deckOutline = `Slide 1: ${slide.title}\n${bullets.map((b) => `  - ${b}`).join("\n")}`;
     let prompt = renderTemplate(template, {
+      title: course?.title ?? "this training",
       courseTitle: course?.title ?? "this training",
       tone: cfg.tone,
       audience: cfg.audience,
