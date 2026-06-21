@@ -189,8 +189,6 @@ function TrainingPage() {
   useEffect(() => {
     return () => {
       stopAll();
-      lovablePlayerRef.current?.dispose();
-      lovablePlayerRef.current = null;
       wsPlayerRef.current?.dispose();
       wsPlayerRef.current = null;
       musicRef.current?.stop();
@@ -216,17 +214,10 @@ function TrainingPage() {
       // click handler. Doing this after any await loses the user gesture and
       // the context stays suspended (no audio, no error) — that's why the
       // first slide was silent.
-      if (ttsSource === "lovable") {
-        const player = new LovableTtsPlayer();
-        player.prime();
-        lovablePlayerRef.current?.stop();
-        lovablePlayerRef.current = player;
-      } else if (ttsSource === "ws") {
-        const player = new WsTtsPlayer({ url: buildTtsUrl(rateRef.current, ttsVoice, "a") });
-        player.prime();
-        wsPlayerRef.current?.stop();
-        wsPlayerRef.current = player;
-      }
+      const player = new WsTtsPlayer({ url: buildTtsUrl(rateRef.current, ttsVoice, "a") });
+      player.prime();
+      wsPlayerRef.current?.stop();
+      wsPlayerRef.current = player;
       setPlaying(true);
       void speakFrom(Math.max(0, revealed - 1));
     }
