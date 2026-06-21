@@ -77,41 +77,87 @@ function renderTemplate(tpl: string, vars: Record<string, string | number>) {
 
 type ModelUsed = "gemini-3.1-pro" | "gemini-flash-fallback";
 
-async function generateJson(prompt: string): Promise<{ text: string; modelUsed: ModelUsed }> {
-  const geminiKey = process.env.GEMINI_API_KEY;
-  if (geminiKey) {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent?key=${geminiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.55, maxOutputTokens: 8192, responseMimeType: "application/json" },
-        }),
-      },
-    );
-    const raw = await res.text();
-    if (!res.ok) throw new Error(`Gemini 3.1 Pro failed (${res.status}): ${raw.slice(0, 300)}`);
-    const json = JSON.parse(raw) as {
-      candidates?: Array<{ finishReason?: string; content?: { parts?: Array<{ text?: string }> } }>;
-      usageMetadata?: unknown;
-    };
-    const candidate = json.candidates?.[0];
-    const text = candidate?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
-    if (candidate?.finishReason === "MAX_TOKENS") throw new Error("Gemini 3.1 Pro response was truncated. Reduce deck size or regenerate fewer slides.");
-    if (!text) throw new Error(`Gemini 3.1 Pro returned no JSON. Finish reason: ${candidate?.finishReason ?? "unknown"}`);
-    return { text, modelUsed: "gemini-3.1-pro" };
+const MODEL_LABEL: Record<ModelUsed, { provider: string; model: string }> = {
+  "gemini-3.1-pro": { provider: "Google (admin key)", model: "gemini-3.1-pro-preview" },
+  "gemini-flash-fallback": { provider: "Lovable AI Gateway", model: "google/gemini-3-flash-preview" },
+};
+
+type LogCtx = {
+  userId?: string;
+  courseId?: string | null;
+  kind: string;
+  slideCount?: number;
+};
+
+async function writeLog(
+  ctx: LogCtx,
+  modelUsed: ModelUsed,
+  status: "ok" | "error",
+  detail: string | null,
+  durationMs: number,
+) {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const meta = MODEL_LABEL[modelUsed];
+    await supabaseAdmin.from("generation_logs").insert({
+      user_id: ctx.userId ?? null,
+      course_id: ctx.courseId ?? null,
+      kind: ctx.kind,
+      model: meta.model,
+      provider: meta.provider,
+      status,
+      detail: detail?.slice(0, 500) ?? null,
+      slide_count: ctx.slideCount ?? null,
+      duration_ms: durationMs,
+    });
+  } catch {
+    /* logging must never break generation */
   }
-  const key = process.env.LOVABLE_API_KEY;
-  if (!key) throw new Error("Missing LOVABLE_API_KEY");
-  const gateway = createLovableAiGatewayProvider(key);
-  const { text } = await generateText({
-    model: gateway("google/gemini-3-flash-preview"),
-    prompt,
-    temperature: 0.6,
-  });
-  return { text, modelUsed: "gemini-flash-fallback" };
+}
+
+async function generateJson(prompt: string, ctx: LogCtx): Promise<{ text: string; modelUsed: ModelUsed }> {
+  const started = Date.now();
+  const geminiKey = process.env.GEMINI_API_KEY;
+  const modelUsed: ModelUsed = geminiKey ? "gemini-3.1-pro" : "gemini-flash-fallback";
+  try {
+    if (geminiKey) {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent?key=${geminiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.55, maxOutputTokens: 8192, responseMimeType: "application/json" },
+          }),
+        },
+      );
+      const raw = await res.text();
+      if (!res.ok) throw new Error(`Gemini 3.1 Pro failed (${res.status}): ${raw.slice(0, 300)}`);
+      const json = JSON.parse(raw) as {
+        candidates?: Array<{ finishReason?: string; content?: { parts?: Array<{ text?: string }> } }>;
+      };
+      const candidate = json.candidates?.[0];
+      const text = candidate?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
+      if (candidate?.finishReason === "MAX_TOKENS") throw new Error("Gemini 3.1 Pro response was truncated.");
+      if (!text) throw new Error(`Gemini 3.1 Pro returned no JSON. Finish reason: ${candidate?.finishReason ?? "unknown"}`);
+      await writeLog(ctx, modelUsed, "ok", null, Date.now() - started);
+      return { text, modelUsed };
+    }
+    const key = process.env.LOVABLE_API_KEY;
+    if (!key) throw new Error("Missing LOVABLE_API_KEY");
+    const gateway = createLovableAiGatewayProvider(key);
+    const { text } = await generateText({
+      model: gateway("google/gemini-3-flash-preview"),
+      prompt,
+      temperature: 0.6,
+    });
+    await writeLog(ctx, modelUsed, "ok", null, Date.now() - started);
+    return { text, modelUsed };
+  } catch (e) {
+    await writeLog(ctx, modelUsed, "error", (e as Error).message, Date.now() - started);
+    throw e;
+  }
 }
 
 function extractJson<T>(text: string): T {
@@ -144,7 +190,12 @@ export const generateNarrations = createServerFn({ method: "POST" })
       deck: deckOutline,
     });
 
-    const { text, modelUsed } = await generateJson(prompt);
+    const { text, modelUsed } = await generateJson(prompt, {
+      userId: context.userId,
+      courseId: data.courseId ?? null,
+      kind: "narrations",
+      slideCount: data.slides.length,
+    });
     const parsed = extractJson<{ narrations: string[]; keywords?: string[][] }>(text);
     if (!Array.isArray(parsed.narrations)) throw new Error("Bad AI response shape");
     const narrations = data.slides.map((_, i) => (parsed.narrations[i] ?? "").trim());
@@ -176,7 +227,11 @@ Return STRICT JSON: { "description": "..." }
 DECK:
 ${deckOutline}`;
 
-    const { text, modelUsed } = await generateJson(prompt);
+    const { text, modelUsed } = await generateJson(prompt, {
+      userId: context.userId,
+      kind: "description",
+      slideCount: data.slides.length,
+    });
     const parsed = extractJson<{ description?: string }>(text);
     const description = (parsed.description ?? "").trim();
     if (!description) throw new Error("AI did not return a description");
@@ -239,7 +294,12 @@ export const regenerateSlideNarration = createServerFn({ method: "POST" })
       await supabaseAdmin.from("slides").update({ generation_hint: data.hint || null }).eq("id", data.slideId);
     }
 
-    const { text, modelUsed } = await generateJson(prompt);
+    const { text, modelUsed } = await generateJson(prompt, {
+      userId: context.userId,
+      courseId: slide.course_id as string,
+      kind: "slide-regenerate",
+      slideCount: 1,
+    });
     const parsed = extractJson<{ narrations: string[]; keywords?: string[][] }>(text);
     const narration = (parsed.narrations?.[0] ?? "").trim();
     const keywords = Array.isArray(parsed.keywords?.[0])
@@ -345,11 +405,37 @@ export const getAdminSettings = createServerFn({ method: "GET" })
       .select("template, updated_at")
       .eq("scope", "global")
       .maybeSingle();
+    const hasGeminiKey = !!process.env.GEMINI_API_KEY;
     return {
       template: (data?.template as string) || DEFAULT_TEMPLATE,
       updatedAt: (data?.updated_at as string) || null,
-      hasGeminiKey: !!process.env.GEMINI_API_KEY,
+      hasGeminiKey,
+      narrationModel: hasGeminiKey ? MODEL_LABEL["gemini-3.1-pro"] : MODEL_LABEL["gemini-flash-fallback"],
+      tts: {
+        provider: "Yavar TTS (self-hosted)",
+        endpoint: "wss://agentic-rag.yavar.ai/stream/tts",
+        voice: "af_heart",
+        sampleRate: 24000,
+      },
     };
+  });
+
+export const getRecentGenerationLogs = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("Forbidden");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
+      .from("generation_logs")
+      .select("id, created_at, kind, model, provider, status, detail, slide_count, duration_ms, course_id")
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (error) throw error;
+    return { logs: data ?? [] };
   });
 
 const SaveTemplateInput = z.object({ template: z.string().min(20).max(20000) });
