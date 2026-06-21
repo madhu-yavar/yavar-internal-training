@@ -644,23 +644,100 @@ function SlidesSection({
 
       {rangeResults && (
         <div className="mt-3 rounded-xl border border-slate-700 bg-slate-950/60 p-3 text-xs">
-          <div className="mb-2 font-semibold text-slate-200">
-            Per-slide regeneration report ({rangeResults.filter((r) => r.ok).length} ok / {rangeResults.filter((r) => !r.ok).length} failed)
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <div className="font-semibold text-slate-200">
+              Per-slide regeneration ({rangeResults.filter((r) => r.status === "ok").length} ok ·{" "}
+              {rangeResults.filter((r) => r.status === "error").length} failed ·{" "}
+              {rangeResults.filter((r) => r.status === "running").length} running ·{" "}
+              {rangeResults.filter((r) => r.status === "pending").length} pending)
+            </div>
+            {rangeStatus && <div className="text-sky-300">{rangeStatus}</div>}
           </div>
+          {rangeBusy && (
+            <div className="mb-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
+              <div
+                className="h-full bg-sky-500 transition-all"
+                style={{
+                  width: `${
+                    (rangeResults.filter((r) => r.status === "ok" || r.status === "error").length /
+                      Math.max(1, rangeResults.length)) *
+                    100
+                  }%`,
+                }}
+              />
+            </div>
+          )}
           <ul className="space-y-1">
-            {rangeResults.map((r) => (
-              <li key={r.slideId} className="flex flex-wrap items-center gap-2">
-                <span className="w-8 text-slate-500">#{r.idx + 1}</span>
-                <span className="flex-1 truncate text-slate-300">{r.title}</span>
-                {r.ok ? (
-                  <span className="text-emerald-300">
-                    ✓ {r.sceneCount} scene{r.sceneCount === 1 ? "" : "s"} · {r.modelUsed === "gemini-3.1-pro" ? "Gemini 3.1 Pro" : "Gemini Flash"} · attempt {r.attempts}
-                  </span>
-                ) : (
-                  <span className="text-red-300">✗ {r.error}</span>
-                )}
-              </li>
-            ))}
+            {rangeResults.map((r) => {
+              const isOpen = !!expanded[r.slideId];
+              return (
+                <li key={r.slideId} className="rounded-md border border-slate-800 bg-slate-900/40">
+                  <div className="flex flex-wrap items-center gap-2 px-2 py-1.5">
+                    <span className="w-8 text-slate-500">#{r.idx + 1}</span>
+                    <span className="flex-1 truncate text-slate-300">{r.title}</span>
+                    {r.status === "pending" && <span className="text-slate-500">… queued</span>}
+                    {r.status === "running" && <span className="text-amber-300">⟳ generating…</span>}
+                    {r.status === "ok" && (
+                      <>
+                        <span className="text-emerald-300">
+                          ✓ {r.sceneCount} scene{r.sceneCount === 1 ? "" : "s"} ·{" "}
+                          {r.modelUsed === "gemini-3.1-pro" ? "Gemini 3.1 Pro" : "Gemini Flash"} · attempt {r.attempts}
+                        </span>
+                        <button
+                          onClick={() =>
+                            setExpanded((p) => ({ ...p, [r.slideId]: !p[r.slideId] }))
+                          }
+                          className="rounded border border-slate-700 px-2 py-0.5 text-slate-300 hover:bg-slate-800"
+                        >
+                          {isOpen ? "Hide" : "Preview"} scenes
+                        </button>
+                      </>
+                    )}
+                    {r.status === "error" && <span className="text-red-300">✗ {r.error}</span>}
+                  </div>
+                  {isOpen && r.scenes && (
+                    <div className="space-y-3 border-t border-slate-800 px-3 py-3">
+                      {r.scenes.map((sc, i) => (
+                        <div key={i} className="rounded-md bg-slate-950/60 p-2">
+                          <div className="mb-1 text-[11px] uppercase tracking-wide text-sky-400">
+                            Scene {i + 1} · {sc.concept}
+                          </div>
+                          <div className="space-y-1 text-slate-300">
+                            <div><span className="text-slate-500">Intro:</span> {sc.intro}</div>
+                            {sc.analogy && (
+                              <div>
+                                <span className="text-slate-500">Analogy:</span> {sc.analogy.caption}{" "}
+                                <span className="text-amber-300">[{sc.analogy.nodes.join(" → ")}]</span>
+                              </div>
+                            )}
+                            {sc.example && (
+                              <div>
+                                <span className="text-slate-500">Example:</span> {sc.example.caption}{" "}
+                                <span className="text-amber-300">[{sc.example.nodes.join(" → ")}]</span>
+                              </div>
+                            )}
+                            {sc.technical && (
+                              <div>
+                                <span className="text-slate-500">Technical:</span> {sc.technical.caption}{" "}
+                                <span className="text-amber-300">[{sc.technical.nodes.join(" → ")}]</span>
+                              </div>
+                            )}
+                            <div><span className="text-slate-500">Takeaway:</span> {sc.takeaway}</div>
+                          </div>
+                        </div>
+                      ))}
+                      <Link
+                        to="/learn/$courseId"
+                        params={{ courseId }}
+                        className="inline-block text-sky-300 underline hover:text-sky-200"
+                      >
+                        ▶ Open in learner to watch this slide
+                      </Link>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
