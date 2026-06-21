@@ -171,7 +171,6 @@ async function generateJson(prompt: string, ctx: LogCtx): Promise<{ text: string
       model: gateway("google/gemini-3-flash-preview"),
       prompt,
       temperature: 0.2,
-      experimental_output: { format: "json" },
     });
     await writeLog(ctx, modelUsed, "ok", null, Date.now() - started);
     return { text, modelUsed };
