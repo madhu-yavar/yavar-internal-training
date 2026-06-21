@@ -142,7 +142,7 @@ async function generateJson(prompt: string, ctx: LogCtx): Promise<{ text: string
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             contents: [{ role: "user", parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.6, maxOutputTokens: 16384, responseMimeType: "application/json" },
+            generationConfig: { temperature: 0.2, maxOutputTokens: 16384, responseMimeType: "application/json" },
           }),
         },
       );
@@ -164,7 +164,7 @@ async function generateJson(prompt: string, ctx: LogCtx): Promise<{ text: string
     const { text } = await generateText({
       model: gateway("google/gemini-3-flash-preview"),
       prompt,
-      temperature: 0.6,
+      temperature: 0.2,
     });
     await writeLog(ctx, modelUsed, "ok", null, Date.now() - started);
     return { text, modelUsed };
@@ -270,7 +270,7 @@ function repairBullets(raw: string[]): string[] {
     if (seen.has(key)) return false;
     seen.add(key);
     const wordCount = m.split(/\s+/).length;
-    return wordCount >= 3 || /[.!?]$/.test(m);
+    return wordCount >= 1 || /[.!?]$/.test(m);
   });
 }
 
