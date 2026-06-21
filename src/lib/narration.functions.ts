@@ -111,11 +111,56 @@ function sceneTemplateFrom(template: string): string {
 }
 
 function scenePromptFrom(basePrompt: string): string {
-  return `${basePrompt}${SCENE_OUTPUT_CONTRACT}`;
+  return `${basePrompt}${SCENE_OUTPUT_CONTRACT}${TOPIC_LOCK}`;
 }
 
 function renderTemplate(tpl: string, vars: Record<string, string | number>) {
   return tpl.replace(/\{\{(\w+)\}\}/g, (_, k) => String(vars[k] ?? ""));
+}
+
+/** Extract teachable bullets from slide body_md.
+ *  Drops headings, image refs, fenced code, blockquotes, tables.
+ *  Keeps list items and prose, split into sentences. */
+function bulletsFromBody(bodyMd: string | null | undefined): string[] {
+  const raw = (bodyMd ?? "").replace(/\r\n/g, "\n").replace(/```[\s\S]*?```/g, "");
+  const lines = raw.split("\n");
+  const out: string[] = [];
+  let para: string[] = [];
+  const flushPara = () => {
+    if (!para.length) return;
+    const text = para.join(" ").trim();
+    para = [];
+    if (!text) return;
+    for (const p of text.split(/(?<=[.!?])\s+(?=[A-Z0-9])/)) {
+      const t = p.trim();
+      if (t.length > 2) out.push(t);
+    }
+  };
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) { flushPara(); continue; }
+    if (/^#{1,6}\s/.test(line)) { flushPara(); continue; }
+    if (/^!\[.*?\]\(.*?\)\s*$/.test(line)) { flushPara(); continue; }
+    if (/^>\s?/.test(line)) { flushPara(); continue; }
+    if (/^[-*_]{3,}\s*$/.test(line)) { flushPara(); continue; }
+    if (/^\|.*\|$/.test(line)) { flushPara(); continue; }
+    const bullet = line.match(/^\s*(?:[-*•]|\d+\.)\s+(.*)$/);
+    if (bullet) {
+      flushPara();
+      const t = bullet[1].replace(/!\[.*?\]\(.*?\)/g, "").trim();
+      if (t.length > 1) out.push(t);
+      continue;
+    }
+    para.push(line);
+  }
+  flushPara();
+  const seen = new Set<string>();
+  return out.filter((b) => {
+    const k = b.toLowerCase();
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
 }
 
 type ModelUsed = "gemini-3.1-pro" | "gemini-flash-fallback";
