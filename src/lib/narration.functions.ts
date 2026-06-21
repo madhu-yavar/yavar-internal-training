@@ -211,62 +211,113 @@ async function writeLog(
   }
 }
 
+// Track which Gemini keys are temporarily exhausted (per server instance).
+const exhaustedUntil = new Map<string, number>();
+
+function liveGeminiKeys(): string[] {
+  const keys = [
+    process.env.GEMINI_API_KEY,
+    process.env.GEMINI_API_KEY_2,
+    process.env.GEMINI_API_KEY_3,
+  ].filter((k): k is string => !!k && k.length > 10);
+  const now = Date.now();
+  return keys.filter((k) => (exhaustedUntil.get(k) ?? 0) < now);
+}
+
+async function callGeminiPro(
+  key: string,
+  prompt: string,
+): Promise<{ ok: true; text: string } | { ok: false; status: number; detail: string; retryable: boolean }> {
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent?key=${key}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.2,
+            maxOutputTokens: 16384,
+            responseMimeType: "application/json",
+          },
+        }),
+      },
+    );
+    const raw = await res.text();
+    if (!res.ok) {
+      const retryable = res.status === 429 || res.status >= 500;
+      return { ok: false, status: res.status, detail: raw.slice(0, 300), retryable };
+    }
+    const json = JSON.parse(raw) as {
+      candidates?: Array<{
+        finishReason?: string;
+        content?: { parts?: Array<{ text?: string }> };
+      }>;
+    };
+    const candidate = json.candidates?.[0];
+    const text = candidate?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
+    if (candidate?.finishReason === "MAX_TOKENS")
+      return { ok: false, status: 0, detail: "truncated", retryable: false };
+    if (!text)
+      return {
+        ok: false,
+        status: 0,
+        detail: `no JSON (finish=${candidate?.finishReason ?? "unknown"})`,
+        retryable: false,
+      };
+    return { ok: true, text };
+  } catch (e) {
+    return { ok: false, status: 0, detail: (e as Error).message, retryable: true };
+  }
+}
+
 async function generateJson(
   prompt: string,
   ctx: LogCtx,
 ): Promise<{ text: string; modelUsed: ModelUsed }> {
   const started = Date.now();
-  const geminiKey = process.env.GEMINI_API_KEY;
-  const modelUsed: ModelUsed = geminiKey ? "gemini-3.1-pro" : "gemini-flash-fallback";
-  try {
-    if (geminiKey) {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent?key=${geminiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ role: "user", parts: [{ text: prompt }] }],
-            generationConfig: {
-              temperature: 0.2,
-              maxOutputTokens: 16384,
-              responseMimeType: "application/json",
-            },
-          }),
-        },
-      );
-      const raw = await res.text();
-      if (!res.ok) throw new Error(`Gemini 3.1 Pro failed (${res.status}): ${raw.slice(0, 300)}`);
-      const json = JSON.parse(raw) as {
-        candidates?: Array<{
-          finishReason?: string;
-          content?: { parts?: Array<{ text?: string }> };
-        }>;
-      };
-      const candidate = json.candidates?.[0];
-      const text = candidate?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
-      if (candidate?.finishReason === "MAX_TOKENS")
-        throw new Error("Gemini 3.1 Pro response was truncated.");
-      if (!text)
-        throw new Error(
-          `Gemini 3.1 Pro returned no JSON. Finish reason: ${candidate?.finishReason ?? "unknown"}`,
-        );
-      await writeLog(ctx, modelUsed, "ok", null, Date.now() - started);
-      return { text, modelUsed };
+  const keys = liveGeminiKeys();
+  let lastErr = "";
+
+  // Try every available Gemini Pro key, marking exhausted ones for a cool-down.
+  for (const key of keys) {
+    const r = await callGeminiPro(key, prompt);
+    if (r.ok) {
+      await writeLog(ctx, "gemini-3.1-pro", "ok", null, Date.now() - started);
+      return { text: r.text, modelUsed: "gemini-3.1-pro" };
     }
-    const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Error("Missing LOVABLE_API_KEY");
-    const gateway = createLovableAiGatewayProvider(key);
+    lastErr = `Gemini Pro ${r.status}: ${r.detail}`;
+    if (r.status === 429 || /RESOURCE_EXHAUSTED|quota/i.test(r.detail)) {
+      // park this key for 60s so the next slide skips it
+      exhaustedUntil.set(key, Date.now() + 60_000);
+    } else if (!r.retryable) {
+      break; // hard error (e.g. bad request) — fall through to Lovable
+    }
+  }
+
+  // Fallback: Lovable AI Gateway → Gemini Flash. Always available, no per-user quota.
+  try {
+    const lovableKey = process.env.LOVABLE_API_KEY;
+    if (!lovableKey) throw new Error("Missing LOVABLE_API_KEY");
+    const gateway = createLovableAiGatewayProvider(lovableKey);
     const { text } = await generateText({
       model: gateway("google/gemini-3-flash-preview"),
       prompt,
       temperature: 0.2,
     });
-    await writeLog(ctx, modelUsed, "ok", null, Date.now() - started);
-    return { text, modelUsed };
+    await writeLog(
+      ctx,
+      "gemini-flash-fallback",
+      "ok",
+      lastErr ? `pro→flash fallback: ${lastErr}` : null,
+      Date.now() - started,
+    );
+    return { text, modelUsed: "gemini-flash-fallback" };
   } catch (e) {
-    await writeLog(ctx, modelUsed, "error", (e as Error).message, Date.now() - started);
-    throw e;
+    const msg = `${lastErr ? lastErr + " | " : ""}Flash fallback: ${(e as Error).message}`;
+    await writeLog(ctx, "gemini-flash-fallback", "error", msg, Date.now() - started);
+    throw new Error(msg);
   }
 }
 
