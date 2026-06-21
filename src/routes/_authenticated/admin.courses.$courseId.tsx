@@ -399,6 +399,8 @@ function SlidesSection({
     attempts?: number;
     modelUsed?: string;
     error?: string;
+    illStatus?: "pending" | "running" | "ok" | "error" | "skipped";
+    illError?: string;
     scenes?: Array<{
       concept: string;
       intro: string;
@@ -411,9 +413,13 @@ function SlidesSection({
   };
   const [rangeResults, setRangeResults] = useState<RangeRow[] | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [fromIdx, setFromIdx] = useState<number>(1);
+  const [toIdx, setToIdx] = useState<number>(Math.min(10, Math.max(1, slides.length)));
+  const [alsoIllustrate, setAlsoIllustrate] = useState<boolean>(true);
   const runNarrations = useServerFn(generateNarrations);
   const runDescription = useServerFn(generateCourseDescription);
   const runRegenOne = useServerFn(regenerateSlideNarration);
+  const runIll = useServerFn(generateSlideIllustrations);
 
   async function regenerateFirstN(n: number) {
     setErr(null);
