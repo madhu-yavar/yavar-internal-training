@@ -46,6 +46,36 @@ with exactly {{slideCount}} entries in "slides", in the same order as the deck.
 DECK:
 {{deck}}`;
 
+const SCENE_OUTPUT_CONTRACT = `
+
+SCENE OUTPUT CONTRACT — ignore any older template instructions that ask for narrations/keywords only.
+Return exactly one JSON object with this shape and no markdown:
+{
+  "slides": [
+    {
+      "sourceSlideIdx": 0,
+      "scenes": [
+        {
+          "concept": "short concept name",
+          "intro": "one direct teaching sentence",
+          "analogy": { "caption": "human analogy", "nodes": ["start", "middle", "end"] },
+          "example": { "caption": "real-world example", "nodes": ["input", "action", "outcome"] },
+          "technical": { "caption": "technical pipeline", "nodes": ["input", "processing", "model", "output"] },
+          "takeaway": "one memorable sentence",
+          "narration": {
+            "intro": "25-45 spoken words",
+            "analogy": "25-45 spoken words",
+            "example": "25-45 spoken words",
+            "technical": "25-45 spoken words",
+            "takeaway": "25-45 spoken words"
+          },
+          "keywords": ["data", "model"]
+        }
+      ]
+    }
+  ]
+}`;
+
 type CourseCfg = {
   tone: string;
   audience: string;
@@ -89,6 +119,10 @@ function sceneTemplateFrom(template: string): string {
   // Older saved templates return { narrations, keywords }. The slide player now
   // needs structured learning scenes, so fall back to the scene contract here.
   return /"scenes"|\bscenes\b|technical pipeline/i.test(template) ? template : DEFAULT_TEMPLATE;
+}
+
+function scenePromptFrom(basePrompt: string): string {
+  return `${basePrompt}${SCENE_OUTPUT_CONTRACT}`;
 }
 
 function renderTemplate(tpl: string, vars: Record<string, string | number>) {
