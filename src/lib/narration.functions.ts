@@ -342,7 +342,7 @@ async function generateScenesForSingleSlide(opts: {
 }): Promise<{ scenes: LearningScene[]; modelUsed: ModelUsed; attempts: number }> {
   const bullets = repairBullets(opts.slide.bullets);
   const deckOutline = `Slide 1: ${opts.slide.title}\n${bullets.map((b) => `  - ${b}`).join("\n")}`;
-  const basePrompt = renderTemplate(opts.template, {
+  const basePrompt = scenePromptFrom(renderTemplate(opts.template, {
     title: opts.courseTitle,
     courseTitle: opts.courseTitle,
     tone: opts.cfg.tone,
@@ -350,7 +350,7 @@ async function generateScenesForSingleSlide(opts: {
     depth: opts.cfg.tech_depth,
     slideCount: 1,
     deck: deckOutline,
-  });
+  }));
   const withHint = opts.hint?.trim()
     ? `${basePrompt}\n\nEXTRA INSTRUCTION FOR THIS SLIDE: ${opts.hint.trim()}`
     : basePrompt;
