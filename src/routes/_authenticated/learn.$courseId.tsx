@@ -339,90 +339,192 @@ function CoursePlayer() {
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-7xl gap-6 px-4 py-5 sm:px-6 lg:grid-cols-[1fr_310px]">
-        <section>
-          <div key={unit.key} className={`relative min-h-[460px] overflow-hidden rounded-2xl border bg-gradient-to-br ${ACCENT_BG[accent]} p-4 shadow-2xl animate-fade-in sm:p-6`}>
-            <div className="absolute left-0 top-0 h-1 bg-amber-400 transition-all" style={{ width: `${((unitIdx + 1) / playUnits.length) * 100}%` }} />
-            <div className="flex items-center justify-between gap-3">
-              <AIAvatar speaking={speaking} accent={accent} />
-              <div className="text-right text-[10px] uppercase tracking-[0.25em] text-amber-200/80">
-                Scene {unitIdx + 1} / {playUnits.length}
+      <main className="relative h-[calc(100vh-57px)] w-full overflow-hidden">
+        <style>{`@keyframes slideFade{from{opacity:0;transform:scale(.99)}to{opacity:1;transform:none}}`}</style>
+        <div className="grid h-full w-full grid-cols-1 lg:grid-cols-[auto_minmax(0,1fr)_minmax(360px,440px)]">
+          {/* LEFT: collapsible scenes panel */}
+          <aside
+            className={`hidden lg:flex h-full flex-col border-r border-white/10 bg-slate-900/60 transition-[width] duration-300 ${navOpen ? "w-72" : "w-12"}`}
+          >
+            <div className="flex items-center justify-between border-b border-white/10 px-2 py-2">
+              {navOpen && (
+                <div className="px-1 text-[10px] uppercase tracking-[0.2em] text-amber-400">
+                  Scenes · {playUnits.length}
+                </div>
+              )}
+              <button
+                onClick={() => setNavOpen((v) => !v)}
+                title={navOpen ? "Collapse" : "Expand"}
+                className="grid h-8 w-8 place-items-center rounded-md border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
+              >
+                {navOpen ? "‹" : "›"}
+              </button>
+            </div>
+            <ol className="flex-1 space-y-1 overflow-y-auto p-2">
+              {playUnits.map((u, i) => {
+                const active = i === unitIdx;
+                return (
+                  <li key={u.key}>
+                    <button
+                      onClick={() => setUnitIdx(i)}
+                      title={u.scene.concept}
+                      className={`flex w-full items-start gap-2 rounded-md p-2 text-left text-xs transition ${active ? "bg-amber-500/15 ring-1 ring-amber-500/40" : "hover:bg-white/5"}`}
+                    >
+                      <span className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-semibold ${active ? "bg-amber-500 text-slate-900" : "bg-white/10 text-slate-300"}`}>
+                        {i + 1}
+                      </span>
+                      {navOpen && (
+                        <span className="min-w-0">
+                          <span className="line-clamp-2 font-medium text-slate-100">{u.scene.concept}</span>
+                          {u.scenesInSlide > 1 && (
+                            <span className="block text-[10px] text-slate-500">from "{u.sourceSlide.title}"</span>
+                          )}
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
+          </aside>
+
+          {/* CENTER: slide deck */}
+          <section className="relative flex h-[44vh] flex-col bg-slate-950 lg:h-full">
+            <div className="absolute left-0 top-0 z-10 h-1 w-full bg-white/5">
+              <div
+                className="h-full bg-amber-400 transition-all"
+                style={{ width: `${((unitIdx + 1) / playUnits.length) * 100}%` }}
+              />
+            </div>
+            <div className="absolute right-3 top-3 z-10 rounded-md border border-white/10 bg-slate-900/70 px-2 py-1 text-[10px] uppercase tracking-[0.25em] text-amber-200/80 backdrop-blur">
+              Scene {unitIdx + 1} / {playUnits.length}
+            </div>
+            <div className="flex h-full items-center justify-center p-3 sm:p-6">
+              {slideImageUrl ? (
+                <img
+                  key={slideImageUrl}
+                  src={slideImageUrl}
+                  alt={unit.sourceSlide.title || unit.scene.concept}
+                  className="max-h-full max-w-full rounded-xl object-contain shadow-2xl ring-1 ring-white/10"
+                  style={{ animation: "slideFade .4s ease-out both" }}
+                />
+              ) : (
+                <div className={`flex h-full w-full items-center justify-center rounded-xl border bg-gradient-to-br ${ACCENT_BG[accent]} p-8 text-center`}>
+                  <div>
+                    <div className="text-[10px] uppercase tracking-[0.3em] text-amber-300">Slide</div>
+                    <h3 className="mt-2 text-2xl font-bold text-slate-50">{unit.sourceSlide.title}</h3>
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* RIGHT: narration column */}
+          <section className="flex h-[56vh] min-h-0 flex-col border-t border-white/10 bg-slate-900/40 lg:h-full lg:border-l lg:border-t-0">
+            <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/10 px-4 py-2">
+              <div className="flex min-w-0 items-center gap-2">
+                <AIAvatar speaking={speaking} accent={accent} />
+                <div className="min-w-0">
+                  <div className="text-[10px] uppercase tracking-[0.25em] text-amber-300">
+                    {speaking ? "Now speaking" : phaseIdx >= phases.length ? "Scene complete" : "Ready"}
+                  </div>
+                  <div className="truncate text-xs text-slate-400">{unit.sourceSlide.title}</div>
+                </div>
               </div>
             </div>
 
-            <div className="mt-6">
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5">
               <LearningScene
                 scene={unit.scene}
                 phase={currentPhase}
                 speaking={speaking}
                 accent={accent}
                 illustrationUrl={illustrationUrl}
-                slideImageUrl={slideImageUrl}
+                slideImageUrl={null}
                 sceneNumber={unit.sceneIndexInSlide + 1}
                 totalScenes={unit.scenesInSlide}
                 sourceSlideTitle={unit.sourceSlide.title}
               />
-            </div>
-          </div>
 
-          <div className="mt-4 rounded-xl border border-white/10 bg-slate-900/60 p-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="min-w-0">
-                <div className="text-[10px] uppercase tracking-[0.2em] text-amber-400">{speaking ? "Now speaking" : phaseIdx >= phases.length ? "Scene complete" : "Ready"}</div>
-                <p className="mt-2 text-[15px] leading-relaxed text-slate-100" key={`${unitIdx}-${phaseIdx}`}>{currentLine}</p>
+              {unitIdx === playUnits.length - 1 && (
+                <div className="mt-6 rounded-2xl border border-emerald-400/40 bg-gradient-to-br from-emerald-500/15 to-emerald-500/5 p-5 text-center">
+                  <div className="text-[10px] uppercase tracking-[0.25em] text-emerald-300">End of material</div>
+                  <h3 className="mt-1 text-lg font-bold text-emerald-100">Ready for the quiz?</h3>
+                  <p className="mt-1 text-xs text-emerald-200/80">{quiz.length} questions attached.</p>
+                  <button
+                    onClick={() => setQuizOpen(true)}
+                    disabled={quiz.length === 0}
+                    className="mt-3 rounded-lg bg-emerald-500 px-5 py-2 text-sm font-semibold text-slate-900 hover:bg-emerald-400 disabled:opacity-40"
+                  >
+                    🎓 Start Quiz
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Bottom dock — controls never reflow */}
+            <div className="shrink-0 border-t border-white/10 bg-slate-950/80 px-4 py-3 backdrop-blur">
+              <p
+                key={`${unitIdx}-${phaseIdx}`}
+                className="mb-3 line-clamp-3 text-[13px] leading-relaxed text-slate-100"
+              >
+                {currentLine}
+              </p>
+              <div className="h-1 w-full overflow-hidden rounded-full bg-white/5">
+                <div
+                  className="h-full bg-amber-400 transition-all duration-500"
+                  style={{ width: `${(Math.min(phases.length, phaseIdx + 1) / Math.max(1, phases.length)) * 100}%` }}
+                />
               </div>
-              <div className="flex shrink-0 flex-wrap gap-2">
-                <button onClick={togglePlay} className="rounded-md border border-amber-400/40 bg-amber-500/15 px-3 py-1.5 text-xs font-semibold text-amber-100 hover:bg-amber-500/25">
-                  {playing ? "⏸ Pause" : "▶ Play voice-over"}
-                </button>
-                <button
-                  onClick={() => {
-                    stopAll();
-                    setPlaying(false);
-                    setPhaseIdx(phases.length);
-                  }}
-                  className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs hover:bg-white/10"
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex gap-1.5">
+                  <button
+                    onClick={() => setUnitIdx((i) => Math.max(0, i - 1))}
+                    disabled={unitIdx === 0}
+                    className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs disabled:opacity-30 hover:bg-white/10"
+                  >
+                    ←
+                  </button>
+                  <button
+                    onClick={togglePlay}
+                    className="rounded-md border border-amber-400/40 bg-amber-500/15 px-3 py-1.5 text-xs font-semibold text-amber-100 hover:bg-amber-500/25"
+                  >
+                    {playing ? "⏸ Pause" : "▶ Play"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      stopAll();
+                      setPlaying(false);
+                      setPhaseIdx(phases.length);
+                    }}
+                    className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs hover:bg-white/10"
+                  >
+                    Reveal
+                  </button>
+                  <button
+                    onClick={() => setUnitIdx((i) => Math.min(playUnits.length - 1, i + 1))}
+                    disabled={unitIdx === playUnits.length - 1}
+                    className="rounded-md bg-amber-500 px-3 py-1.5 text-xs font-semibold text-slate-900 disabled:opacity-30 hover:bg-amber-400"
+                  >
+                    →
+                  </button>
+                </div>
+                {/* Mobile scene picker */}
+                <select
+                  value={unitIdx}
+                  onChange={(e) => setUnitIdx(Number(e.target.value))}
+                  className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-200 lg:hidden"
                 >
-                  Reveal all
-                </button>
+                  {playUnits.map((u, i) => (
+                    <option key={u.key} value={i} className="bg-slate-900">
+                      {i + 1}. {u.scene.concept}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
-            <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-white/5">
-              <div className="h-full bg-amber-400 transition-all duration-500" style={{ width: `${(Math.min(phases.length, phaseIdx + 1) / Math.max(1, phases.length)) * 100}%` }} />
-            </div>
-          </div>
-
-          <div className="mt-4 flex items-center justify-between gap-2">
-            <button onClick={() => setUnitIdx((i) => Math.max(0, i - 1))} disabled={unitIdx === 0} className="rounded-md border border-white/10 bg-white/5 px-4 py-2 text-sm disabled:opacity-30 hover:bg-white/10">← Previous</button>
-            <button onClick={() => setUnitIdx((i) => Math.min(playUnits.length - 1, i + 1))} disabled={unitIdx === playUnits.length - 1} className="rounded-md bg-amber-500 px-4 py-2 text-sm font-semibold text-slate-900 disabled:opacity-30 hover:bg-amber-400">Next →</button>
-          </div>
-
-          {unitIdx === playUnits.length - 1 && (
-            <div className="mt-6 rounded-2xl border border-emerald-400/40 bg-gradient-to-br from-emerald-500/15 to-emerald-500/5 p-6 text-center">
-              <div className="text-[10px] uppercase tracking-[0.25em] text-emerald-300">End of material</div>
-              <h3 className="mt-1 text-xl font-bold text-emerald-100">Ready for the quiz?</h3>
-              <p className="mt-1 text-sm text-emerald-200/80">{quiz.length} questions are attached to this course.</p>
-              <button onClick={() => setQuizOpen(true)} disabled={quiz.length === 0} className="mt-4 rounded-lg bg-emerald-500 px-5 py-2 text-sm font-semibold text-slate-900 hover:bg-emerald-400 disabled:opacity-40">🎓 Start Quiz</button>
-            </div>
-          )}
-        </section>
-
-        <aside className="h-fit rounded-xl border border-white/10 bg-slate-900/60 p-3 lg:sticky lg:top-24">
-          <div className="mb-2 px-1 text-[10px] uppercase tracking-[0.2em] text-amber-400">Scenes ({playUnits.length})</div>
-          <ol className="max-h-[70vh] space-y-1 overflow-y-auto pr-1">
-            {playUnits.map((u, i) => (
-              <li key={u.key}>
-                <button onClick={() => setUnitIdx(i)} className={`flex w-full items-start gap-2 rounded-md p-2 text-left text-xs transition ${i === unitIdx ? "bg-amber-500/15 ring-1 ring-amber-500/40" : "hover:bg-white/5"}`}>
-                  <span className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-semibold ${i === unitIdx ? "bg-amber-500 text-slate-900" : "bg-white/10 text-slate-300"}`}>{i + 1}</span>
-                  <span className="min-w-0">
-                    <span className="line-clamp-1 font-medium text-slate-100">{u.scene.concept}</span>
-                    {u.scenesInSlide > 1 && <span className="block text-[10px] text-slate-500">from "{u.sourceSlide.title}"</span>}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ol>
-        </aside>
+          </section>
+        </div>
       </main>
       {quizOpen && <CourseQuiz quiz={quiz} courseTitle={course.title} courseId={courseId} userId={user?.id ?? null} onClose={() => setQuizOpen(false)} />}
       {user?.id && (
