@@ -60,7 +60,7 @@ const ACCENT_SOLID: Record<string, string> = {
   violet: "bg-violet-400 text-white",
 };
 
-export function LearningScene({ slideIdx, title, bullets, revealed, speaking, currentLine, accent }: Props) {
+export function LearningScene({ slideIdx, title, bullets, revealed, speaking, currentLine, accent, illustrationUrl, iconKeywords }: Props) {
   const mode = useMemo<"hero" | "flow" | "grid" | "spotlight" | "takeaway">(() => {
     if (bullets.length === 0) return "hero";
     if (bullets.length === 1) return "spotlight";
@@ -73,10 +73,19 @@ export function LearningScene({ slideIdx, title, bullets, revealed, speaking, cu
   const ringAccent = ACCENT_RING[accent] ?? "ring-amber-400/40 bg-amber-500/10";
   const solidAccent = ACCENT_SOLID[accent] ?? "bg-amber-400 text-slate-900";
 
+  const illustration = illustrationUrl ? (
+    <img
+      src={illustrationUrl}
+      alt=""
+      className="mx-auto mb-4 max-h-48 w-auto rounded-2xl border border-white/10 bg-white/5 object-contain"
+    />
+  ) : null;
+
   if (bullets.length === 0) {
     return (
       <div className="flex min-h-[280px] flex-col items-center justify-center text-center">
         <div className={`text-[10px] uppercase tracking-[0.3em] ${textAccent}`}>{label}</div>
+        {illustration}
         <h3 className="mt-3 max-w-2xl text-3xl font-bold leading-tight sm:text-4xl">{title}</h3>
         <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-300">{currentLine}</p>
       </div>
