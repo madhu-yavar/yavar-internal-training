@@ -301,7 +301,71 @@ function Field({ label, children, className = "" }: { label: string; children: R
   );
 }
 
-/* ---------- Slides (deck-driven) ---------- */
+/* ---------- Narration settings (tone / depth / audience / override) ---------- */
+const TONES = ["conversational", "formal", "energetic", "socratic"];
+function NarrationSettingsSection({ course, onSave }: { course: Course; onSave: (p: Partial<Course>) => Promise<void> }) {
+  const [tone, setTone] = useState(course.tone ?? "conversational");
+  const [depth, setDepth] = useState<number>(course.tech_depth ?? 3);
+  const [audience, setAudience] = useState(course.audience ?? "business professionals");
+  const [override, setOverride] = useState(course.prompt_override ?? "");
+
+  useEffect(() => {
+    setTone(course.tone ?? "conversational");
+    setDepth(course.tech_depth ?? 3);
+    setAudience(course.audience ?? "business professionals");
+    setOverride(course.prompt_override ?? "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [course.id]);
+
+  return (
+    <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+      <h2 className="text-base font-semibold">Narration settings</h2>
+      <p className="mt-1 text-xs text-slate-500">
+        These get merged into the global prompt template when the AI writes voice-over for this course.
+        Edit the master template in <Link to="/admin/settings" className="text-amber-300 underline">Admin → Settings</Link>.
+      </p>
+      <div className="mt-4 grid gap-4 sm:grid-cols-3">
+        <Field label="Tone">
+          <select
+            value={tone}
+            onChange={(e) => { setTone(e.target.value); onSave({ tone: e.target.value }); }}
+            className="input"
+          >
+            {TONES.map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </Field>
+        <Field label={`Technical depth (${depth}/5)`}>
+          <input
+            type="range" min={1} max={5} step={1} value={depth}
+            onChange={(e) => setDepth(parseInt(e.target.value))}
+            onMouseUp={() => depth !== (course.tech_depth ?? 3) && onSave({ tech_depth: depth })}
+            onTouchEnd={() => depth !== (course.tech_depth ?? 3) && onSave({ tech_depth: depth })}
+            className="w-full"
+          />
+        </Field>
+        <Field label="Audience">
+          <input
+            value={audience}
+            onChange={(e) => setAudience(e.target.value)}
+            onBlur={() => audience !== (course.audience ?? "") && onSave({ audience })}
+            className="input"
+          />
+        </Field>
+        <Field label="Per-course prompt override (optional, overrides global template)" className="sm:col-span-3">
+          <textarea
+            value={override}
+            onChange={(e) => setOverride(e.target.value)}
+            onBlur={() => override !== (course.prompt_override ?? "") && onSave({ prompt_override: override || null })}
+            rows={5}
+            placeholder="Leave empty to use the global template. Use {{title}} {{tone}} {{audience}} {{depth}} {{deck}} {{slideCount}}."
+            className="input font-mono text-xs"
+          />
+        </Field>
+      </div>
+    </section>
+  );
+}
+
 function SlidesSection({
   courseId,
   courseTitle,
