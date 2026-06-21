@@ -77,41 +77,87 @@ function renderTemplate(tpl: string, vars: Record<string, string | number>) {
 
 type ModelUsed = "gemini-3.1-pro" | "gemini-flash-fallback";
 
-async function generateJson(prompt: string): Promise<{ text: string; modelUsed: ModelUsed }> {
-  const geminiKey = process.env.GEMINI_API_KEY;
-  if (geminiKey) {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent?key=${geminiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.55, maxOutputTokens: 8192, responseMimeType: "application/json" },
-        }),
-      },
-    );
-    const raw = await res.text();
-    if (!res.ok) throw new Error(`Gemini 3.1 Pro failed (${res.status}): ${raw.slice(0, 300)}`);
-    const json = JSON.parse(raw) as {
-      candidates?: Array<{ finishReason?: string; content?: { parts?: Array<{ text?: string }> } }>;
-      usageMetadata?: unknown;
-    };
-    const candidate = json.candidates?.[0];
-    const text = candidate?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
-    if (candidate?.finishReason === "MAX_TOKENS") throw new Error("Gemini 3.1 Pro response was truncated. Reduce deck size or regenerate fewer slides.");
-    if (!text) throw new Error(`Gemini 3.1 Pro returned no JSON. Finish reason: ${candidate?.finishReason ?? "unknown"}`);
-    return { text, modelUsed: "gemini-3.1-pro" };
+const MODEL_LABEL: Record<ModelUsed, { provider: string; model: string }> = {
+  "gemini-3.1-pro": { provider: "Google (admin key)", model: "gemini-3.1-pro-preview" },
+  "gemini-flash-fallback": { provider: "Lovable AI Gateway", model: "google/gemini-3-flash-preview" },
+};
+
+type LogCtx = {
+  userId?: string;
+  courseId?: string | null;
+  kind: string;
+  slideCount?: number;
+};
+
+async function writeLog(
+  ctx: LogCtx,
+  modelUsed: ModelUsed,
+  status: "ok" | "error",
+  detail: string | null,
+  durationMs: number,
+) {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const meta = MODEL_LABEL[modelUsed];
+    await supabaseAdmin.from("generation_logs").insert({
+      user_id: ctx.userId ?? null,
+      course_id: ctx.courseId ?? null,
+      kind: ctx.kind,
+      model: meta.model,
+      provider: meta.provider,
+      status,
+      detail: detail?.slice(0, 500) ?? null,
+      slide_count: ctx.slideCount ?? null,
+      duration_ms: durationMs,
+    });
+  } catch {
+    /* logging must never break generation */
   }
-  const key = process.env.LOVABLE_API_KEY;
-  if (!key) throw new Error("Missing LOVABLE_API_KEY");
-  const gateway = createLovableAiGatewayProvider(key);
-  const { text } = await generateText({
-    model: gateway("google/gemini-3-flash-preview"),
-    prompt,
-    temperature: 0.6,
-  });
-  return { text, modelUsed: "gemini-flash-fallback" };
+}
+
+async function generateJson(prompt: string, ctx: LogCtx): Promise<{ text: string; modelUsed: ModelUsed }> {
+  const started = Date.now();
+  const geminiKey = process.env.GEMINI_API_KEY;
+  const modelUsed: ModelUsed = geminiKey ? "gemini-3.1-pro" : "gemini-flash-fallback";
+  try {
+    if (geminiKey) {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent?key=${geminiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.55, maxOutputTokens: 8192, responseMimeType: "application/json" },
+          }),
+        },
+      );
+      const raw = await res.text();
+      if (!res.ok) throw new Error(`Gemini 3.1 Pro failed (${res.status}): ${raw.slice(0, 300)}`);
+      const json = JSON.parse(raw) as {
+        candidates?: Array<{ finishReason?: string; content?: { parts?: Array<{ text?: string }> } }>;
+      };
+      const candidate = json.candidates?.[0];
+      const text = candidate?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
+      if (candidate?.finishReason === "MAX_TOKENS") throw new Error("Gemini 3.1 Pro response was truncated.");
+      if (!text) throw new Error(`Gemini 3.1 Pro returned no JSON. Finish reason: ${candidate?.finishReason ?? "unknown"}`);
+      await writeLog(ctx, modelUsed, "ok", null, Date.now() - started);
+      return { text, modelUsed };
+    }
+    const key = process.env.LOVABLE_API_KEY;
+    if (!key) throw new Error("Missing LOVABLE_API_KEY");
+    const gateway = createLovableAiGatewayProvider(key);
+    const { text } = await generateText({
+      model: gateway("google/gemini-3-flash-preview"),
+      prompt,
+      temperature: 0.6,
+    });
+    await writeLog(ctx, modelUsed, "ok", null, Date.now() - started);
+    return { text, modelUsed };
+  } catch (e) {
+    await writeLog(ctx, modelUsed, "error", (e as Error).message, Date.now() - started);
+    throw e;
+  }
 }
 
 function extractJson<T>(text: string): T {
