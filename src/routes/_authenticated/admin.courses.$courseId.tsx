@@ -1406,6 +1406,46 @@ function GenerateSection({
           </ul>
           {lastModel && <div className="mt-2 text-xs text-amber-300">Narration model used: {lastModel}</div>}
           {status && <div className="mt-3 text-xs text-emerald-300">{status}</div>}
+          {progress && (
+            <div className="mt-3 w-full max-w-md">
+              <div className="mb-1 flex justify-between text-[11px] text-amber-200">
+                <span>{busy ?? "Working…"}</span>
+                <span>{progress.done}/{progress.total}</span>
+              </div>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
+                <div
+                  className="h-full bg-amber-500 transition-all"
+                  style={{ width: `${(progress.done / Math.max(1, progress.total)) * 100}%` }}
+                />
+              </div>
+            </div>
+          )}
+          {perSlide.length > 0 && (
+            <div className="mt-3 max-h-64 overflow-y-auto rounded-lg border border-slate-800 bg-slate-950/60 p-2 text-xs">
+              <div className="mb-1 font-semibold text-slate-300">
+                Per-slide progress ({perSlide.filter((p) => p.state === "ok").length} ok ·{" "}
+                {perSlide.filter((p) => p.state === "error").length} failed ·{" "}
+                {perSlide.filter((p) => p.state === "running").length} running ·{" "}
+                {perSlide.filter((p) => p.state === "pending").length} pending)
+              </div>
+              <ul className="space-y-0.5">
+                {perSlide.map((r) => (
+                  <li key={r.idx} className="flex items-center gap-2">
+                    <span className="w-8 text-slate-500">#{r.idx + 1}</span>
+                    <span className="flex-1 truncate text-slate-300">{r.title}</span>
+                    {r.state === "pending" && <span className="text-slate-500">… queued</span>}
+                    {r.state === "running" && <span className="text-amber-300">⟳ generating…</span>}
+                    {r.state === "ok" && (
+                      <span className="text-emerald-300">✓ {r.sceneCount ?? 0} scenes</span>
+                    )}
+                    {r.state === "error" && (
+                      <span className="text-red-300" title={r.error}>✗ failed</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
         <div className="flex flex-col items-end gap-2">
           <button
