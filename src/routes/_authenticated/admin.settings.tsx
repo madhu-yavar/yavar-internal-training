@@ -74,7 +74,7 @@ function AdminSettings() {
         <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
           <h2 className="text-base font-semibold">Generation model</h2>
           <p className="mt-1 text-xs text-slate-400">
-            When a Google Gemini API key is set, narrations are generated with <strong>Gemini 3 Pro Preview</strong> using your own key.
+            When a Google Gemini API key is set, narrations are generated with <strong>Gemini 3.1 Pro Preview</strong> using your own key.
             Otherwise we fall back to Lovable's Gemini Flash gateway.
           </p>
           <div className="mt-4 flex items-center gap-3">
@@ -83,7 +83,7 @@ function AdminSettings() {
                 hasGeminiKey ? "bg-emerald-500/15 text-emerald-300" : "bg-slate-700/60 text-slate-300"
               }`}
             >
-              {hasGeminiKey ? "✓ Gemini 3 Pro active (your key)" : "Using Lovable Gemini Flash (fallback)"}
+              {hasGeminiKey ? "✓ Gemini 3.1 Pro active (your key)" : "Using Lovable Gemini Flash (fallback)"}
             </span>
           </div>
           <p className="mt-3 text-xs text-slate-500">
