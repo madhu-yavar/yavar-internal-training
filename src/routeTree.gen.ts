@@ -14,6 +14,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiTtsRouteImport } from './routes/api/tts'
 import { Route as ApiQuizRouteImport } from './routes/api/quiz'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedChangePasswordRouteImport } from './routes/_authenticated/change-password'
@@ -46,6 +47,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTtsRoute = ApiTtsRouteImport.update({
+  id: '/api/tts',
+  path: '/api/tts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiQuizRoute = ApiQuizRouteImport.update({
@@ -107,6 +113,7 @@ export interface FileRoutesByFullPath {
   '/change-password': typeof AuthenticatedChangePasswordRoute
   '/api/chat': typeof ApiChatRoute
   '/api/quiz': typeof ApiQuizRoute
+  '/api/tts': typeof ApiTtsRoute
   '/admin/requests': typeof AuthenticatedAdminRequestsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/learn/$courseId': typeof AuthenticatedLearnCourseIdRoute
@@ -122,6 +129,7 @@ export interface FileRoutesByTo {
   '/change-password': typeof AuthenticatedChangePasswordRoute
   '/api/chat': typeof ApiChatRoute
   '/api/quiz': typeof ApiQuizRoute
+  '/api/tts': typeof ApiTtsRoute
   '/admin/requests': typeof AuthenticatedAdminRequestsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/learn/$courseId': typeof AuthenticatedLearnCourseIdRoute
@@ -139,6 +147,7 @@ export interface FileRoutesById {
   '/_authenticated/change-password': typeof AuthenticatedChangePasswordRoute
   '/api/chat': typeof ApiChatRoute
   '/api/quiz': typeof ApiQuizRoute
+  '/api/tts': typeof ApiTtsRoute
   '/_authenticated/admin/requests': typeof AuthenticatedAdminRequestsRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/learn/$courseId': typeof AuthenticatedLearnCourseIdRoute
@@ -156,6 +165,7 @@ export interface FileRouteTypes {
     | '/change-password'
     | '/api/chat'
     | '/api/quiz'
+    | '/api/tts'
     | '/admin/requests'
     | '/admin/settings'
     | '/learn/$courseId'
@@ -171,6 +181,7 @@ export interface FileRouteTypes {
     | '/change-password'
     | '/api/chat'
     | '/api/quiz'
+    | '/api/tts'
     | '/admin/requests'
     | '/admin/settings'
     | '/learn/$courseId'
@@ -187,6 +198,7 @@ export interface FileRouteTypes {
     | '/_authenticated/change-password'
     | '/api/chat'
     | '/api/quiz'
+    | '/api/tts'
     | '/_authenticated/admin/requests'
     | '/_authenticated/admin/settings'
     | '/_authenticated/learn/$courseId'
@@ -203,6 +215,7 @@ export interface RootRouteChildren {
   TrainingRoute: typeof TrainingRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiQuizRoute: typeof ApiQuizRoute
+  ApiTtsRoute: typeof ApiTtsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -240,6 +253,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/tts': {
+      id: '/api/tts'
+      path: '/api/tts'
+      fullPath: '/api/tts'
+      preLoaderRoute: typeof ApiTtsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/quiz': {
@@ -340,6 +360,7 @@ const rootRouteChildren: RootRouteChildren = {
   TrainingRoute: TrainingRoute,
   ApiChatRoute: ApiChatRoute,
   ApiQuizRoute: ApiQuizRoute,
+  ApiTtsRoute: ApiTtsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
