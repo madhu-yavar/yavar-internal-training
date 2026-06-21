@@ -204,7 +204,7 @@ function CoursePlayer() {
   }, [speaking]);
 
   useEffect(() => {
-    playerRef.current?.setRate(speed);
+    playerRef.current?.setUrl(buildTtsUrl(speed, voice, "a"));
   }, [speed]);
 
   const togglePlay = () => {
@@ -214,7 +214,7 @@ function CoursePlayer() {
       setPlaying(false);
       return;
     }
-    const player = new LovableTtsPlayer();
+    const player = new WsTtsPlayer({ url: buildTtsUrl(speed, voice, "a") });
     player.prime();
     playerRef.current?.stop();
     playerRef.current = player;
