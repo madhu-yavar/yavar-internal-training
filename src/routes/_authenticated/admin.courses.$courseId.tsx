@@ -1337,9 +1337,23 @@ function GenerateSection({
       return;
     }
     try {
-      const workingSlides = [...slides].sort((a, b) => a.idx - b.idx);
-      setPerSlide(workingSlides.map((s) => ({ idx: s.idx, title: s.title, state: "pending" })));
+      const allSorted = [...slides].sort((a, b) => a.idx - b.idx);
+      // Resume: skip slides that already have narration generated
+      const workingSlides = allSorted.filter((s) => !s.narration_text || s.narration_text.trim().length < 4);
+      const skipped = allSorted.length - workingSlides.length;
+      setPerSlide([
+        ...allSorted
+          .filter((s) => s.narration_text && s.narration_text.trim().length >= 4)
+          .map((s) => ({ idx: s.idx, title: s.title, state: "ok" as const })),
+        ...workingSlides.map((s) => ({ idx: s.idx, title: s.title, state: "pending" as const })),
+      ]);
       setProgress({ done: 0, total: workingSlides.length });
+      if (workingSlides.length === 0) {
+        setStatus(`All ${allSorted.length} slides already generated. Nothing to do.`);
+        setBusy(null);
+        return;
+      }
+      if (skipped > 0) setStatus(`Resuming — skipping ${skipped} already-generated slides.`);
 
       let totalScenes = 0;
       let okCount = 0;
@@ -1348,19 +1362,19 @@ function GenerateSection({
       for (let i = 0; i < workingSlides.length; i++) {
         const s = workingSlides[i];
         setBusy(`Slide ${i + 1}/${workingSlides.length} — "${s.title}"…`);
-        setPerSlide((prev) => prev.map((r, j) => (j === i ? { ...r, state: "running" } : r)));
+        setPerSlide((prev) => prev.map((r) => (r.idx === s.idx ? { ...r, state: "running" } : r)));
         try {
           const res = await runRegenOne({ data: { slideId: s.id } });
           totalScenes += res.sceneCount ?? 0;
           okCount += 1;
           setLastModel(res.modelUsed === "gemini-3.1-pro" ? "Gemini 3.1 Pro" : "Gemini Flash fallback");
           setPerSlide((prev) =>
-            prev.map((r, j) => (j === i ? { ...r, state: "ok", sceneCount: res.sceneCount } : r)),
+            prev.map((r) => (r.idx === s.idx ? { ...r, state: "ok", sceneCount: res.sceneCount } : r)),
           );
         } catch (e) {
           errCount += 1;
           setPerSlide((prev) =>
-            prev.map((r, j) => (j === i ? { ...r, state: "error", error: (e as Error).message } : r)),
+            prev.map((r) => (r.idx === s.idx ? { ...r, state: "error", error: (e as Error).message } : r)),
           );
         }
         setProgress({ done: i + 1, total: workingSlides.length });
