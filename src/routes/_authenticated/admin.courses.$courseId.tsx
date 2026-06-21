@@ -416,7 +416,6 @@ function SlidesSection({
   const [fromIdx, setFromIdx] = useState<number>(1);
   const [toIdx, setToIdx] = useState<number>(Math.min(10, Math.max(1, slides.length)));
   const [alsoIllustrate, setAlsoIllustrate] = useState<boolean>(true);
-  const runNarrations = useServerFn(generateNarrations);
   const runDescription = useServerFn(generateCourseDescription);
   const runRegenOne = useServerFn(regenerateSlideNarration);
   const runIll = useServerFn(generateSlideIllustrations);
