@@ -6,7 +6,7 @@ import { useAuthCtx } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { COURSE_BUCKET, getSignedUrl } from "@/lib/storage";
 import { parseDeck, type ParsedSlide } from "@/lib/deckParser";
-import { generateCourseDescription, generateNarrations, regenerateSlideNarration, generateSlideIllustrations } from "@/lib/narration.functions";
+import { generateCourseDescription, generateNarrations, regenerateSlideNarration, generateSlideIllustrations, regenerateSlideRange } from "@/lib/narration.functions";
 import { stripGeneratedMaterial } from "@/lib/courseMaterial";
 
 export const Route = createFileRoute("/_authenticated/admin/courses/$courseId")({
