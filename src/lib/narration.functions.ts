@@ -85,6 +85,12 @@ async function loadGlobalTemplate(): Promise<string> {
   }
 }
 
+function sceneTemplateFrom(template: string): string {
+  // Older saved templates return { narrations, keywords }. The slide player now
+  // needs structured learning scenes, so fall back to the scene contract here.
+  return /"scenes"|\bscenes\b|technical pipeline/i.test(template) ? template : DEFAULT_TEMPLATE;
+}
+
 function renderTemplate(tpl: string, vars: Record<string, string | number>) {
   return tpl.replace(/\{\{(\w+)\}\}/g, (_, k) => String(vars[k] ?? ""));
 }
@@ -401,7 +407,7 @@ export const generateNarrations = createServerFn({ method: "POST" })
     });
     if (!isAdmin) throw new Error("Forbidden");
     const cfg = await loadCourseCfg(data.courseId);
-    const template = cfg.prompt_override?.trim() || (await loadGlobalTemplate());
+    const template = sceneTemplateFrom(cfg.prompt_override?.trim() || (await loadGlobalTemplate()));
 
     const slidesOut: SlideScenes[] = [];
     const narrations: string[] = [];
@@ -508,7 +514,7 @@ export const regenerateSlideNarration = createServerFn({ method: "POST" })
       .filter(Boolean);
 
     const cfg = await loadCourseCfg(slide.course_id as string);
-    const template = cfg.prompt_override?.trim() || (await loadGlobalTemplate());
+    const template = sceneTemplateFrom(cfg.prompt_override?.trim() || (await loadGlobalTemplate()));
     const hint = (data.hint ?? slide.generation_hint ?? "").trim() || undefined;
 
     if (data.hint !== undefined) {
@@ -585,7 +591,7 @@ export const regenerateSlideRange = createServerFn({ method: "POST" })
     if (error || !slides) throw new Error("Slides not found");
 
     const cfg = await loadCourseCfg(data.courseId);
-    const template = cfg.prompt_override?.trim() || (await loadGlobalTemplate());
+    const template = sceneTemplateFrom(cfg.prompt_override?.trim() || (await loadGlobalTemplate()));
     const results: SlideRangeResult[] = [];
 
     for (const slide of slides) {
