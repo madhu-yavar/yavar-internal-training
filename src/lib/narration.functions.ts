@@ -606,10 +606,7 @@ export const regenerateSlideNarration = createServerFn({ method: "POST" })
       .single();
 
     const cleanBody = stripScenes(slide.body_md as string | null);
-    const bullets = cleanBody
-      .split("\n")
-      .map((l) => l.replace(/^[-*]\s*/, "").trim())
-      .filter(Boolean);
+    const bullets = bulletsFromBody(cleanBody);
 
     const cfg = await loadCourseCfg(slide.course_id as string);
     const template = sceneTemplateFrom(cfg.prompt_override?.trim() || (await loadGlobalTemplate()));
