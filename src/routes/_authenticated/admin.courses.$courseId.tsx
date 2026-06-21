@@ -608,7 +608,8 @@ function SlideRow({
     setRegenBusy(true); setErr(null);
     try {
       const res = await runRegen({ data: { slideId: s.id, hint: hint || undefined } });
-      setModelBadge(res.modelUsed === "gemini-3.1-pro" ? "Gemini 3.1 Pro" : "Gemini Flash (fallback)");
+      const modelLabel = res.modelUsed === "gemini-3.1-pro" ? "Gemini 3.1 Pro" : "Gemini Flash (fallback)";
+      setModelBadge(`${res.sceneCount} scene${res.sceneCount === 1 ? "" : "s"} via ${modelLabel}`);
       await onChanged();
     } catch (e) {
       setErr((e as Error).message);
