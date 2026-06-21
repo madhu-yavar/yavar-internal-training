@@ -6,7 +6,6 @@ import { SLIDE_META } from "@/assets/training/slide-meta";
 import { AIAvatar } from "@/components/AIAvatar";
 import { TrainingChat } from "@/components/TrainingChat";
 import { TrainingQuiz } from "@/components/TrainingQuiz";
-import { LovableTtsPlayer } from "@/lib/lovableTts";
 import { WsTtsPlayer, buildTtsUrl } from "@/lib/wsTts";
 import { AmbientMusic } from "@/lib/ambientMusic";
 import { BrandFooter } from "@/components/BrandFooter";
@@ -92,12 +91,8 @@ function TrainingPage() {
 
   // Track which sentence is currently being narrated
   const cursorRef = useRef(0);
-  const voiceRef = useRef<SpeechSynthesisVoice | null>(null);
   const userStartedRef = useRef(false);
-  const [ttsSupported, setTtsSupported] = useState(true);
-  const [ttsSource, setTtsSource] = useState<"lovable" | "browser" | "ws">("ws");
   const [ttsVoice, setTtsVoice] = useState<string>("af_heart");
-  const lovablePlayerRef = useRef<LovableTtsPlayer | null>(null);
   const wsPlayerRef = useRef<WsTtsPlayer | null>(null);
   const cancelledRef = useRef(false);
   const idxRef = useRef(0);
@@ -106,37 +101,14 @@ function TrainingPage() {
   const [rate, setRate] = useState(1);
   const rateRef = useRef(1);
   const slideResetMountedRef = useRef(false);
-  useEffect(() => { rateRef.current = rate; lovablePlayerRef.current?.setRate(rate); }, [rate]);
+  useEffect(() => { rateRef.current = rate; wsPlayerRef.current?.setUrl(buildTtsUrl(rate, ttsVoice, "a")); }, [rate, ttsVoice]);
   useEffect(() => { idxRef.current = idx; }, [idx]);
-
-  // Pick a good English voice when available (browser fallback)
-  useEffect(() => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-      setTtsSupported(false);
-      return;
-    }
-    const pick = () => {
-      const voices = window.speechSynthesis.getVoices();
-      const preferred =
-        voices.find((v) => /en[-_]?(US|GB)/i.test(v.lang) && /female|samantha|jenny|aria|zira|google us english/i.test(v.name)) ||
-        voices.find((v) => /en[-_]?(US|GB)/i.test(v.lang)) ||
-        voices[0] ||
-        null;
-      voiceRef.current = preferred;
-    };
-    pick();
-    window.speechSynthesis.onvoiceschanged = pick;
-  }, []);
 
   const stopAll = () => {
     cancelledRef.current = true;
     // stop() keeps the AudioContext alive (prime/unlock survives) — only
     // dispose() on unmount or voice change.
-    lovablePlayerRef.current?.stop();
     wsPlayerRef.current?.stop();
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-    }
   };
 
 
