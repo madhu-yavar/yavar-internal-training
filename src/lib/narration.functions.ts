@@ -227,7 +227,11 @@ Return STRICT JSON: { "description": "..." }
 DECK:
 ${deckOutline}`;
 
-    const { text, modelUsed } = await generateJson(prompt);
+    const { text, modelUsed } = await generateJson(prompt, {
+      userId: context.userId,
+      kind: "description",
+      slideCount: data.slides.length,
+    });
     const parsed = extractJson<{ description?: string }>(text);
     const description = (parsed.description ?? "").trim();
     if (!description) throw new Error("AI did not return a description");
