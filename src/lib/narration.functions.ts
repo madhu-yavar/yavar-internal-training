@@ -3,6 +3,8 @@ import { z } from "zod";
 import { generateText } from "ai";
 import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { LearningScene, SlideScenes } from "@/lib/learningScenes";
+import { scenePhaseLines } from "@/lib/learningScenes";
 
 const SlideIn = z.object({
   title: z.string().default(""),
@@ -20,14 +22,26 @@ const DescriptionInput = z.object({
   slides: z.array(SlideIn).min(1).max(80),
 });
 
-const DEFAULT_TEMPLATE = `You are scripting voice-over narration for an interactive training course titled "{{courseTitle}}".
+const DEFAULT_TEMPLATE = `You are designing a teaching VIDEO for "{{courseTitle}}".
 Tone: {{tone}}. Audience: {{audience}}. Technical depth (1=simple, 5=expert): {{depth}}.
 
-Write a SHORT, conversational narration for EACH slide below. 40-70 words per slide. Speak directly to the learner ("you"). Paraphrase, add context, give a real-world hook. Never read bullets verbatim. No markdown, no slide numbers, no preamble.
+Think like a great YouTube educator. NEVER just read the bullets. Teach concepts using:
+INTRO -> ANALOGY -> REAL-WORLD EXAMPLE -> TECHNICAL EXPLANATION -> TAKEAWAY.
+ONE concept per scene. If a source slide contains multiple concepts (e.g. "Perception, Language, Prediction, Decision"), SPLIT it into multiple scenes — one per concept. Dense slides should have 2-4 scenes.
 
-Also extract 1-3 concrete keywords per slide (single words, lowercase nouns) that capture the visual concept.
+For EACH scene, return:
+- concept (1-3 word noun, e.g. "Perception")
+- intro: one sentence introducing the idea, addressing the learner as "you"
+- analogy: { caption, nodes[2-4] } — a simple human analogy as a left-to-right flow (e.g. ["Human Eye","Brain","Decision"])
+- example: { caption, nodes[2-4] } — a concrete real-world scenario as a flow (e.g. ["Traffic Camera","Detect Pedestrian","Warn Driver"])
+- technical: { caption, nodes[2-5] } — the under-the-hood pipeline (e.g. ["Image","Feature Extraction","Model","Classification"])
+- takeaway: one sentence the learner should remember
+- narration: { intro, analogy, example, technical, takeaway } — each 25-45 spoken words, conversational, paraphrased, addresses the learner as "you", never reads node labels verbatim
+- keywords: 1-3 single-word lowercase nouns for iconography
 
-Return STRICT JSON: { "narrations": ["...slide 1...", ...], "keywords": [["k1","k2"], ...] } with exactly {{slideCount}} entries in each array.
+Return STRICT JSON ONLY:
+{ "slides": [ { "sourceSlideIdx": 0, "scenes": [ { ... }, ... ] }, ... ] }
+with exactly {{slideCount}} entries in "slides", in the same order as the deck.
 
 DECK:
 {{deck}}`;
@@ -128,7 +142,7 @@ async function generateJson(prompt: string, ctx: LogCtx): Promise<{ text: string
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             contents: [{ role: "user", parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.55, maxOutputTokens: 8192, responseMimeType: "application/json" },
+            generationConfig: { temperature: 0.6, maxOutputTokens: 16384, responseMimeType: "application/json" },
           }),
         },
       );
@@ -166,6 +180,49 @@ function extractJson<T>(text: string): T {
   return JSON.parse(m[0]) as T;
 }
 
+function sceneNarrationToText(scene: LearningScene): string {
+  return scenePhaseLines(scene).map((p) => p.text).join(" ");
+}
+
+function normalizeScene(raw: unknown): LearningScene | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const concept = String(r.concept ?? r.title ?? "").trim();
+  const intro = String(r.intro ?? "").trim();
+  const takeaway = String(r.takeaway ?? "").trim();
+  if (!concept || !intro) return null;
+  const block = (b: unknown): { caption: string; nodes: string[] } | null => {
+    if (!b || typeof b !== "object") return null;
+    const bb = b as Record<string, unknown>;
+    const nodes = Array.isArray(bb.nodes)
+      ? bb.nodes.map((n) => String(n).trim()).filter(Boolean).slice(0, 5)
+      : [];
+    const caption = String(bb.caption ?? "").trim();
+    if (nodes.length < 2) return null;
+    return { caption: caption || "", nodes };
+  };
+  const narration = (r.narration ?? {}) as Record<string, unknown>;
+  const scene: LearningScene = {
+    concept,
+    intro,
+    analogy: block(r.analogy),
+    example: block(r.example),
+    technical: block(r.technical),
+    takeaway: takeaway || `Remember: ${concept} is the key idea here.`,
+    narration: {
+      intro: String(narration.intro ?? intro).trim(),
+      analogy: narration.analogy ? String(narration.analogy).trim() : undefined,
+      example: narration.example ? String(narration.example).trim() : undefined,
+      technical: narration.technical ? String(narration.technical).trim() : undefined,
+      takeaway: String(narration.takeaway ?? takeaway).trim(),
+    },
+    keywords: Array.isArray(r.keywords)
+      ? r.keywords.slice(0, 3).map((k) => String(k).toLowerCase())
+      : [],
+  };
+  return scene;
+}
+
 export const generateNarrations = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => Input.parse(d))
@@ -193,16 +250,39 @@ export const generateNarrations = createServerFn({ method: "POST" })
     const { text, modelUsed } = await generateJson(prompt, {
       userId: context.userId,
       courseId: data.courseId ?? null,
-      kind: "narrations",
+      kind: "scene-generation",
       slideCount: data.slides.length,
     });
-    const parsed = extractJson<{ narrations: string[]; keywords?: string[][] }>(text);
-    if (!Array.isArray(parsed.narrations)) throw new Error("Bad AI response shape");
-    const narrations = data.slides.map((_, i) => (parsed.narrations[i] ?? "").trim());
-    const keywords = data.slides.map((_, i) =>
-      Array.isArray(parsed.keywords?.[i]) ? parsed.keywords![i].slice(0, 3).map((k) => String(k).toLowerCase()) : [],
-    );
-    return { narrations, keywords, modelUsed };
+
+    type Raw = { slides?: Array<{ sourceSlideIdx?: number; scenes?: unknown[] }> };
+    const parsed = extractJson<Raw>(text);
+    const slidesOut: SlideScenes[] = data.slides.map((src, i) => {
+      const found = parsed.slides?.find((s) => Number(s?.sourceSlideIdx) === i) ?? parsed.slides?.[i];
+      const rawScenes = Array.isArray(found?.scenes) ? found!.scenes : [];
+      const scenes = rawScenes.map(normalizeScene).filter((s): s is LearningScene => !!s);
+      if (scenes.length === 0) {
+        // Synthesize a minimal single scene from the source bullets so the learner is never empty.
+        scenes.push({
+          concept: src.title.slice(0, 40) || `Concept ${i + 1}`,
+          intro: `Let's look at ${src.title || "this idea"}.`,
+          analogy: null,
+          example: src.bullets.length >= 2 ? { caption: "Example", nodes: src.bullets.slice(0, 4) } : null,
+          technical: null,
+          takeaway: src.bullets[0] ?? src.title,
+          narration: {
+            intro: `Let's look at ${src.title}. ${src.bullets[0] ?? ""}`.trim(),
+            takeaway: src.bullets[src.bullets.length - 1] ?? src.title,
+          },
+          keywords: [],
+        });
+      }
+      return { sourceSlideIdx: i, scenes };
+    });
+
+    const narrations = slidesOut.map((s) => s.scenes.map(sceneNarrationToText).join("  "));
+    const keywords = slidesOut.map((s) => Array.from(new Set(s.scenes.flatMap((sc) => sc.keywords ?? []))).slice(0, 3));
+
+    return { narrations, keywords, scenes: slidesOut, modelUsed };
   });
 
 export const generateCourseDescription = createServerFn({ method: "POST" })
@@ -238,7 +318,7 @@ ${deckOutline}`;
     return { description, modelUsed };
   });
 
-/* ---- Regenerate a single slide's narration with optional hint ---- */
+/* ---- Regenerate a single slide's scenes with optional hint ---- */
 const RegenInput = z.object({
   slideId: z.string(),
   hint: z.string().optional(),
@@ -255,6 +335,7 @@ export const regenerateSlideNarration = createServerFn({ method: "POST" })
     if (!isAdmin) throw new Error("Forbidden");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { stripScenes, embedScenes } = await import("@/lib/learningScenes");
     const { data: slide, error } = await supabaseAdmin
       .from("slides")
       .select("id, course_id, idx, title, body_md, generation_hint")
@@ -268,7 +349,8 @@ export const regenerateSlideNarration = createServerFn({ method: "POST" })
       .eq("id", slide.course_id)
       .single();
 
-    const bullets = String(slide.body_md ?? "")
+    const cleanBody = stripScenes(slide.body_md as string | null);
+    const bullets = cleanBody
       .split("\n")
       .map((l) => l.replace(/^[-*]\s*/, "").trim())
       .filter(Boolean);
@@ -289,7 +371,6 @@ export const regenerateSlideNarration = createServerFn({ method: "POST" })
     const hint = (data.hint ?? slide.generation_hint ?? "").trim();
     if (hint) prompt += `\n\nEXTRA INSTRUCTION FOR THIS SLIDE: ${hint}`;
 
-    // Save hint if provided
     if (data.hint !== undefined) {
       await supabaseAdmin.from("slides").update({ generation_hint: data.hint || null }).eq("id", data.slideId);
     }
@@ -297,22 +378,26 @@ export const regenerateSlideNarration = createServerFn({ method: "POST" })
     const { text, modelUsed } = await generateJson(prompt, {
       userId: context.userId,
       courseId: slide.course_id as string,
-      kind: "slide-regenerate",
+      kind: "scene-regenerate",
       slideCount: 1,
     });
-    const parsed = extractJson<{ narrations: string[]; keywords?: string[][] }>(text);
-    const narration = (parsed.narrations?.[0] ?? "").trim();
-    const keywords = Array.isArray(parsed.keywords?.[0])
-      ? parsed.keywords![0].slice(0, 3).map((k) => String(k).toLowerCase())
-      : [];
-    if (!narration) throw new Error("AI returned empty narration");
+
+    type Raw = { slides?: Array<{ scenes?: unknown[] }> };
+    const parsed = extractJson<Raw>(text);
+    const rawScenes = parsed.slides?.[0]?.scenes ?? [];
+    const scenes = rawScenes.map(normalizeScene).filter((s): s is LearningScene => !!s);
+    if (scenes.length === 0) throw new Error("AI returned no valid scenes");
+
+    const narration = scenes.map(sceneNarrationToText).join("  ");
+    const keywords = Array.from(new Set(scenes.flatMap((s) => s.keywords ?? []))).slice(0, 3);
+    const newBody = embedScenes(cleanBody, scenes);
 
     await supabaseAdmin
       .from("slides")
-      .update({ narration_text: narration, icon_keywords: keywords })
+      .update({ narration_text: narration, icon_keywords: keywords, body_md: newBody })
       .eq("id", data.slideId);
 
-    return { narration, keywords, modelUsed };
+    return { narration, keywords, scenes, sceneCount: scenes.length, modelUsed };
   });
 
 /* ---- Per-slide illustration generation (opt-in) ---- */
@@ -369,7 +454,6 @@ export const generateSlideIllustrations = createServerFn({ method: "POST" })
         const dataUrl = json.choices?.[0]?.message?.images?.[0]?.image_url?.url;
         if (!dataUrl) throw new Error("No image returned");
 
-        // dataUrl is like data:image/png;base64,XXXX
         const m = dataUrl.match(/^data:(image\/[^;]+);base64,(.+)$/);
         if (!m) throw new Error("Bad image data URL");
         const mime = m[1];
@@ -408,6 +492,7 @@ export const getAdminSettings = createServerFn({ method: "GET" })
     const hasGeminiKey = !!process.env.GEMINI_API_KEY;
     return {
       template: (data?.template as string) || DEFAULT_TEMPLATE,
+      defaultTemplate: DEFAULT_TEMPLATE,
       updatedAt: (data?.updated_at as string) || null,
       hasGeminiKey,
       narrationModel: hasGeminiKey ? MODEL_LABEL["gemini-3.1-pro"] : MODEL_LABEL["gemini-flash-fallback"],
