@@ -134,9 +134,12 @@ function CoursePlayer() {
   }, [generatedSegments, idx, slide]);
   const lines = useMemo(() => {
     if (!slide) return [];
-    return segments.length
-      ? segments.map((s) => s.text).filter(Boolean)
-      : narrationSentences(slide.narration_text || [slide.title, ...slideBullets(slide)].join(". "));
+    const generatedNarration = narrationSentences(slide.narration_text);
+    return generatedNarration.length
+      ? generatedNarration
+      : segments.length
+        ? segments.map((s) => s.text).filter(Boolean)
+        : narrationSentences([slide.title, ...slideBullets(slide)].join(". "));
   }, [segments, slide]);
   const bullets = useMemo(() => (slide ? slideBullets(slide).slice(0, 6) : []), [slide]);
   const currentLine = lines[Math.min(revealed, Math.max(0, lines.length - 1))] ?? slide?.title ?? "";
