@@ -61,7 +61,12 @@ type CourseCfg = {
 
 async function loadCourseCfg(courseId: string | undefined): Promise<CourseCfg> {
   if (!courseId) {
-    return { tone: "conversational", audience: "business professionals", tech_depth: 3, prompt_override: null };
+    return {
+      tone: "conversational",
+      audience: "business professionals",
+      tech_depth: 3,
+      prompt_override: null,
+    };
   }
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data } = await supabaseAdmin
@@ -109,7 +114,10 @@ type ModelUsed = "gemini-3.1-pro" | "gemini-flash-fallback";
 
 const MODEL_LABEL: Record<ModelUsed, { provider: string; model: string }> = {
   "gemini-3.1-pro": { provider: "Google (admin key)", model: "gemini-3.1-pro-preview" },
-  "gemini-flash-fallback": { provider: "Lovable AI Gateway", model: "google/gemini-3-flash-preview" },
+  "gemini-flash-fallback": {
+    provider: "Lovable AI Gateway",
+    model: "google/gemini-3-flash-preview",
+  },
 };
 
 type LogCtx = {
@@ -150,7 +158,10 @@ async function writeLog(
   }
 }
 
-async function generateJson(prompt: string, ctx: LogCtx): Promise<{ text: string; modelUsed: ModelUsed }> {
+async function generateJson(
+  prompt: string,
+  ctx: LogCtx,
+): Promise<{ text: string; modelUsed: ModelUsed }> {
   const started = Date.now();
   const geminiKey = process.env.GEMINI_API_KEY;
   const modelUsed: ModelUsed = geminiKey ? "gemini-3.1-pro" : "gemini-flash-fallback";
@@ -163,19 +174,30 @@ async function generateJson(prompt: string, ctx: LogCtx): Promise<{ text: string
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             contents: [{ role: "user", parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.2, maxOutputTokens: 16384, responseMimeType: "application/json" },
+            generationConfig: {
+              temperature: 0.2,
+              maxOutputTokens: 16384,
+              responseMimeType: "application/json",
+            },
           }),
         },
       );
       const raw = await res.text();
       if (!res.ok) throw new Error(`Gemini 3.1 Pro failed (${res.status}): ${raw.slice(0, 300)}`);
       const json = JSON.parse(raw) as {
-        candidates?: Array<{ finishReason?: string; content?: { parts?: Array<{ text?: string }> } }>;
+        candidates?: Array<{
+          finishReason?: string;
+          content?: { parts?: Array<{ text?: string }> };
+        }>;
       };
       const candidate = json.candidates?.[0];
       const text = candidate?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
-      if (candidate?.finishReason === "MAX_TOKENS") throw new Error("Gemini 3.1 Pro response was truncated.");
-      if (!text) throw new Error(`Gemini 3.1 Pro returned no JSON. Finish reason: ${candidate?.finishReason ?? "unknown"}`);
+      if (candidate?.finishReason === "MAX_TOKENS")
+        throw new Error("Gemini 3.1 Pro response was truncated.");
+      if (!text)
+        throw new Error(
+          `Gemini 3.1 Pro returned no JSON. Finish reason: ${candidate?.finishReason ?? "unknown"}`,
+        );
       await writeLog(ctx, modelUsed, "ok", null, Date.now() - started);
       return { text, modelUsed };
     }
@@ -214,7 +236,10 @@ function safeParseJson(text: string): unknown {
 
 function extractJson<T>(text: string): T {
   // Strip markdown fences
-  let cleaned = text.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+  let cleaned = text
+    .replace(/```json\s*/gi, "")
+    .replace(/```\s*/g, "")
+    .trim();
 
   // Find first { or [ and the first balanced matching close. This ignores
   // accidental trailing prose or a second JSON object after the valid answer.
@@ -249,7 +274,9 @@ function extractJson<T>(text: string): T {
 }
 
 function sceneNarrationToText(scene: LearningScene): string {
-  return scenePhaseLines(scene).map((p) => p.text).join(" ");
+  return scenePhaseLines(scene)
+    .map((p) => p.text)
+    .join(" ");
 }
 
 /** Repair OCR-fragmented bullets: merge lines that don't end with sentence
@@ -285,7 +312,10 @@ function diagramBlock(b: unknown): { caption: string; nodes: string[] } | null {
   if (!b || typeof b !== "object") return null;
   const bb = b as Record<string, unknown>;
   const nodes = Array.isArray(bb.nodes)
-    ? bb.nodes.map((n) => String(n).trim()).filter(Boolean).slice(0, 5)
+    ? bb.nodes
+        .map((n) => String(n).trim())
+        .filter(Boolean)
+        .slice(0, 5)
     : [];
   const caption = String(bb.caption ?? "").trim();
   if (nodes.length < 2) return null;
@@ -344,15 +374,17 @@ async function generateScenesForSingleSlide(opts: {
 }): Promise<{ scenes: LearningScene[]; modelUsed: ModelUsed; attempts: number }> {
   const bullets = repairBullets(opts.slide.bullets);
   const deckOutline = `Slide 1: ${opts.slide.title}\n${bullets.map((b) => `  - ${b}`).join("\n")}`;
-  const basePrompt = scenePromptFrom(renderTemplate(opts.template, {
-    title: opts.courseTitle,
-    courseTitle: opts.courseTitle,
-    tone: opts.cfg.tone,
-    audience: opts.cfg.audience,
-    depth: opts.cfg.tech_depth,
-    slideCount: 1,
-    deck: deckOutline,
-  }));
+  const basePrompt = scenePromptFrom(
+    renderTemplate(opts.template, {
+      title: opts.courseTitle,
+      courseTitle: opts.courseTitle,
+      tone: opts.cfg.tone,
+      audience: opts.cfg.audience,
+      depth: opts.cfg.tech_depth,
+      slideCount: 1,
+      deck: deckOutline,
+    }),
+  );
   const withHint = opts.hint?.trim()
     ? `${basePrompt}\n\nEXTRA INSTRUCTION FOR THIS SLIDE: ${opts.hint.trim()}`
     : basePrompt;
@@ -360,9 +392,10 @@ async function generateScenesForSingleSlide(opts: {
   let lastErr = "";
   let modelUsed: ModelUsed = "gemini-3.1-pro";
   for (let attempt = 1; attempt <= 2; attempt++) {
-    const prompt = attempt === 1
-      ? withHint
-      : `${withHint}\n\nIMPORTANT: previous attempt failed validation (${lastErr}). Every scene MUST include both an analogy diagram AND a technical pipeline diagram (2-5 nodes each), with multi-phase narration covering analogy, example AND technical phases. One concept per scene.`;
+    const prompt =
+      attempt === 1
+        ? withHint
+        : `${withHint}\n\nIMPORTANT: previous attempt failed validation (${lastErr}). Every scene MUST include both an analogy diagram AND a technical pipeline diagram (2-5 nodes each), with multi-phase narration covering analogy, example AND technical phases. One concept per scene.`;
     const { text, modelUsed: m } = await generateJson(prompt, {
       userId: opts.userId,
       courseId: opts.courseId,
@@ -378,7 +411,12 @@ async function generateScenesForSingleSlide(opts: {
       } else if (parsed && typeof parsed === "object") {
         if (Array.isArray(parsed.scenes)) rawScenes = parsed.scenes;
         else if (Array.isArray(parsed.slides)) rawScenes = parsed.slides[0]?.scenes ?? [];
-        else if (parsed.slides && typeof parsed.slides === "object" && Array.isArray(parsed.slides.scenes)) rawScenes = parsed.slides.scenes;
+        else if (
+          parsed.slides &&
+          typeof parsed.slides === "object" &&
+          Array.isArray(parsed.slides.scenes)
+        )
+          rawScenes = parsed.slides.scenes;
       }
       const scenes = rawScenes.map(normalizeScene).filter((s): s is LearningScene => !!s);
       if (scenes.length === 0) {
@@ -455,7 +493,13 @@ export const generateCourseDescription = createServerFn({ method: "POST" })
     if (!isAdmin) throw new Error("Forbidden");
     const deckOutline = data.slides
       .slice(0, 18)
-      .map((s, i) => `Slide ${i + 1}: ${s.title}\n${s.bullets.slice(0, 5).map((b) => `  - ${b}`).join("\n")}`)
+      .map(
+        (s, i) =>
+          `Slide ${i + 1}: ${s.title}\n${s.bullets
+            .slice(0, 5)
+            .map((b) => `  - ${b}`)
+            .join("\n")}`,
+      )
       .join("\n\n");
 
     const prompt = `Write a concise learner-facing course description for "${data.courseTitle}" based on this uploaded deck.
@@ -519,7 +563,10 @@ export const regenerateSlideNarration = createServerFn({ method: "POST" })
     const hint = (data.hint ?? slide.generation_hint ?? "").trim() || undefined;
 
     if (data.hint !== undefined) {
-      await supabaseAdmin.from("slides").update({ generation_hint: data.hint || null }).eq("id", data.slideId);
+      await supabaseAdmin
+        .from("slides")
+        .update({ generation_hint: data.hint || null })
+        .eq("id", data.slideId);
     }
 
     const r = await generateScenesForSingleSlide({
@@ -542,7 +589,14 @@ export const regenerateSlideNarration = createServerFn({ method: "POST" })
       .update({ narration_text: narration, icon_keywords: kws, body_md: newBody })
       .eq("id", data.slideId);
 
-    return { narration, keywords: kws, scenes: r.scenes, sceneCount: r.scenes.length, modelUsed: r.modelUsed, attempts: r.attempts };
+    return {
+      narration,
+      keywords: kws,
+      scenes: r.scenes,
+      sceneCount: r.scenes.length,
+      modelUsed: r.modelUsed,
+      attempts: r.attempts,
+    };
   });
 
 /* ---- Regenerate a contiguous slide range, one slide per Gemini call ---- */
@@ -738,7 +792,9 @@ export const getAdminSettings = createServerFn({ method: "GET" })
       defaultTemplate: DEFAULT_TEMPLATE,
       updatedAt: (data?.updated_at as string) || null,
       hasGeminiKey,
-      narrationModel: hasGeminiKey ? MODEL_LABEL["gemini-3.1-pro"] : MODEL_LABEL["gemini-flash-fallback"],
+      narrationModel: hasGeminiKey
+        ? MODEL_LABEL["gemini-3.1-pro"]
+        : MODEL_LABEL["gemini-flash-fallback"],
       tts: {
         provider: "Yavar TTS (self-hosted)",
         endpoint: "wss://agentic-rag.yavar.ai/stream/tts",
@@ -759,7 +815,9 @@ export const getRecentGenerationLogs = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin
       .from("generation_logs")
-      .select("id, created_at, kind, model, provider, status, detail, slide_count, duration_ms, course_id")
+      .select(
+        "id, created_at, kind, model, provider, status, detail, slide_count, duration_ms, course_id",
+      )
       .order("created_at", { ascending: false })
       .limit(50);
     if (error) throw error;
@@ -780,7 +838,10 @@ export const saveGlobalTemplate = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
       .from("prompt_templates")
-      .upsert({ scope: "global", template: data.template, updated_at: new Date().toISOString() }, { onConflict: "scope" });
+      .upsert(
+        { scope: "global", template: data.template, updated_at: new Date().toISOString() },
+        { onConflict: "scope" },
+      );
     if (error) throw error;
     return { ok: true };
   });
