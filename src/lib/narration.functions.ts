@@ -29,15 +29,15 @@ Think like a great YouTube educator. NEVER just read the bullets. Teach concepts
 INTRO -> ANALOGY -> REAL-WORLD EXAMPLE -> TECHNICAL EXPLANATION -> TAKEAWAY.
 ONE concept per scene. If a source slide contains multiple concepts (e.g. "Perception, Language, Prediction, Decision"), SPLIT it into multiple scenes — one per concept. Dense slides should have 2-4 scenes.
 
-For EACH scene, return:
-- concept (1-3 word noun, e.g. "Perception")
-- intro: one sentence introducing the idea, addressing the learner as "you"
-- analogy: { caption, nodes[2-4] } — a simple human analogy as a left-to-right flow (e.g. ["Human Eye","Brain","Decision"])
-- example: { caption, nodes[2-4] } — a concrete real-world scenario as a flow (e.g. ["Traffic Camera","Detect Pedestrian","Warn Driver"])
-- technical: { caption, nodes[2-5] } — the under-the-hood pipeline (e.g. ["Image","Feature Extraction","Model","Classification"])
-- takeaway: one sentence the learner should remember
-- narration: { intro, analogy, example, technical, takeaway } — each 25-45 spoken words, conversational, paraphrased, addresses the learner as "you", never reads node labels verbatim
-- keywords: 1-3 single-word lowercase nouns for iconography
+For EACH scene, return a JSON object with:
+- "concept": (1-3 word noun)
+- "intro": (one sentence, address learner as "you")
+- "analogy": { "caption": "string", "nodes": ["string", "string"] } (2-4 nodes)
+- "example": { "caption": "string", "nodes": ["string", "string"] } (2-4 nodes)
+- "technical": { "caption": "string", "nodes": ["string", "string"] } (2-5 nodes)
+- "takeaway": (one sentence)
+- "narration": { "intro": "...", "analogy": "...", "example": "...", "technical": "...", "takeaway": "..." } (each 25-45 words)
+- "keywords": ["word1", "word2", "word3"]
 
 Return STRICT JSON ONLY:
 { "slides": [ { "sourceSlideIdx": 0, "scenes": [ { ... }, ... ] }, ... ] }
@@ -165,6 +165,7 @@ async function generateJson(prompt: string, ctx: LogCtx): Promise<{ text: string
       model: gateway("google/gemini-3-flash-preview"),
       prompt,
       temperature: 0.2,
+      experimental_output: { format: "json" },
     });
     await writeLog(ctx, modelUsed, "ok", null, Date.now() - started);
     return { text, modelUsed };
@@ -269,8 +270,7 @@ function repairBullets(raw: string[]): string[] {
     const key = m.toLowerCase();
     if (seen.has(key)) return false;
     seen.add(key);
-    const wordCount = m.split(/\s+/).length;
-    return wordCount >= 1 || /[.!?]$/.test(m);
+    return m.length > 0;
   });
 }
 
@@ -364,9 +364,15 @@ async function generateScenesForSingleSlide(opts: {
     });
     modelUsed = m;
     try {
-      type Raw = { slides?: Array<{ scenes?: unknown[] }> };
-      const parsed = extractJson<Raw>(text);
-      const rawScenes = parsed.slides?.[0]?.scenes ?? [];
+      const parsed = extractJson<any>(text);
+      let rawScenes: any[] = [];
+      if (Array.isArray(parsed)) {
+        rawScenes = parsed;
+      } else if (parsed && typeof parsed === "object") {
+        if (Array.isArray(parsed.scenes)) rawScenes = parsed.scenes;
+        else if (Array.isArray(parsed.slides)) rawScenes = parsed.slides[0]?.scenes ?? [];
+        else if (parsed.slides && typeof parsed.slides === "object" && Array.isArray(parsed.slides.scenes)) rawScenes = parsed.slides.scenes;
+      }
       const scenes = rawScenes.map(normalizeScene).filter((s): s is LearningScene => !!s);
       if (scenes.length === 0) {
         lastErr = "no valid scenes parsed";
