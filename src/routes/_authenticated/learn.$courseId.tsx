@@ -9,7 +9,8 @@ import yavarLogo from "@/assets/yavar-logo.png.asset.json";
 import { useAuthCtx } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { AmbientMusic } from "@/lib/ambientMusic";
-import { bindCuesToSlides, formatMs, narrationSentences, readGeneratedSegments, slideBullets, stripGeneratedMaterial, type TimedSegment } from "@/lib/courseMaterial";
+import { stripGeneratedMaterial } from "@/lib/courseMaterial";
+import { readScenes, scenePhaseLines, stripScenes, type LearningScene as Scene, type ScenePhase } from "@/lib/learningScenes";
 import { WsTtsPlayer, buildTtsUrl } from "@/lib/wsTts";
 import { signMany } from "@/lib/storage";
 
@@ -38,7 +39,6 @@ type Slide = {
   icon_keywords?: string[] | null;
 };
 
-type Cue = { id: string; idx: number; start_ms: number; end_ms: number; text: string };
 type Quiz = {
   id: string;
   idx: number;
@@ -54,6 +54,14 @@ type Quiz = {
   difficulty: string | null;
 };
 
+type PlayUnit = {
+  key: string;
+  sourceSlide: Slide;
+  scene: Scene;
+  sceneIndexInSlide: number;
+  scenesInSlide: number;
+};
+
 const ACCENTS = ["amber", "sky", "emerald", "rose", "cyan", "violet"];
 const ACCENT_BG: Record<string, string> = {
   amber: "from-amber-500/20 to-amber-500/5 border-amber-400/30",
@@ -64,29 +72,47 @@ const ACCENT_BG: Record<string, string> = {
   violet: "from-violet-500/20 to-violet-500/5 border-violet-400/30",
 };
 
+function fallbackSceneFromSlide(s: Slide): Scene {
+  const bullets = stripScenes(stripGeneratedMaterial(s.body_md))
+    .split("\n")
+    .map((l) => l.replace(/^\s*[-*•]\s*/, "").trim())
+    .filter(Boolean);
+  return {
+    concept: s.title || "Concept",
+    intro: s.narration_text || `Let's look at ${s.title || "this idea"}.`,
+    analogy: null,
+    example: bullets.length >= 2 ? { caption: "What's on the slide", nodes: bullets.slice(0, 4) } : null,
+    technical: null,
+    takeaway: bullets[bullets.length - 1] || s.title || "",
+    narration: {
+      intro: s.narration_text || s.title,
+      takeaway: bullets[bullets.length - 1] || s.title || "",
+    },
+    keywords: s.icon_keywords ?? [],
+  };
+}
+
 function CoursePlayer() {
   const { courseId } = Route.useParams();
   const { user } = useAuthCtx();
   const [course, setCourse] = useState<Course | null>(null);
   const [slides, setSlides] = useState<Slide[]>([]);
-  const [cues, setCues] = useState<Cue[]>([]);
   const [msgOpen, setMsgOpen] = useState(false);
   const [quiz, setQuiz] = useState<Quiz[]>([]);
   const [signedImages, setSignedImages] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [idx, setIdx] = useState(0);
+  const [unitIdx, setUnitIdx] = useState(0);
+  const [phaseIdx, setPhaseIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const [revealed, setRevealed] = useState(0);
   const [completed, setCompleted] = useState(false);
   const [quizOpen, setQuizOpen] = useState(false);
   const [musicOn, setMusicOn] = useState(false);
-  const [voice, setVoice] = useState<string>("af_heart");
   const [speed, setSpeed] = useState<number>(1);
   const playerRef = useRef<WsTtsPlayer | null>(null);
   const musicRef = useRef<AmbientMusic | null>(null);
   const cancelledRef = useRef(false);
-  const idxRef = useRef(0);
+  const unitIdxRef = useRef(0);
   const startedRef = useRef(false);
 
   useEffect(() => {
@@ -94,10 +120,9 @@ function CoursePlayer() {
     (async () => {
       setLoading(true);
       setError(null);
-      const [{ data: c, error: ce }, { data: s, error: se }, { data: cu }, { data: q }] = await Promise.all([
+      const [{ data: c, error: ce }, { data: s, error: se }, { data: q }] = await Promise.all([
         supabase.from("courses").select("*").eq("id", courseId).single(),
         supabase.from("slides").select("*").eq("course_id", courseId).order("idx"),
-        supabase.from("srt_cues").select("*").eq("course_id", courseId).order("idx"),
         supabase.from("quiz_questions").select("*").eq("course_id", courseId).order("idx"),
       ]);
       if (cancelled) return;
@@ -108,14 +133,12 @@ function CoursePlayer() {
       }
       const orderedSlides = ((s as Slide[]) ?? []).sort((a, b) => a.idx - b.idx);
       setCourse(c as Course);
-      setVoice("af_heart");
       setSpeed((c as Course).speed ?? 1);
       setSlides(orderedSlides);
-      setCues((cu as Cue[]) ?? []);
       setQuiz((q as Quiz[]) ?? []);
       const paths = [
-        ...orderedSlides.map((s) => s.image_url),
-        ...orderedSlides.map((s) => s.illustration_url),
+        ...orderedSlides.map((sl) => sl.image_url),
+        ...orderedSlides.map((sl) => sl.illustration_url),
       ].filter((p): p is string => !!p);
       setSignedImages(paths.length ? await signMany(paths, 3600) : {});
       setLoading(false);
@@ -125,74 +148,80 @@ function CoursePlayer() {
     };
   }, [courseId]);
 
-  const generatedSegments = useMemo(() => bindCuesToSlides(slides, cues), [slides, cues]);
-  const slide = slides[idx];
-  const accent = ACCENTS[idx % ACCENTS.length];
-  const segments: TimedSegment[] = useMemo(() => {
-    if (!slide) return [];
-    return readGeneratedSegments(slide.body_md) ?? generatedSegments[idx] ?? [];
-  }, [generatedSegments, idx, slide]);
-  const lines = useMemo(() => {
-    if (!slide) return [];
-    const generatedNarration = narrationSentences(slide.narration_text);
-    return generatedNarration.length
-      ? generatedNarration
-      : segments.length
-        ? segments.map((s) => s.text).filter(Boolean)
-        : narrationSentences([slide.title, ...slideBullets(slide)].join(". "));
-  }, [segments, slide]);
-  const bullets = useMemo(() => (slide ? slideBullets(slide).slice(0, 6) : []), [slide]);
-  const currentLine = lines[Math.min(revealed, Math.max(0, lines.length - 1))] ?? slide?.title ?? "";
-  const speaking = playing && revealed < lines.length;
+  // Flatten scenes across slides into linear play units.
+  const playUnits = useMemo<PlayUnit[]>(() => {
+    const out: PlayUnit[] = [];
+    for (const sl of slides) {
+      const scenes = readScenes(sl.body_md) ?? [fallbackSceneFromSlide(sl)];
+      scenes.forEach((scene, i) => {
+        out.push({
+          key: `${sl.id}-${i}`,
+          sourceSlide: sl,
+          scene,
+          sceneIndexInSlide: i,
+          scenesInSlide: scenes.length,
+        });
+      });
+    }
+    return out;
+  }, [slides]);
+
+  const unit = playUnits[unitIdx];
+  const accent = ACCENTS[unitIdx % ACCENTS.length];
+  const phases = useMemo(() => (unit ? scenePhaseLines(unit.scene) : []), [unit]);
+  const currentPhase: ScenePhase = phases[Math.min(phaseIdx, Math.max(0, phases.length - 1))]?.phase ?? "intro";
+  const currentLine = phases[Math.min(phaseIdx, Math.max(0, phases.length - 1))]?.text ?? unit?.scene.intro ?? "";
+  const speaking = playing && phaseIdx < phases.length;
 
   useEffect(() => {
-    idxRef.current = idx;
-  }, [idx]);
+    unitIdxRef.current = unitIdx;
+  }, [unitIdx]);
 
   const stopAll = () => {
     cancelledRef.current = true;
     playerRef.current?.stop();
-    if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
   };
 
   const speakOne = async (text: string) => {
     let player = playerRef.current;
     if (!player) {
-      player = new WsTtsPlayer({ url: buildTtsUrl(speed, voice, "a") });
+      player = new WsTtsPlayer({ url: buildTtsUrl(speed, "af_heart", "a") });
       player.prime();
       playerRef.current = player;
     }
-    player.setUrl(buildTtsUrl(speed, voice, "a"));
+    player.setUrl(buildTtsUrl(speed, "af_heart", "a"));
     await player.speak(text);
   };
 
-  const speakFrom = async (start: number) => {
+  const playFrom = async (startPhase: number) => {
     cancelledRef.current = false;
-    for (let i = start; i < lines.length; i++) {
+    for (let i = startPhase; i < phases.length; i++) {
       if (cancelledRef.current) return;
-      setRevealed(i);
-      await speakOne(lines[i]);
+      setPhaseIdx(i);
+      await speakOne(phases[i].text);
       if (cancelledRef.current) return;
-      await new Promise((resolve) => setTimeout(resolve, 120));
+      await new Promise((resolve) => setTimeout(resolve, 200));
     }
     if (cancelledRef.current) return;
-    setRevealed(lines.length);
-    if (idxRef.current < slides.length - 1) setIdx(idxRef.current + 1);
-    else {
+    setPhaseIdx(phases.length);
+    if (unitIdxRef.current < playUnits.length - 1) {
+      setUnitIdx(unitIdxRef.current + 1);
+    } else {
       setPlaying(false);
       setCompleted(true);
     }
   };
 
   useEffect(() => {
-    setRevealed(0);
-    if (idx === slides.length - 1 && slides.length > 0) setCompleted(true);
+    setPhaseIdx(0);
+    if (unitIdx === playUnits.length - 1 && playUnits.length > 0) setCompleted(true);
     if (startedRef.current && playing) {
       stopAll();
-      const t = window.setTimeout(() => void speakFrom(0), 180);
+      const t = window.setTimeout(() => void playFrom(0), 180);
       return () => window.clearTimeout(t);
     }
-  }, [idx]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unitIdx]);
 
   useEffect(() => {
     return () => {
@@ -207,7 +236,7 @@ function CoursePlayer() {
   }, [speaking]);
 
   useEffect(() => {
-    playerRef.current?.setUrl(buildTtsUrl(speed, voice, "a"));
+    playerRef.current?.setUrl(buildTtsUrl(speed, "af_heart", "a"));
   }, [speed]);
 
   const togglePlay = () => {
@@ -217,28 +246,30 @@ function CoursePlayer() {
       setPlaying(false);
       return;
     }
-    const player = new WsTtsPlayer({ url: buildTtsUrl(speed, voice, "a") });
+    const player = new WsTtsPlayer({ url: buildTtsUrl(speed, "af_heart", "a") });
     player.prime();
     playerRef.current?.stop();
     playerRef.current = player;
     setPlaying(true);
-    void speakFrom(Math.min(revealed, Math.max(0, lines.length - 1)));
+    void playFrom(Math.min(phaseIdx, Math.max(0, phases.length - 1)));
   };
 
   if (loading) return <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-400">Loading course…</div>;
-  if (error || !course || !slide) {
+  if (error || !course || !unit) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4 text-slate-100">
         <div className="max-w-md rounded-2xl border border-rose-500/30 bg-rose-500/10 p-6 text-center">
           <h1 className="text-lg font-semibold">Course unavailable</h1>
-          <p className="mt-2 text-sm text-rose-100/80">{error || "No generated slides were found for this course."}</p>
+          <p className="mt-2 text-sm text-rose-100/80">{error || "No learning scenes have been generated yet. Ask an admin to regenerate."}</p>
           <Link to="/learn" className="mt-5 inline-block rounded-md border border-white/10 px-4 py-2 text-sm hover:bg-white/10">Back to library</Link>
         </div>
       </div>
     );
   }
 
-  void signedImages;
+  const illustrationUrl = unit.sourceSlide.illustration_url
+    ? signedImages[unit.sourceSlide.illustration_url] || unit.sourceSlide.illustration_url
+    : null;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -255,7 +286,7 @@ function CoursePlayer() {
           </div>
           <div className="flex shrink-0 flex-wrap items-center gap-2">
             <div className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-300">
-              Voice <span className="text-slate-100">Yavar</span>
+              Voice <span className="text-slate-100">Yavar · af_heart</span>
             </div>
             <label className="flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-300">
               <span className="text-slate-400">Speed</span>
@@ -307,36 +338,34 @@ function CoursePlayer() {
 
       <main className="mx-auto grid max-w-7xl gap-6 px-4 py-5 sm:px-6 lg:grid-cols-[1fr_310px]">
         <section>
-          <div key={slide.id} className={`relative min-h-[430px] overflow-hidden rounded-2xl border bg-gradient-to-br ${ACCENT_BG[accent]} p-4 shadow-2xl animate-fade-in sm:min-h-[520px] sm:p-6`}>
-            <div className="absolute left-0 top-0 h-1 bg-amber-400 transition-all" style={{ width: `${((idx + 1) / slides.length) * 100}%` }} />
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div key={unit.key} className={`relative min-h-[460px] overflow-hidden rounded-2xl border bg-gradient-to-br ${ACCENT_BG[accent]} p-4 shadow-2xl animate-fade-in sm:p-6`}>
+            <div className="absolute left-0 top-0 h-1 bg-amber-400 transition-all" style={{ width: `${((unitIdx + 1) / playUnits.length) * 100}%` }} />
+            <div className="flex items-center justify-between gap-3">
               <AIAvatar speaking={speaking} accent={accent} />
-              <div className="min-w-0 sm:text-right">
-                <div className="text-[10px] uppercase tracking-[0.25em] text-amber-200/80">Slide {idx + 1} / {slides.length}</div>
-                <h2 className="mt-1 text-2xl font-bold leading-tight sm:text-3xl">{slide.title}</h2>
+              <div className="text-right text-[10px] uppercase tracking-[0.25em] text-amber-200/80">
+                Scene {unitIdx + 1} / {playUnits.length}
               </div>
             </div>
 
             <div className="mt-6">
               <LearningScene
-                slideIdx={idx}
-                title={slide.title}
-                bullets={bullets}
-                revealed={revealed}
+                scene={unit.scene}
+                phase={currentPhase}
                 speaking={speaking}
-                currentLine={currentLine || stripGeneratedMaterial(slide.body_md) || ""}
                 accent={accent}
-                illustrationUrl={slide.illustration_url ? (signedImages[slide.illustration_url] || slide.illustration_url) : null}
-                iconKeywords={slide.icon_keywords ?? null}
+                illustrationUrl={illustrationUrl}
+                sceneNumber={unit.sceneIndexInSlide + 1}
+                totalScenes={unit.scenesInSlide}
+                sourceSlideTitle={unit.sourceSlide.title}
               />
             </div>
           </div>
 
           <div className="mt-4 rounded-xl border border-white/10 bg-slate-900/60 p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <div className="text-[10px] uppercase tracking-[0.2em] text-amber-400">{speaking ? "Now speaking" : revealed >= lines.length ? "Slide complete" : "Ready"}</div>
-                <p className="mt-2 text-[15px] leading-relaxed text-slate-100" key={`${idx}-${revealed}`}>{currentLine}</p>
+              <div className="min-w-0">
+                <div className="text-[10px] uppercase tracking-[0.2em] text-amber-400">{speaking ? "Now speaking" : phaseIdx >= phases.length ? "Scene complete" : "Ready"}</div>
+                <p className="mt-2 text-[15px] leading-relaxed text-slate-100" key={`${unitIdx}-${phaseIdx}`}>{currentLine}</p>
               </div>
               <div className="flex shrink-0 flex-wrap gap-2">
                 <button onClick={togglePlay} className="rounded-md border border-amber-400/40 bg-amber-500/15 px-3 py-1.5 text-xs font-semibold text-amber-100 hover:bg-amber-500/25">
@@ -346,7 +375,7 @@ function CoursePlayer() {
                   onClick={() => {
                     stopAll();
                     setPlaying(false);
-                    setRevealed(lines.length);
+                    setPhaseIdx(phases.length);
                   }}
                   className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs hover:bg-white/10"
                 >
@@ -355,30 +384,16 @@ function CoursePlayer() {
               </div>
             </div>
             <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-white/5">
-              <div className="h-full bg-amber-400 transition-all duration-500" style={{ width: `${(Math.min(lines.length, revealed + 1) / Math.max(1, lines.length)) * 100}%` }} />
+              <div className="h-full bg-amber-400 transition-all duration-500" style={{ width: `${(Math.min(phases.length, phaseIdx + 1) / Math.max(1, phases.length)) * 100}%` }} />
             </div>
           </div>
 
-          {segments.length > 0 && (
-            <details className="mt-4 rounded-xl border border-white/10 bg-slate-900/60 p-4">
-              <summary className="cursor-pointer text-xs uppercase tracking-[0.2em] text-amber-400">Timed SRT binding</summary>
-              <ol className="mt-3 space-y-2 text-sm">
-                {segments.map((segment, i) => (
-                  <li key={`${segment.startMs}-${i}`} className={i <= revealed ? "text-slate-100" : "text-slate-500"}>
-                    <span className="mr-2 font-mono text-[11px] text-amber-300">{formatMs(segment.startMs)}–{formatMs(segment.endMs)}</span>
-                    {segment.text}
-                  </li>
-                ))}
-              </ol>
-            </details>
-          )}
-
           <div className="mt-4 flex items-center justify-between gap-2">
-            <button onClick={() => setIdx((i) => Math.max(0, i - 1))} disabled={idx === 0} className="rounded-md border border-white/10 bg-white/5 px-4 py-2 text-sm disabled:opacity-30 hover:bg-white/10">← Previous</button>
-            <button onClick={() => setIdx((i) => Math.min(slides.length - 1, i + 1))} disabled={idx === slides.length - 1} className="rounded-md bg-amber-500 px-4 py-2 text-sm font-semibold text-slate-900 disabled:opacity-30 hover:bg-amber-400">Next →</button>
+            <button onClick={() => setUnitIdx((i) => Math.max(0, i - 1))} disabled={unitIdx === 0} className="rounded-md border border-white/10 bg-white/5 px-4 py-2 text-sm disabled:opacity-30 hover:bg-white/10">← Previous</button>
+            <button onClick={() => setUnitIdx((i) => Math.min(playUnits.length - 1, i + 1))} disabled={unitIdx === playUnits.length - 1} className="rounded-md bg-amber-500 px-4 py-2 text-sm font-semibold text-slate-900 disabled:opacity-30 hover:bg-amber-400">Next →</button>
           </div>
 
-          {idx === slides.length - 1 && (
+          {unitIdx === playUnits.length - 1 && (
             <div className="mt-6 rounded-2xl border border-emerald-400/40 bg-gradient-to-br from-emerald-500/15 to-emerald-500/5 p-6 text-center">
               <div className="text-[10px] uppercase tracking-[0.25em] text-emerald-300">End of material</div>
               <h3 className="mt-1 text-xl font-bold text-emerald-100">Ready for the quiz?</h3>
@@ -389,13 +404,16 @@ function CoursePlayer() {
         </section>
 
         <aside className="h-fit rounded-xl border border-white/10 bg-slate-900/60 p-3 lg:sticky lg:top-24">
-          <div className="mb-2 px-1 text-[10px] uppercase tracking-[0.2em] text-amber-400">Generated slides</div>
+          <div className="mb-2 px-1 text-[10px] uppercase tracking-[0.2em] text-amber-400">Scenes ({playUnits.length})</div>
           <ol className="max-h-[70vh] space-y-1 overflow-y-auto pr-1">
-            {slides.map((s, i) => (
-              <li key={s.id}>
-                <button onClick={() => setIdx(i)} className={`flex w-full items-start gap-2 rounded-md p-2 text-left text-xs transition ${i === idx ? "bg-amber-500/15 ring-1 ring-amber-500/40" : "hover:bg-white/5"}`}>
-                  <span className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-semibold ${i === idx ? "bg-amber-500 text-slate-900" : "bg-white/10 text-slate-300"}`}>{i + 1}</span>
-                  <span className="line-clamp-2 text-slate-200">{s.title}</span>
+            {playUnits.map((u, i) => (
+              <li key={u.key}>
+                <button onClick={() => setUnitIdx(i)} className={`flex w-full items-start gap-2 rounded-md p-2 text-left text-xs transition ${i === unitIdx ? "bg-amber-500/15 ring-1 ring-amber-500/40" : "hover:bg-white/5"}`}>
+                  <span className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-semibold ${i === unitIdx ? "bg-amber-500 text-slate-900" : "bg-white/10 text-slate-300"}`}>{i + 1}</span>
+                  <span className="min-w-0">
+                    <span className="line-clamp-1 font-medium text-slate-100">{u.scene.concept}</span>
+                    {u.scenesInSlide > 1 && <span className="block text-[10px] text-slate-500">from "{u.sourceSlide.title}"</span>}
+                  </span>
                 </button>
               </li>
             ))}
@@ -410,11 +428,11 @@ function CoursePlayer() {
           userId={user.id}
           courseId={courseId}
           defaultType="correction"
-          defaultSubject={`Correction for "${course.title}" (slide ${idx + 1})`}
+          defaultSubject={`Correction for "${course.title}" (scene ${unitIdx + 1})`}
         />
       )}
       <TrainingChat
-        currentSlide={idx + 1}
+        currentSlide={unit.sourceSlide.idx + 1}
         course={{
           title: course.title,
           slides: slides.map((s) => ({
