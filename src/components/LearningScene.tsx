@@ -9,6 +9,7 @@ type Props = {
   speaking: boolean;
   accent: string;
   illustrationUrl?: string | null;
+  slideImageUrl?: string | null;
   sceneNumber: number;
   totalScenes: number;
   sourceSlideTitle: string;
