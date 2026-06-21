@@ -135,8 +135,12 @@ export function LearningScene({ slideIdx, title, bullets, revealed, speaking, cu
                 className={`group relative overflow-hidden rounded-2xl border p-5 transition-all duration-500 ${visible ? "translate-y-0 opacity-100 scale-100" : "translate-y-4 opacity-0 scale-95"} ${active ? `ring-2 ${ringAccent} border-transparent` : "border-white/10 bg-slate-950/60"}`}
                 style={{ transitionDelay: `${i * 100}ms` }}
               >
-                <div className={`absolute -right-6 -top-6 text-7xl opacity-10 ${textAccent}`}>{ICONS[i % ICONS.length]}</div>
-                <div className={`grid h-10 w-10 place-items-center rounded-xl text-lg ${active ? solidAccent : `${ringAccent} ring-1`}`}>{ICONS[i % ICONS.length]}</div>
+                <div className={`absolute -right-4 -top-4 opacity-10 ${textAccent}`}>
+                  <LucideIcon name={iconAt(i, iconKeywords)} className="h-20 w-20" />
+                </div>
+                <div className={`grid h-10 w-10 place-items-center rounded-xl ${active ? solidAccent : `${ringAccent} ring-1`}`}>
+                  <LucideIcon name={iconAt(i, iconKeywords)} className="h-5 w-5" />
+                </div>
                 <div className="mt-3 text-[15px] font-semibold leading-snug text-slate-100">{b}</div>
               </div>
             );
