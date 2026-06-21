@@ -1319,7 +1319,9 @@ function GenerateSection({
   const [perSlide, setPerSlide] = useState<Array<{ idx: number; title: string; state: "pending" | "running" | "ok" | "error"; sceneCount?: number; error?: string }>>([]);
   const runRegenOne = useServerFn(regenerateSlideNarration);
 
-  const missingNarration = slides.filter((s) => !s.narration_text || s.narration_text.trim().length < 4);
+  const hasGeneratedScenes = (s: Slide) =>
+    !!s.narration_text && s.narration_text.trim().length >= 4 && !!s.body_md && s.body_md.includes("learning-scenes-v1");
+  const missingNarration = slides.filter((s) => !hasGeneratedScenes(s));
   const hasSlides = slides.length > 0;
   const hasQuiz = quiz.length > 0;
   const ready = hasSlides && hasQuiz && missingNarration.length === 0;
