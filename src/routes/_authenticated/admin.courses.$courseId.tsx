@@ -813,6 +813,12 @@ function SlidesSection({
                       </>
                     )}
                     {r.status === "error" && <span className="text-red-300">✗ {r.error}</span>}
+                    {r.illStatus === "pending" && <span className="text-slate-500">· img queued</span>}
+                    {r.illStatus === "running" && <span className="text-fuchsia-300">· 🎨 image…</span>}
+                    {r.illStatus === "ok" && <span className="text-fuchsia-300">· 🎨 image ✓</span>}
+                    {r.illStatus === "error" && (
+                      <span className="text-red-300" title={r.illError}>· image ✗</span>
+                    )}
                   </div>
                   {isOpen && r.scenes && (
                     <div className="space-y-3 border-t border-slate-800 px-3 py-3">
