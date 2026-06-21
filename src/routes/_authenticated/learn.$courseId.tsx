@@ -10,7 +10,7 @@ import { useAuthCtx } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { AmbientMusic } from "@/lib/ambientMusic";
 import { bindCuesToSlides, formatMs, narrationSentences, readGeneratedSegments, slideBullets, stripGeneratedMaterial, type TimedSegment } from "@/lib/courseMaterial";
-import { LovableTtsPlayer } from "@/lib/lovableTts";
+import { WsTtsPlayer, buildTtsUrl } from "@/lib/wsTts";
 import { signMany } from "@/lib/storage";
 
 export const Route = createFileRoute("/_authenticated/learn/$courseId")({
@@ -81,9 +81,9 @@ function CoursePlayer() {
   const [completed, setCompleted] = useState(false);
   const [quizOpen, setQuizOpen] = useState(false);
   const [musicOn, setMusicOn] = useState(false);
-  const [voice, setVoice] = useState<string>("shimmer");
+  const [voice, setVoice] = useState<string>("af_heart");
   const [speed, setSpeed] = useState<number>(1);
-  const playerRef = useRef<LovableTtsPlayer | null>(null);
+  const playerRef = useRef<WsTtsPlayer | null>(null);
   const musicRef = useRef<AmbientMusic | null>(null);
   const cancelledRef = useRef(false);
   const idxRef = useRef(0);
@@ -108,7 +108,7 @@ function CoursePlayer() {
       }
       const orderedSlides = ((s as Slide[]) ?? []).sort((a, b) => a.idx - b.idx);
       setCourse(c as Course);
-      setVoice(((c as Course).voice && (c as Course).voice !== "default") ? (c as Course).voice : "shimmer");
+      setVoice("af_heart");
       setSpeed((c as Course).speed ?? 1);
       setSlides(orderedSlides);
       setCues((cu as Cue[]) ?? []);
@@ -152,34 +152,15 @@ function CoursePlayer() {
     if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
   };
 
-  const speakBrowser = (text: string) =>
-    new Promise<void>((resolve) => {
-      if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-        resolve();
-        return;
-      }
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = "en-US";
-      u.rate = speed;
-      u.pitch = 1.04;
-      u.onend = () => resolve();
-      u.onerror = () => resolve();
-      window.speechSynthesis.speak(u);
-    });
-
   const speakOne = async (text: string) => {
-    try {
-      let player = playerRef.current;
-      if (!player) {
-        player = new LovableTtsPlayer();
-        player.prime();
-        playerRef.current = player;
-      }
-      player.setRate(speed);
-      await player.speak(text, voice);
-    } catch {
-      if (!cancelledRef.current) await speakBrowser(text);
+    let player = playerRef.current;
+    if (!player) {
+      player = new WsTtsPlayer({ url: buildTtsUrl(speed, voice, "a") });
+      player.prime();
+      playerRef.current = player;
     }
+    player.setUrl(buildTtsUrl(speed, voice, "a"));
+    await player.speak(text);
   };
 
   const speakFrom = async (start: number) => {
