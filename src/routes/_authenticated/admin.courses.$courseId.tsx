@@ -988,6 +988,7 @@ function GenerateSection({
 }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
+  const [lastModel, setLastModel] = useState<string | null>(null);
   const runNarrations = useServerFn(generateNarrations);
 
   const missingNarration = slides.filter((s) => !s.narration_text || s.narration_text.trim().length < 4);
@@ -998,6 +999,7 @@ function GenerateSection({
   async function generate() {
     setErr(null);
     setStatus(null);
+    setLastModel(null);
     if (!hasSlides) {
       setErr("Upload a PDF or PPTX deck first.");
       return;
@@ -1008,12 +1010,13 @@ function GenerateSection({
     }
     try {
       let workingSlides = [...slides].sort((a, b) => a.idx - b.idx);
-      if (missingNarration.length > 0) {
-        setBusy(`Generating narration for ${missingNarration.length} slide(s)…`);
+      {
+        setBusy(`Generating narration for ${workingSlides.length} slide(s) with admin prompt…`);
         const res = await runNarrations({
           data: {
             courseTitle: course.title,
-            slides: slides.map((s) => ({
+            courseId: course.id,
+            slides: workingSlides.map((s) => ({
               title: s.title,
               bullets: stripGeneratedMaterial(s.body_md)
                 .split("\n")
@@ -1022,15 +1025,16 @@ function GenerateSection({
             })),
           },
         });
-        // Only update slides that were missing narration
+        setLastModel(res.modelUsed === "gemini-3.1-pro" ? "Gemini 3.1 Pro" : "Gemini Flash fallback");
         const narrationById = new Map<string, string>();
-        for (const s of missingNarration) {
-          const text = res.narrations[s.idx];
+        for (let i = 0; i < workingSlides.length; i++) {
+          const s = workingSlides[i];
+          const text = res.narrations[i];
           if (!text) continue;
           narrationById.set(s.id, text);
           const { error } = await supabase
             .from("slides")
-            .update({ narration_text: text })
+            .update({ narration_text: text, icon_keywords: res.keywords?.[i] ?? [] })
             .eq("id", s.id);
           if (error) throw error;
         }
