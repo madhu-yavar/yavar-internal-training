@@ -6,7 +6,7 @@ import { useAuthCtx } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { COURSE_BUCKET, getSignedUrl } from "@/lib/storage";
 import { parseDeck, type ParsedSlide } from "@/lib/deckParser";
-import { generateCourseDescription, generateNarrations } from "@/lib/narration.functions";
+import { generateCourseDescription, generateNarrations, regenerateSlideNarration, generateSlideIllustrations } from "@/lib/narration.functions";
 import { bindCuesToSlides, buildGeneratedSlideBody, formatMs, stripGeneratedMaterial } from "@/lib/courseMaterial";
 
 export const Route = createFileRoute("/_authenticated/admin/courses/$courseId")({
@@ -22,6 +22,10 @@ type Course = {
   lang_code: string;
   speed: number;
   published: boolean;
+  tone: string | null;
+  tech_depth: number | null;
+  audience: string | null;
+  prompt_override: string | null;
 };
 
 type Slide = {
@@ -32,6 +36,9 @@ type Slide = {
   body_md: string | null;
   image_url: string | null;
   narration_text: string | null;
+  generation_hint: string | null;
+  illustration_url: string | null;
+  icon_keywords: string[] | null;
 };
 
 type Cue = { id: string; idx: number; start_ms: number; end_ms: number; text: string };
