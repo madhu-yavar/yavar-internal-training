@@ -6,7 +6,7 @@ import { useAuthCtx } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { COURSE_BUCKET, getSignedUrl } from "@/lib/storage";
 import { parseDeck, type ParsedSlide } from "@/lib/deckParser";
-import { generateCourseDescription, generateNarrations, regenerateSlideNarration, generateSlideIllustrations } from "@/lib/narration.functions";
+import { generateCourseDescription, regenerateSlideNarration, generateSlideIllustrations } from "@/lib/narration.functions";
 import { stripGeneratedMaterial } from "@/lib/courseMaterial";
 
 export const Route = createFileRoute("/_authenticated/admin/courses/$courseId")({
@@ -1315,7 +1315,9 @@ function GenerateSection({
   const [busy, setBusy] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [lastModel, setLastModel] = useState<string | null>(null);
-  const runNarrations = useServerFn(generateNarrations);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [perSlide, setPerSlide] = useState<Array<{ idx: number; title: string; state: "pending" | "running" | "ok" | "error"; sceneCount?: number; error?: string }>>([]);
+  const runRegenOne = useServerFn(regenerateSlideNarration);
 
   const missingNarration = slides.filter((s) => !s.narration_text || s.narration_text.trim().length < 4);
   const hasSlides = slides.length > 0;
@@ -1335,54 +1337,46 @@ function GenerateSection({
       return;
     }
     try {
-      const { embedScenes, stripScenes } = await import("@/lib/learningScenes");
-      let workingSlides = [...slides].sort((a, b) => a.idx - b.idx);
-      setBusy(`Generating teaching scenes for ${workingSlides.length} slide(s) with admin prompt…`);
-      const res = await runNarrations({
-        data: {
-          courseTitle: course.title,
-          courseId: course.id,
-          slides: workingSlides.map((s) => ({
-            title: s.title,
-            bullets: stripScenes(stripGeneratedMaterial(s.body_md))
-              .split("\n")
-              .map((l) => l.replace(/^[-*]\s*/, "").trim())
-              .filter(Boolean),
-          })),
-        },
-      });
-      setLastModel(res.modelUsed === "gemini-3.1-pro" ? "Gemini 3.1 Pro" : "Gemini Flash fallback");
+      const workingSlides = [...slides].sort((a, b) => a.idx - b.idx);
+      setPerSlide(workingSlides.map((s) => ({ idx: s.idx, title: s.title, state: "pending" })));
+      setProgress({ done: 0, total: workingSlides.length });
 
       let totalScenes = 0;
+      let okCount = 0;
+      let errCount = 0;
+
       for (let i = 0; i < workingSlides.length; i++) {
         const s = workingSlides[i];
-        const slideScenes = res.scenes?.[i]?.scenes ?? [];
-        totalScenes += slideScenes.length;
-        const narration = res.narrations[i] ?? "";
-        const cleanBody = stripScenes(stripGeneratedMaterial(s.body_md));
-        const newBody = slideScenes.length > 0 ? embedScenes(cleanBody, slideScenes) : cleanBody;
-        const { error } = await supabase
-          .from("slides")
-          .update({
-            narration_text: narration,
-            icon_keywords: res.keywords?.[i] ?? [],
-            body_md: newBody,
-          })
-          .eq("id", s.id);
-        if (error) throw error;
-        setBusy(`Saved scenes for slide ${i + 1} of ${workingSlides.length}…`);
+        setBusy(`Slide ${i + 1}/${workingSlides.length} — "${s.title}"…`);
+        setPerSlide((prev) => prev.map((r, j) => (j === i ? { ...r, state: "running" } : r)));
+        try {
+          const res = await runRegenOne({ data: { slideId: s.id } });
+          totalScenes += res.sceneCount ?? 0;
+          okCount += 1;
+          setLastModel(res.modelUsed === "gemini-3.1-pro" ? "Gemini 3.1 Pro" : "Gemini Flash fallback");
+          setPerSlide((prev) =>
+            prev.map((r, j) => (j === i ? { ...r, state: "ok", sceneCount: res.sceneCount } : r)),
+          );
+        } catch (e) {
+          errCount += 1;
+          setPerSlide((prev) =>
+            prev.map((r, j) => (j === i ? { ...r, state: "error", error: (e as Error).message } : r)),
+          );
+        }
+        setProgress({ done: i + 1, total: workingSlides.length });
       }
 
       setBusy("Publishing learner material…");
-      if (!course.published) await onSaveCourse({ published: true });
+      if (!course.published && errCount === 0) await onSaveCourse({ published: true });
       await onChanged();
       setStatus(
-        `Generated ${totalScenes} teaching scenes from ${workingSlides.length} source slide(s) using ${res.modelUsed === "gemini-3.1-pro" ? "Gemini 3.1 Pro" : "Gemini Flash"}. ${quiz.length} quiz questions attached.`,
+        `Generated ${totalScenes} teaching scenes across ${okCount}/${workingSlides.length} slides${errCount ? ` (${errCount} failed)` : ""}. ${quiz.length} quiz questions attached.`,
       );
     } catch (e) {
       setErr((e as Error).message);
     } finally {
       setBusy(null);
+      setProgress(null);
     }
   }
 
@@ -1412,6 +1406,46 @@ function GenerateSection({
           </ul>
           {lastModel && <div className="mt-2 text-xs text-amber-300">Narration model used: {lastModel}</div>}
           {status && <div className="mt-3 text-xs text-emerald-300">{status}</div>}
+          {progress && (
+            <div className="mt-3 w-full max-w-md">
+              <div className="mb-1 flex justify-between text-[11px] text-amber-200">
+                <span>{busy ?? "Working…"}</span>
+                <span>{progress.done}/{progress.total}</span>
+              </div>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
+                <div
+                  className="h-full bg-amber-500 transition-all"
+                  style={{ width: `${(progress.done / Math.max(1, progress.total)) * 100}%` }}
+                />
+              </div>
+            </div>
+          )}
+          {perSlide.length > 0 && (
+            <div className="mt-3 max-h-64 overflow-y-auto rounded-lg border border-slate-800 bg-slate-950/60 p-2 text-xs">
+              <div className="mb-1 font-semibold text-slate-300">
+                Per-slide progress ({perSlide.filter((p) => p.state === "ok").length} ok ·{" "}
+                {perSlide.filter((p) => p.state === "error").length} failed ·{" "}
+                {perSlide.filter((p) => p.state === "running").length} running ·{" "}
+                {perSlide.filter((p) => p.state === "pending").length} pending)
+              </div>
+              <ul className="space-y-0.5">
+                {perSlide.map((r) => (
+                  <li key={r.idx} className="flex items-center gap-2">
+                    <span className="w-8 text-slate-500">#{r.idx + 1}</span>
+                    <span className="flex-1 truncate text-slate-300">{r.title}</span>
+                    {r.state === "pending" && <span className="text-slate-500">… queued</span>}
+                    {r.state === "running" && <span className="text-amber-300">⟳ generating…</span>}
+                    {r.state === "ok" && (
+                      <span className="text-emerald-300">✓ {r.sceneCount ?? 0} scenes</span>
+                    )}
+                    {r.state === "error" && (
+                      <span className="text-red-300" title={r.error}>✗ failed</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
         <div className="flex flex-col items-end gap-2">
           <button
