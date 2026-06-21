@@ -1337,9 +1337,23 @@ function GenerateSection({
       return;
     }
     try {
-      const workingSlides = [...slides].sort((a, b) => a.idx - b.idx);
-      setPerSlide(workingSlides.map((s) => ({ idx: s.idx, title: s.title, state: "pending" })));
+      const allSorted = [...slides].sort((a, b) => a.idx - b.idx);
+      // Resume: skip slides that already have narration generated
+      const workingSlides = allSorted.filter((s) => !s.narration_text || s.narration_text.trim().length < 4);
+      const skipped = allSorted.length - workingSlides.length;
+      setPerSlide([
+        ...allSorted
+          .filter((s) => s.narration_text && s.narration_text.trim().length >= 4)
+          .map((s) => ({ idx: s.idx, title: s.title, state: "ok" as const })),
+        ...workingSlides.map((s) => ({ idx: s.idx, title: s.title, state: "pending" as const })),
+      ]);
       setProgress({ done: 0, total: workingSlides.length });
+      if (workingSlides.length === 0) {
+        setStatus(`All ${allSorted.length} slides already generated. Nothing to do.`);
+        setBusy(null);
+        return;
+      }
+      if (skipped > 0) setStatus(`Resuming — skipping ${skipped} already-generated slides.`);
 
       let totalScenes = 0;
       let okCount = 0;
