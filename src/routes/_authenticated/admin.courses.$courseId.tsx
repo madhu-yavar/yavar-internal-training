@@ -1341,11 +1341,11 @@ function GenerateSection({
     try {
       const allSorted = [...slides].sort((a, b) => a.idx - b.idx);
       // Resume: skip slides that already have narration generated
-      const workingSlides = allSorted.filter((s) => !s.narration_text || s.narration_text.trim().length < 4);
+      const workingSlides = allSorted.filter((s) => !hasGeneratedScenes(s));
       const skipped = allSorted.length - workingSlides.length;
       setPerSlide([
         ...allSorted
-          .filter((s) => s.narration_text && s.narration_text.trim().length >= 4)
+          .filter((s) => hasGeneratedScenes(s))
           .map((s) => ({ idx: s.idx, title: s.title, state: "ok" as const })),
         ...workingSlides.map((s) => ({ idx: s.idx, title: s.title, state: "pending" as const })),
       ]);
