@@ -575,9 +575,6 @@ function SlidesSection({
             />
           ))}
         </ol>
-            );
-          })}
-        </ol>
       )}
     </section>
   );
