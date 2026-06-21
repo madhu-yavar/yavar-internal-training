@@ -399,6 +399,8 @@ function SlidesSection({
     attempts?: number;
     modelUsed?: string;
     error?: string;
+    illStatus?: "pending" | "running" | "ok" | "error" | "skipped";
+    illError?: string;
     scenes?: Array<{
       concept: string;
       intro: string;
@@ -411,26 +413,39 @@ function SlidesSection({
   };
   const [rangeResults, setRangeResults] = useState<RangeRow[] | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [fromIdx, setFromIdx] = useState<number>(1);
+  const [toIdx, setToIdx] = useState<number>(Math.min(10, Math.max(1, slides.length)));
+  const [alsoIllustrate, setAlsoIllustrate] = useState<boolean>(true);
   const runNarrations = useServerFn(generateNarrations);
   const runDescription = useServerFn(generateCourseDescription);
   const runRegenOne = useServerFn(regenerateSlideNarration);
+  const runIll = useServerFn(generateSlideIllustrations);
 
-  async function regenerateFirstN(n: number) {
+  async function regenerateSlides(
+    targets: Slide[],
+    opts: { withIllustration: boolean; label: string },
+  ) {
+    if (targets.length === 0) {
+      setRangeStatus("Nothing to do — no matching slides.");
+      return;
+    }
     setErr(null);
     setRangeBusy(true);
     setExpanded({});
-    const targets = [...slides].sort((a, b) => a.idx - b.idx).slice(0, n);
     const initial: RangeRow[] = targets.map((s) => ({
       slideId: s.id,
       idx: s.idx,
       title: s.title,
       status: "pending",
+      illStatus: opts.withIllustration ? "pending" : "skipped",
     }));
     setRangeResults(initial);
     try {
       for (let i = 0; i < targets.length; i++) {
         const s = targets[i];
-        setRangeStatus(`Slide ${i + 1} of ${targets.length} — calling Gemini for "${s.title}"…`);
+        setRangeStatus(
+          `${opts.label} ${i + 1}/${targets.length} — slide #${s.idx} "${s.title}"…`,
+        );
         setRangeResults((prev) =>
           prev?.map((r) => (r.slideId === s.id ? { ...r, status: "running" } : r)) ?? prev,
         );
@@ -456,15 +471,69 @@ function SlidesSection({
               r.slideId === s.id ? { ...r, status: "error", error: (e as Error).message } : r,
             ) ?? prev,
           );
+          continue;
+        }
+
+        if (opts.withIllustration) {
+          setRangeStatus(
+            `${opts.label} ${i + 1}/${targets.length} — generating illustration for "${s.title}"…`,
+          );
+          setRangeResults((prev) =>
+            prev?.map((r) => (r.slideId === s.id ? { ...r, illStatus: "running" } : r)) ?? prev,
+          );
+          try {
+            const ill = await runIll({ data: { slideIds: [s.id] } });
+            const row = ill.results?.[0];
+            if (row?.error || !row?.url) {
+              throw new Error(row?.error ?? "No image returned");
+            }
+            setRangeResults((prev) =>
+              prev?.map((r) => (r.slideId === s.id ? { ...r, illStatus: "ok" } : r)) ?? prev,
+            );
+          } catch (e) {
+            setRangeResults((prev) =>
+              prev?.map((r) =>
+                r.slideId === s.id
+                  ? { ...r, illStatus: "error", illError: (e as Error).message }
+                  : r,
+              ) ?? prev,
+            );
+          }
         }
       }
-      setRangeStatus(`Done — regenerated ${targets.length} slide${targets.length === 1 ? "" : "s"}.`);
+      setRangeStatus(
+        `Done — processed ${targets.length} slide${targets.length === 1 ? "" : "s"}.`,
+      );
       await onChanged();
     } catch (e) {
       setErr((e as Error).message);
     } finally {
       setRangeBusy(false);
     }
+  }
+
+  async function regenerateRange() {
+    const lo = Math.max(1, Math.min(fromIdx, toIdx));
+    const hi = Math.max(1, Math.max(fromIdx, toIdx));
+    const targets = [...slides]
+      .sort((a, b) => a.idx - b.idx)
+      .filter((s) => s.idx >= lo && s.idx <= hi);
+    await regenerateSlides(targets, {
+      withIllustration: alsoIllustrate,
+      label: `Range ${lo}–${hi}`,
+    });
+  }
+
+  async function regenerateAllRemaining() {
+    const targets = [...slides].sort((a, b) => a.idx - b.idx).filter((s) => {
+      const needsNarration = !s.narration_text || s.narration_text.trim().length === 0;
+      const needsIll = alsoIllustrate && !s.illustration_url;
+      return needsNarration || needsIll;
+    });
+    await regenerateSlides(targets, {
+      withIllustration: alsoIllustrate,
+      label: "Remaining",
+    });
   }
 
   async function handleDeck(file: File, replace: boolean) {
@@ -620,18 +689,68 @@ function SlidesSection({
               onChange={(e) => e.target.files?.[0] && handleDeck(e.target.files[0], false)}
             />
           </label>
-          {slides.length > 0 && (
-            <button
-              onClick={() => regenerateFirstN(Math.min(10, slides.length))}
-              disabled={rangeBusy}
-              className="rounded-md border border-sky-400/40 bg-sky-500/10 px-3 py-1.5 text-xs text-sky-200 hover:bg-sky-500/20 disabled:opacity-50"
-              title="Strict per-slide regeneration. One Gemini call per slide. No silent fallback."
-            >
-              {rangeBusy ? "Regenerating first 10…" : "↻ Regenerate first 10 (1 slide / call)"}
-            </button>
-          )}
         </div>
       </div>
+
+      {slides.length > 0 && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-sky-400/30 bg-sky-500/5 p-2 text-xs">
+          <span className="font-semibold text-sky-200">Per-slide regen:</span>
+          <label className="flex items-center gap-1 text-slate-300">
+            From
+            <input
+              type="number"
+              min={1}
+              max={slides.length}
+              value={fromIdx}
+              disabled={rangeBusy}
+              onChange={(e) => setFromIdx(Math.max(1, Number(e.target.value) || 1))}
+              className="w-16 rounded border border-slate-700 bg-slate-900 px-1.5 py-1 text-slate-100"
+            />
+          </label>
+          <label className="flex items-center gap-1 text-slate-300">
+            To
+            <input
+              type="number"
+              min={1}
+              max={slides.length}
+              value={toIdx}
+              disabled={rangeBusy}
+              onChange={(e) => setToIdx(Math.max(1, Number(e.target.value) || 1))}
+              className="w-16 rounded border border-slate-700 bg-slate-900 px-1.5 py-1 text-slate-100"
+            />
+          </label>
+          <label className="flex items-center gap-1.5 text-slate-300">
+            <input
+              type="checkbox"
+              checked={alsoIllustrate}
+              disabled={rangeBusy}
+              onChange={(e) => setAlsoIllustrate(e.target.checked)}
+            />
+            Also generate illustration (Gemini image)
+          </label>
+          <button
+            onClick={regenerateRange}
+            disabled={rangeBusy}
+            className="rounded-md border border-sky-400/40 bg-sky-500/10 px-3 py-1.5 text-sky-200 hover:bg-sky-500/20 disabled:opacity-50"
+            title="Regenerate the slide range you picked, one slide at a time."
+          >
+            ↻ Regenerate range
+          </button>
+          <button
+            onClick={regenerateAllRemaining}
+            disabled={rangeBusy}
+            className="rounded-md border border-emerald-400/40 bg-emerald-500/10 px-3 py-1.5 text-emerald-200 hover:bg-emerald-500/20 disabled:opacity-50"
+            title="Walks every slide missing narration (or illustration if checked)."
+          >
+            ⟳ Regenerate all remaining
+          </button>
+          <span className="text-slate-400">
+            ({slides.length} slides ·{" "}
+            {slides.filter((s) => !s.narration_text).length} missing narration ·{" "}
+            {slides.filter((s) => !s.illustration_url).length} missing illustration)
+          </span>
+        </div>
+      )}
 
       {progress && (
         <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
@@ -694,6 +813,12 @@ function SlidesSection({
                       </>
                     )}
                     {r.status === "error" && <span className="text-red-300">✗ {r.error}</span>}
+                    {r.illStatus === "pending" && <span className="text-slate-500">· img queued</span>}
+                    {r.illStatus === "running" && <span className="text-fuchsia-300">· 🎨 image…</span>}
+                    {r.illStatus === "ok" && <span className="text-fuchsia-300">· 🎨 image ✓</span>}
+                    {r.illStatus === "error" && (
+                      <span className="text-red-300" title={r.illError}>· image ✗</span>
+                    )}
                   </div>
                   {isOpen && r.scenes && (
                     <div className="space-y-3 border-t border-slate-800 px-3 py-3">
