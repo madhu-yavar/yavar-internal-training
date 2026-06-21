@@ -1319,7 +1319,9 @@ function GenerateSection({
   const [perSlide, setPerSlide] = useState<Array<{ idx: number; title: string; state: "pending" | "running" | "ok" | "error"; sceneCount?: number; error?: string }>>([]);
   const runRegenOne = useServerFn(regenerateSlideNarration);
 
-  const missingNarration = slides.filter((s) => !s.narration_text || s.narration_text.trim().length < 4);
+  const hasGeneratedScenes = (s: Slide) =>
+    !!s.narration_text && s.narration_text.trim().length >= 4 && !!s.body_md && s.body_md.includes("learning-scenes-v1");
+  const missingNarration = slides.filter((s) => !hasGeneratedScenes(s));
   const hasSlides = slides.length > 0;
   const hasQuiz = quiz.length > 0;
   const ready = hasSlides && hasQuiz && missingNarration.length === 0;
@@ -1339,11 +1341,11 @@ function GenerateSection({
     try {
       const allSorted = [...slides].sort((a, b) => a.idx - b.idx);
       // Resume: skip slides that already have narration generated
-      const workingSlides = allSorted.filter((s) => !s.narration_text || s.narration_text.trim().length < 4);
+      const workingSlides = allSorted.filter((s) => !hasGeneratedScenes(s));
       const skipped = allSorted.length - workingSlides.length;
       setPerSlide([
         ...allSorted
-          .filter((s) => s.narration_text && s.narration_text.trim().length >= 4)
+          .filter((s) => hasGeneratedScenes(s))
           .map((s) => ({ idx: s.idx, title: s.title, state: "ok" as const })),
         ...workingSlides.map((s) => ({ idx: s.idx, title: s.title, state: "pending" as const })),
       ]);
