@@ -50,31 +50,7 @@ const SCENE_OUTPUT_CONTRACT = `
 
 SCENE OUTPUT CONTRACT — ignore any older template instructions that ask for narrations/keywords only.
 Return exactly one JSON object with this shape and no markdown:
-{
-  "slides": [
-    {
-      "sourceSlideIdx": 0,
-      "scenes": [
-        {
-          "concept": "short concept name",
-          "intro": "one direct teaching sentence",
-          "analogy": { "caption": "human analogy", "nodes": ["start", "middle", "end"] },
-          "example": { "caption": "real-world example", "nodes": ["input", "action", "outcome"] },
-          "technical": { "caption": "technical pipeline", "nodes": ["input", "processing", "model", "output"] },
-          "takeaway": "one memorable sentence",
-          "narration": {
-            "intro": "25-45 spoken words",
-            "analogy": "25-45 spoken words",
-            "example": "25-45 spoken words",
-            "technical": "25-45 spoken words",
-            "takeaway": "25-45 spoken words"
-          },
-          "keywords": ["data", "model"]
-        }
-      ]
-    }
-  ]
-}`;
+{ "slides": [ { "sourceSlideIdx": 0, "scenes": [ { "concept": "short concept name", "intro": "one direct teaching sentence", "analogy": { "caption": "human analogy", "nodes": ["start", "middle", "end"] }, "example": { "caption": "real-world example", "nodes": ["input", "action", "outcome"] }, "technical": { "caption": "technical pipeline", "nodes": ["input", "processing", "model", "output"] }, "takeaway": "one memorable sentence", "narration": { "intro": "25-45 spoken words", "analogy": "25-45 spoken words", "example": "25-45 spoken words", "technical": "25-45 spoken words", "takeaway": "25-45 spoken words" }, "keywords": ["data", "model"] } ] } ] }`;
 
 type CourseCfg = {
   tone: string;
