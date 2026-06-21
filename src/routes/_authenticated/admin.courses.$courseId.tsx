@@ -1315,7 +1315,9 @@ function GenerateSection({
   const [busy, setBusy] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [lastModel, setLastModel] = useState<string | null>(null);
-  const runNarrations = useServerFn(generateNarrations);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [perSlide, setPerSlide] = useState<Array<{ idx: number; title: string; state: "pending" | "running" | "ok" | "error"; sceneCount?: number; error?: string }>>([]);
+  const runRegenOne = useServerFn(regenerateSlideNarration);
 
   const missingNarration = slides.filter((s) => !s.narration_text || s.narration_text.trim().length < 4);
   const hasSlides = slides.length > 0;
@@ -1335,54 +1337,46 @@ function GenerateSection({
       return;
     }
     try {
-      const { embedScenes, stripScenes } = await import("@/lib/learningScenes");
-      let workingSlides = [...slides].sort((a, b) => a.idx - b.idx);
-      setBusy(`Generating teaching scenes for ${workingSlides.length} slide(s) with admin prompt…`);
-      const res = await runNarrations({
-        data: {
-          courseTitle: course.title,
-          courseId: course.id,
-          slides: workingSlides.map((s) => ({
-            title: s.title,
-            bullets: stripScenes(stripGeneratedMaterial(s.body_md))
-              .split("\n")
-              .map((l) => l.replace(/^[-*]\s*/, "").trim())
-              .filter(Boolean),
-          })),
-        },
-      });
-      setLastModel(res.modelUsed === "gemini-3.1-pro" ? "Gemini 3.1 Pro" : "Gemini Flash fallback");
+      const workingSlides = [...slides].sort((a, b) => a.idx - b.idx);
+      setPerSlide(workingSlides.map((s) => ({ idx: s.idx, title: s.title, state: "pending" })));
+      setProgress({ done: 0, total: workingSlides.length });
 
       let totalScenes = 0;
+      let okCount = 0;
+      let errCount = 0;
+
       for (let i = 0; i < workingSlides.length; i++) {
         const s = workingSlides[i];
-        const slideScenes = res.scenes?.[i]?.scenes ?? [];
-        totalScenes += slideScenes.length;
-        const narration = res.narrations[i] ?? "";
-        const cleanBody = stripScenes(stripGeneratedMaterial(s.body_md));
-        const newBody = slideScenes.length > 0 ? embedScenes(cleanBody, slideScenes) : cleanBody;
-        const { error } = await supabase
-          .from("slides")
-          .update({
-            narration_text: narration,
-            icon_keywords: res.keywords?.[i] ?? [],
-            body_md: newBody,
-          })
-          .eq("id", s.id);
-        if (error) throw error;
-        setBusy(`Saved scenes for slide ${i + 1} of ${workingSlides.length}…`);
+        setBusy(`Slide ${i + 1}/${workingSlides.length} — "${s.title}"…`);
+        setPerSlide((prev) => prev.map((r, j) => (j === i ? { ...r, state: "running" } : r)));
+        try {
+          const res = await runRegenOne({ data: { slideId: s.id } });
+          totalScenes += res.sceneCount ?? 0;
+          okCount += 1;
+          setLastModel(res.modelUsed === "gemini-3.1-pro" ? "Gemini 3.1 Pro" : "Gemini Flash fallback");
+          setPerSlide((prev) =>
+            prev.map((r, j) => (j === i ? { ...r, state: "ok", sceneCount: res.sceneCount } : r)),
+          );
+        } catch (e) {
+          errCount += 1;
+          setPerSlide((prev) =>
+            prev.map((r, j) => (j === i ? { ...r, state: "error", error: (e as Error).message } : r)),
+          );
+        }
+        setProgress({ done: i + 1, total: workingSlides.length });
       }
 
       setBusy("Publishing learner material…");
-      if (!course.published) await onSaveCourse({ published: true });
+      if (!course.published && errCount === 0) await onSaveCourse({ published: true });
       await onChanged();
       setStatus(
-        `Generated ${totalScenes} teaching scenes from ${workingSlides.length} source slide(s) using ${res.modelUsed === "gemini-3.1-pro" ? "Gemini 3.1 Pro" : "Gemini Flash"}. ${quiz.length} quiz questions attached.`,
+        `Generated ${totalScenes} teaching scenes across ${okCount}/${workingSlides.length} slides${errCount ? ` (${errCount} failed)` : ""}. ${quiz.length} quiz questions attached.`,
       );
     } catch (e) {
       setErr((e as Error).message);
     } finally {
       setBusy(null);
+      setProgress(null);
     }
   }
 
