@@ -153,6 +153,48 @@ export type Database = {
           },
         ]
       }
+      generation_logs: {
+        Row: {
+          course_id: string | null
+          created_at: string
+          detail: string | null
+          duration_ms: number | null
+          id: string
+          kind: string
+          model: string
+          provider: string
+          slide_count: number | null
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          course_id?: string | null
+          created_at?: string
+          detail?: string | null
+          duration_ms?: number | null
+          id?: string
+          kind: string
+          model: string
+          provider: string
+          slide_count?: number | null
+          status: string
+          user_id?: string | null
+        }
+        Update: {
+          course_id?: string | null
+          created_at?: string
+          detail?: string | null
+          duration_ms?: number | null
+          id?: string
+          kind?: string
+          model?: string
+          provider?: string
+          slide_count?: number | null
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       prompt_templates: {
         Row: {
           id: string
