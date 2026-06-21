@@ -294,7 +294,12 @@ export const regenerateSlideNarration = createServerFn({ method: "POST" })
       await supabaseAdmin.from("slides").update({ generation_hint: data.hint || null }).eq("id", data.slideId);
     }
 
-    const { text, modelUsed } = await generateJson(prompt);
+    const { text, modelUsed } = await generateJson(prompt, {
+      userId: context.userId,
+      courseId: slide.course_id as string,
+      kind: "slide-regenerate",
+      slideCount: 1,
+    });
     const parsed = extractJson<{ narrations: string[]; keywords?: string[][] }>(text);
     const narration = (parsed.narrations?.[0] ?? "").trim();
     const keywords = Array.isArray(parsed.keywords?.[0])
