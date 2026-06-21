@@ -82,16 +82,15 @@ export function LearningScene({
   const showTechnical = !!scene.technical && phaseIdx >= 3;
   const showTakeaway = phaseIdx >= 4;
 
-  // illustrationUrl (auto-generated thumbnail) is intentionally not rendered —
-  // the admin-uploaded slideImageUrl is the visual story.
+  // Hero image now renders in its own pane (left of the narration column),
+  // so neither slideImageUrl nor the legacy illustrationUrl renders here.
   void illustrationUrl;
+  void slideImageUrl;
 
   return (
     <div className="space-y-4">
       <style>{`
         @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-        @keyframes heroIn{from{opacity:0;transform:scale(.985) translateY(8px)}to{opacity:1;transform:none}}
-        @keyframes kenBurns{0%{transform:scale(1) translate(0,0)}100%{transform:scale(1.04) translate(-1%,-1%)}}
       `}</style>
 
       <div className="min-w-0">
@@ -106,34 +105,7 @@ export function LearningScene({
         )}
       </div>
 
-      {/* Hero: admin-uploaded slide image, presented as the visual centerpiece of the story */}
-      {slideImageUrl ? (
-        <div
-          key={slideImageUrl}
-          className={`group relative overflow-hidden rounded-3xl border p-[1px] shadow-2xl transition-all ${ring} border-transparent`}
-          style={{ animation: "heroIn .6s ease-out both" }}
-        >
-          <div className="relative overflow-hidden rounded-[calc(1.5rem-1px)] bg-slate-950">
-            <img
-              src={slideImageUrl}
-              alt={sourceSlideTitle || scene.concept}
-              className="block max-h-[460px] w-full object-contain"
-              style={{ animation: speaking ? "kenBurns 18s ease-out both" : undefined }}
-            />
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/0 to-slate-950/0" />
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 p-4 sm:p-5">
-              <div className={`text-[10px] uppercase tracking-[0.3em] ${textAccent}`}>
-                {PHASE_LABELS[phase]}
-              </div>
-              <p className="mt-1 line-clamp-3 text-sm font-medium leading-snug text-slate-100 sm:text-base">
-                {scene.intro}
-              </p>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {/* Intro card — repeats the line as a readable block under the hero (or solo when no image) */}
+      {/* Intro card */}
       <div className={`rounded-2xl border p-5 transition-all ${phase === "intro" && speaking ? `ring-2 ${ring} border-transparent` : "border-white/10 bg-slate-950/40"}`}>
         <div className={`text-[10px] uppercase tracking-[0.3em] ${textAccent}`}>Introduction</div>
         <p className="mt-2 text-base leading-relaxed text-slate-100 sm:text-lg">{scene.intro}</p>
