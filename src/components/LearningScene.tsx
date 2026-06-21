@@ -95,6 +95,7 @@ export function LearningScene({ slideIdx, title, bullets, revealed, speaking, cu
   if (mode === "flow") {
     return (
       <div>
+        {illustration}
         <div className={`text-[10px] uppercase tracking-[0.3em] ${textAccent}`}>{label} · Process</div>
         <p className="mt-2 text-sm text-slate-300">Follow the stages from left to right — each step builds on the last.</p>
         <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -123,6 +124,7 @@ export function LearningScene({ slideIdx, title, bullets, revealed, speaking, cu
   if (mode === "grid") {
     return (
       <div>
+        {illustration}
         <div className={`text-[10px] uppercase tracking-[0.3em] ${textAccent}`}>{label}</div>
         <p className="mt-2 text-sm text-slate-300">Each tile is one idea — tap into them one at a time.</p>
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
@@ -155,6 +157,7 @@ export function LearningScene({ slideIdx, title, bullets, revealed, speaking, cu
     const focus = bullets[focusIdx] ?? bullets[0];
     return (
       <div>
+        {illustration}
         <div className={`text-[10px] uppercase tracking-[0.3em] ${textAccent}`}>{label} · In focus</div>
         <div className={`mt-4 rounded-2xl border p-6 ring-2 ${ringAccent}`}>
           <div className={`text-[11px] uppercase tracking-[0.25em] ${textAccent}`}>Idea {focusIdx + 1} of {bullets.length}</div>
@@ -186,6 +189,7 @@ export function LearningScene({ slideIdx, title, bullets, revealed, speaking, cu
   // takeaway
   return (
     <div>
+      {illustration}
       <div className={`text-[10px] uppercase tracking-[0.3em] ${textAccent}`}>{label}</div>
       <h3 className="mt-2 text-xl font-bold text-slate-100">What to remember about {title}</h3>
       <ul className="mt-5 space-y-2.5">
