@@ -388,8 +388,26 @@ function SlidesSection({
   const [busy, setBusy] = useState<string | null>(null);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [autoNarrate, setAutoNarrate] = useState(true);
+  const [rangeBusy, setRangeBusy] = useState(false);
+  const [rangeResults, setRangeResults] = useState<Awaited<ReturnType<typeof regenerateSlideRange>>["results"] | null>(null);
   const runNarrations = useServerFn(generateNarrations);
   const runDescription = useServerFn(generateCourseDescription);
+  const runRange = useServerFn(regenerateSlideRange);
+
+  async function regenerateFirstN(n: number) {
+    setErr(null);
+    setRangeBusy(true);
+    setRangeResults(null);
+    try {
+      const res = await runRange({ data: { courseId, startIdx: 0, endIdx: n - 1 } });
+      setRangeResults(res.results);
+      await onChanged();
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setRangeBusy(false);
+    }
+  }
 
   async function handleDeck(file: File, replace: boolean) {
     setErr(null);
