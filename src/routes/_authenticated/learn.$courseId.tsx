@@ -108,6 +108,7 @@ function CoursePlayer() {
   const [completed, setCompleted] = useState(false);
   const [quizOpen, setQuizOpen] = useState(false);
   const [musicOn, setMusicOn] = useState(false);
+  const [navOpen, setNavOpen] = useState(true);
   const [speed, setSpeed] = useState<number>(1);
   const playerRef = useRef<WsTtsPlayer | null>(null);
   const musicRef = useRef<AmbientMusic | null>(null);
