@@ -57,7 +57,7 @@ type Quiz = {
   difficulty?: string | null;
 };
 
-const VOICES = ["default", "alloy", "verse", "shimmer", "fable", "nova"];
+const VOICES = ["af_heart"];
 const LANGS = [
   { code: "en", label: "English" },
   { code: "hi", label: "Hindi" },
@@ -232,7 +232,7 @@ function MetadataSection({ course, onSave }: { course: Course; onSave: (p: Parti
             className="input"
           />
         </Field>
-        <Field label="Voice">
+        <Field label="Voice (Yavar TTS only)">
           <select
             value={voice}
             onChange={(e) => {
