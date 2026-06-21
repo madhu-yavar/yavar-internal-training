@@ -558,23 +558,13 @@ function SlidesSection({
         }
       }
 
-      // Optional AI narration for slides whose notes are empty
-      let aiNarrations: string[] = parsed.map((p) => p.notes);
-      if (autoNarrate) {
-        setBusy("Generating narration with AI…");
-        try {
-          const res = await runNarrations({
-            data: {
-              courseTitle,
-              courseId,
-              slides: parsed.map((p) => ({ title: p.title, bullets: p.bullets })),
-            },
-          });
-          aiNarrations = parsed.map((_, i) => res.narrations[i] || "");
-        } catch (e) {
-          console.warn("narration failed, continuing without AI", e);
-        }
-      }
+      // Speaker notes from the deck become the initial narration.
+      // AI narration is NOT generated in this upload request — that used to
+      // loop every slide inside ONE server call and the worker would time out,
+      // leaving the upload "stuck". AI scenes/narration are now produced
+      // per-slide via the regenerate flow (kicked off automatically below
+      // when autoNarrate is on).
+      const aiNarrations: string[] = parsed.map((p) => p.notes);
 
       if (replace) {
         setBusy("Removing existing slides…");
@@ -587,6 +577,7 @@ function SlidesSection({
       }
       const startIdx = replace ? 0 : slides.length;
 
+      const insertedIds: string[] = [];
       setProgress({ done: 0, total: parsed.length });
       for (let i = 0; i < parsed.length; i++) {
         const p = parsed[i];
@@ -599,18 +590,42 @@ function SlidesSection({
           if (up.error) throw up.error;
         }
         const body_md = p.bullets.map((b) => `- ${b}`).join("\n");
-        const ins = await supabase.from("slides").insert({
-          course_id: courseId,
-          idx: startIdx + i,
-          title: p.title || `Slide ${startIdx + i + 1}`,
-          body_md: body_md || null,
-          image_url: imagePath,
-          narration_text: aiNarrations[i] || null,
-        });
+        const ins = await supabase
+          .from("slides")
+          .insert({
+            course_id: courseId,
+            idx: startIdx + i,
+            title: p.title || `Slide ${startIdx + i + 1}`,
+            body_md: body_md || null,
+            image_url: imagePath,
+            narration_text: aiNarrations[i] || null,
+          })
+          .select("id")
+          .single();
         if (ins.error) throw ins.error;
+        if (ins.data?.id) insertedIds.push(ins.data.id);
         setProgress({ done: i + 1, total: parsed.length });
       }
       await onChanged();
+
+      // Per-slide AI generation, AFTER upload completes. Each slide is its
+      // own request → no worker timeout. Safe to skip if the user unticked
+      // "Auto-narrate".
+      if (autoNarrate && insertedIds.length) {
+        setBusy(null);
+        setProgress(null);
+        const fresh = (await supabase
+          .from("slides")
+          .select("*")
+          .in("id", insertedIds)
+          .order("idx", { ascending: true })).data as Slide[] | null;
+        if (fresh?.length) {
+          await regenerateSlides(fresh, {
+            withIllustration: alsoIllustrate,
+            label: "Auto-narrate",
+          });
+        }
+      }
     } catch (e) {
       setErr((e as Error).message);
     } finally {
