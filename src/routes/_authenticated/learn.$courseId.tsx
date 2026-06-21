@@ -34,6 +34,8 @@ type Slide = {
   body_md: string | null;
   image_url: string | null;
   narration_text: string | null;
+  illustration_url?: string | null;
+  icon_keywords?: string[] | null;
 };
 
 type Cue = { id: string; idx: number; start_ms: number; end_ms: number; text: string };
@@ -111,7 +113,10 @@ function CoursePlayer() {
       setSlides(orderedSlides);
       setCues((cu as Cue[]) ?? []);
       setQuiz((q as Quiz[]) ?? []);
-      const paths = orderedSlides.map((slide) => slide.image_url).filter((p): p is string => !!p);
+      const paths = [
+        ...orderedSlides.map((s) => s.image_url),
+        ...orderedSlides.map((s) => s.illustration_url),
+      ].filter((p): p is string => !!p);
       setSignedImages(paths.length ? await signMany(paths, 3600) : {});
       setLoading(false);
     })();
@@ -346,6 +351,8 @@ function CoursePlayer() {
                 speaking={speaking}
                 currentLine={currentLine || stripGeneratedMaterial(slide.body_md) || ""}
                 accent={accent}
+                illustrationUrl={slide.illustration_url ? (signedImages[slide.illustration_url] || slide.illustration_url) : null}
+                iconKeywords={slide.icon_keywords ?? null}
               />
             </div>
           </div>

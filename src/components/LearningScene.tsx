@@ -1,4 +1,6 @@
 import { useMemo } from "react";
+import * as LucideIcons from "lucide-react";
+import { iconForKeyword } from "@/lib/iconMap";
 
 type Props = {
   slideIdx: number;
@@ -8,9 +10,26 @@ type Props = {
   speaking: boolean;
   currentLine: string;
   accent: string;
+  illustrationUrl?: string | null;
+  iconKeywords?: string[] | null;
 };
 
-const ICONS = ["✦", "◆", "▲", "●", "■", "◇", "★", "❖"];
+const FALLBACK_ICONS = ["sparkles", "diamond", "triangle", "circle", "square", "star", "zap", "flame"];
+
+function toPascal(name: string) {
+  return name.split("-").map((s) => s.charAt(0).toUpperCase() + s.slice(1)).join("");
+}
+
+function LucideIcon({ name, className }: { name: string; className?: string }) {
+  const Comp = (LucideIcons as unknown as Record<string, React.ComponentType<{ className?: string; size?: number }>>)[toPascal(name)]
+    ?? LucideIcons.Sparkles;
+  return <Comp className={className} />;
+}
+
+function iconAt(i: number, keywords?: string[] | null) {
+  const kw = keywords?.[i % (keywords?.length || 1)];
+  return iconForKeyword(kw ?? FALLBACK_ICONS[i % FALLBACK_ICONS.length]);
+}
 
 const SCENE_LABELS = ["Concept", "How it works", "Capabilities", "Example", "Key takeaway"];
 
@@ -41,7 +60,7 @@ const ACCENT_SOLID: Record<string, string> = {
   violet: "bg-violet-400 text-white",
 };
 
-export function LearningScene({ slideIdx, title, bullets, revealed, speaking, currentLine, accent }: Props) {
+export function LearningScene({ slideIdx, title, bullets, revealed, speaking, currentLine, accent, illustrationUrl, iconKeywords }: Props) {
   const mode = useMemo<"hero" | "flow" | "grid" | "spotlight" | "takeaway">(() => {
     if (bullets.length === 0) return "hero";
     if (bullets.length === 1) return "spotlight";
@@ -54,10 +73,19 @@ export function LearningScene({ slideIdx, title, bullets, revealed, speaking, cu
   const ringAccent = ACCENT_RING[accent] ?? "ring-amber-400/40 bg-amber-500/10";
   const solidAccent = ACCENT_SOLID[accent] ?? "bg-amber-400 text-slate-900";
 
+  const illustration = illustrationUrl ? (
+    <img
+      src={illustrationUrl}
+      alt=""
+      className="mx-auto mb-4 max-h-48 w-auto rounded-2xl border border-white/10 bg-white/5 object-contain"
+    />
+  ) : null;
+
   if (bullets.length === 0) {
     return (
       <div className="flex min-h-[280px] flex-col items-center justify-center text-center">
         <div className={`text-[10px] uppercase tracking-[0.3em] ${textAccent}`}>{label}</div>
+        {illustration}
         <h3 className="mt-3 max-w-2xl text-3xl font-bold leading-tight sm:text-4xl">{title}</h3>
         <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-300">{currentLine}</p>
       </div>
@@ -67,6 +95,7 @@ export function LearningScene({ slideIdx, title, bullets, revealed, speaking, cu
   if (mode === "flow") {
     return (
       <div>
+        {illustration}
         <div className={`text-[10px] uppercase tracking-[0.3em] ${textAccent}`}>{label} · Process</div>
         <p className="mt-2 text-sm text-slate-300">Follow the stages from left to right — each step builds on the last.</p>
         <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -95,6 +124,7 @@ export function LearningScene({ slideIdx, title, bullets, revealed, speaking, cu
   if (mode === "grid") {
     return (
       <div>
+        {illustration}
         <div className={`text-[10px] uppercase tracking-[0.3em] ${textAccent}`}>{label}</div>
         <p className="mt-2 text-sm text-slate-300">Each tile is one idea — tap into them one at a time.</p>
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
@@ -107,8 +137,12 @@ export function LearningScene({ slideIdx, title, bullets, revealed, speaking, cu
                 className={`group relative overflow-hidden rounded-2xl border p-5 transition-all duration-500 ${visible ? "translate-y-0 opacity-100 scale-100" : "translate-y-4 opacity-0 scale-95"} ${active ? `ring-2 ${ringAccent} border-transparent` : "border-white/10 bg-slate-950/60"}`}
                 style={{ transitionDelay: `${i * 100}ms` }}
               >
-                <div className={`absolute -right-6 -top-6 text-7xl opacity-10 ${textAccent}`}>{ICONS[i % ICONS.length]}</div>
-                <div className={`grid h-10 w-10 place-items-center rounded-xl text-lg ${active ? solidAccent : `${ringAccent} ring-1`}`}>{ICONS[i % ICONS.length]}</div>
+                <div className={`absolute -right-4 -top-4 opacity-10 ${textAccent}`}>
+                  <LucideIcon name={iconAt(i, iconKeywords)} className="h-20 w-20" />
+                </div>
+                <div className={`grid h-10 w-10 place-items-center rounded-xl ${active ? solidAccent : `${ringAccent} ring-1`}`}>
+                  <LucideIcon name={iconAt(i, iconKeywords)} className="h-5 w-5" />
+                </div>
                 <div className="mt-3 text-[15px] font-semibold leading-snug text-slate-100">{b}</div>
               </div>
             );
@@ -123,6 +157,7 @@ export function LearningScene({ slideIdx, title, bullets, revealed, speaking, cu
     const focus = bullets[focusIdx] ?? bullets[0];
     return (
       <div>
+        {illustration}
         <div className={`text-[10px] uppercase tracking-[0.3em] ${textAccent}`}>{label} · In focus</div>
         <div className={`mt-4 rounded-2xl border p-6 ring-2 ${ringAccent}`}>
           <div className={`text-[11px] uppercase tracking-[0.25em] ${textAccent}`}>Idea {focusIdx + 1} of {bullets.length}</div>
@@ -154,6 +189,7 @@ export function LearningScene({ slideIdx, title, bullets, revealed, speaking, cu
   // takeaway
   return (
     <div>
+      {illustration}
       <div className={`text-[10px] uppercase tracking-[0.3em] ${textAccent}`}>{label}</div>
       <h3 className="mt-2 text-xl font-bold text-slate-100">What to remember about {title}</h3>
       <ul className="mt-5 space-y-2.5">

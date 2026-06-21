@@ -98,6 +98,9 @@ function AdminHome() {
             <h1 className="text-lg font-semibold">Course administration</h1>
           </div>
           <div className="flex items-center gap-2">
+            <Link to="/admin/settings" className="rounded-md border border-slate-700 px-3 py-1.5 text-sm hover:bg-slate-800">
+              ⚙ Settings
+            </Link>
             <Link to="/admin/requests" className="relative rounded-md border border-amber-400/40 bg-amber-500/10 px-3 py-1.5 text-sm text-amber-200 hover:bg-amber-500/20">
               💬 Requests
               {openRequests > 0 && (
