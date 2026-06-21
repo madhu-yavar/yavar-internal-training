@@ -190,7 +190,12 @@ export const generateNarrations = createServerFn({ method: "POST" })
       deck: deckOutline,
     });
 
-    const { text, modelUsed } = await generateJson(prompt);
+    const { text, modelUsed } = await generateJson(prompt, {
+      userId: context.userId,
+      courseId: data.courseId ?? null,
+      kind: "narrations",
+      slideCount: data.slides.length,
+    });
     const parsed = extractJson<{ narrations: string[]; keywords?: string[][] }>(text);
     if (!Array.isArray(parsed.narrations)) throw new Error("Bad AI response shape");
     const narrations = data.slides.map((_, i) => (parsed.narrations[i] ?? "").trim());
