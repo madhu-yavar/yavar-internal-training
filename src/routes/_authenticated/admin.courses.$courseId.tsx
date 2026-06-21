@@ -103,7 +103,10 @@ function CourseEditor() {
 
   // Sign image URLs
   useEffect(() => {
-    const paths = slides.map((s) => s.image_url).filter((p): p is string => !!p && !/^https?:\/\//i.test(p));
+    const paths = [
+      ...slides.map((s) => s.image_url),
+      ...slides.map((s) => s.illustration_url),
+    ].filter((p): p is string => !!p && !/^https?:\/\//i.test(p));
     if (paths.length === 0) {
       setSignedImages({});
       return;
