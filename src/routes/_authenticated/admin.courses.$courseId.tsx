@@ -562,6 +562,16 @@ function SlidesSection({
               onChange={(e) => e.target.files?.[0] && handleDeck(e.target.files[0], false)}
             />
           </label>
+          {slides.length > 0 && (
+            <button
+              onClick={() => regenerateFirstN(Math.min(10, slides.length))}
+              disabled={rangeBusy}
+              className="rounded-md border border-sky-400/40 bg-sky-500/10 px-3 py-1.5 text-xs text-sky-200 hover:bg-sky-500/20 disabled:opacity-50"
+              title="Strict per-slide regeneration. One Gemini call per slide. No silent fallback."
+            >
+              {rangeBusy ? "Regenerating first 10…" : "↻ Regenerate first 10 (1 slide / call)"}
+            </button>
+          )}
         </div>
       </div>
 
@@ -571,6 +581,29 @@ function SlidesSection({
             className="h-full bg-amber-500 transition-all"
             style={{ width: `${(progress.done / progress.total) * 100}%` }}
           />
+        </div>
+      )}
+
+      {rangeResults && (
+        <div className="mt-3 rounded-xl border border-slate-700 bg-slate-950/60 p-3 text-xs">
+          <div className="mb-2 font-semibold text-slate-200">
+            Per-slide regeneration report ({rangeResults.filter((r) => r.ok).length} ok / {rangeResults.filter((r) => !r.ok).length} failed)
+          </div>
+          <ul className="space-y-1">
+            {rangeResults.map((r) => (
+              <li key={r.slideId} className="flex flex-wrap items-center gap-2">
+                <span className="w-8 text-slate-500">#{r.idx + 1}</span>
+                <span className="flex-1 truncate text-slate-300">{r.title}</span>
+                {r.ok ? (
+                  <span className="text-emerald-300">
+                    ✓ {r.sceneCount} scene{r.sceneCount === 1 ? "" : "s"} · {r.modelUsed === "gemini-3.1-pro" ? "Gemini 3.1 Pro" : "Gemini Flash"} · attempt {r.attempts}
+                  </span>
+                ) : (
+                  <span className="text-red-300">✗ {r.error}</span>
+                )}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
