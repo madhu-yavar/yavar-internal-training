@@ -686,7 +686,7 @@ function SlideRow({
             >
               {illBusy ? "Generating…" : illUrl ? "↻ Regenerate illustration" : "✨ Generate illustration"}
             </button>
-            {modelBadge && <span className="text-[10px] text-slate-400">via {modelBadge}</span>}
+            {modelBadge && <span className="text-[10px] text-amber-200">✓ {modelBadge}</span>}
             {s.icon_keywords && s.icon_keywords.length > 0 && (
               <span className="text-[10px] text-slate-500">icons: {s.icon_keywords.join(", ")}</span>
             )}
