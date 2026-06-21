@@ -195,6 +195,7 @@ function safeParseJson(text: string): unknown {
     return JSON.parse(text);
   } catch (firstErr) {
     const repaired = text
+      // eslint-disable-next-line no-control-regex
       .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "")
       .replace(/,\s*([}\]])/g, "$1")
       .replace(/"\s*\n\s*"/g, '" "');
@@ -212,7 +213,7 @@ function extractJson<T>(text: string): T {
 
   // Find first { or [ and the first balanced matching close. This ignores
   // accidental trailing prose or a second JSON object after the valid answer.
-  const startIdx = cleaned.search(/[\{\[]/);
+  const startIdx = cleaned.search(/[{[]/);
   if (startIdx === -1) throw new Error("AI did not return JSON");
   let depth = 0;
   let inStr = false;
