@@ -135,6 +135,7 @@ export const generateNarrations = createServerFn({ method: "POST" })
       .map((s, i) => `Slide ${i + 1}: ${s.title}\n${s.bullets.map((b) => `  - ${b}`).join("\n")}`)
       .join("\n\n");
     const prompt = renderTemplate(template, {
+      title: data.courseTitle,
       courseTitle: data.courseTitle,
       tone: cfg.tone,
       audience: cfg.audience,
@@ -221,6 +222,7 @@ export const regenerateSlideNarration = createServerFn({ method: "POST" })
     const template = cfg.prompt_override?.trim() || (await loadGlobalTemplate());
     const deckOutline = `Slide 1: ${slide.title}\n${bullets.map((b) => `  - ${b}`).join("\n")}`;
     let prompt = renderTemplate(template, {
+      title: course?.title ?? "this training",
       courseTitle: course?.title ?? "this training",
       tone: cfg.tone,
       audience: cfg.audience,
