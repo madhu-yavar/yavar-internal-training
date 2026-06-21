@@ -429,7 +429,7 @@ function TrainingPage() {
                   onClick={togglePlay}
                   className="rounded-md border border-amber-400/40 bg-amber-500/15 px-3 py-1 text-xs text-amber-100 hover:bg-amber-500/25"
                 >
-                  {playing ? "⏸ Pause" : ttsSupported ? "▶ Play" : "▶ Play"}
+                  {playing ? "⏸ Pause" : "▶ Play"}
                 </button>
                 <button
                   onClick={() => {
@@ -442,49 +442,16 @@ function TrainingPage() {
                   Reveal all
                 </button>
                 <select
-                  value={
-                    ttsSource === "browser"
-                      ? "__browser__"
-                      : `${ttsSource}:${ttsVoice}`
-                  }
+                  value={ttsVoice}
                   onChange={(e) => {
                     stopAll();
                     setPlaying(false);
-                    const v = e.target.value;
-                    if (v === "__browser__") {
-                      setTtsSource("browser");
-                    } else {
-                      const [src, voice] = v.split(":") as [
-                        "lovable" | "ws",
-                        string,
-                      ];
-                      setTtsSource(src);
-                      setTtsVoice(voice);
-                    }
+                    setTtsVoice(e.target.value);
                   }}
                   title="Choose narrator voice"
                   className="max-w-[50%] rounded-md border border-white/10 bg-slate-900 px-2 py-1 text-[11px] text-slate-200 hover:bg-white/10 focus:outline-none"
                 >
-                  <optgroup label="Yavar (self-hosted GPU)">
-                    <option value="ws:af_heart">🇮🇳 Heart (warm, female)</option>
-                    <option value="ws:af_bella">🇮🇳 Bella (female)</option>
-                    <option value="ws:af_nicole">🇮🇳 Nicole (female)</option>
-                    <option value="ws:af_sarah">🇮🇳 Sarah (female)</option>
-                    <option value="ws:am_michael">🇮🇳 Michael (male)</option>
-                    <option value="ws:am_adam">🇮🇳 Adam (male)</option>
-                  </optgroup>
-                  <optgroup label="Lovable AI (expressive)">
-                    <option value="lovable:shimmer">🎙 Ari – Shimmer</option>
-                    <option value="lovable:coral">🎙 Coral</option>
-                    <option value="lovable:sage">🎙 Sage</option>
-                    <option value="lovable:ballad">🎙 Ballad</option>
-                    <option value="lovable:verse">🎙 Verse</option>
-                    <option value="lovable:alloy">🎙 Alloy</option>
-                    <option value="lovable:ash">🎙 Ash</option>
-                  </optgroup>
-                  <optgroup label="Fallback">
-                    <option value="__browser__">🗣 Browser</option>
-                  </optgroup>
+                  <option value="af_heart">Yavar Heart</option>
                 </select>
 
                 <select
