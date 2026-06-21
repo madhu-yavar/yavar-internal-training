@@ -234,13 +234,33 @@ function extractJson<T>(text: string): T {
   // Strip markdown fences
   let cleaned = text.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
 
-  // Find first { or [ and matching last } or ]
+  // Find first { or [ and the first balanced matching close. This ignores
+  // accidental trailing prose or a second JSON object after the valid answer.
   const startIdx = cleaned.search(/[\{\[]/);
   if (startIdx === -1) throw new Error("AI did not return JSON");
-  const startChar = cleaned[startIdx];
-  const endChar = startChar === "[" ? "]" : "}";
-  const endIdx = cleaned.lastIndexOf(endChar);
-  if (endIdx === -1 || endIdx < startIdx) throw new Error("AI did not return JSON");
+  let depth = 0;
+  let inStr = false;
+  let esc = false;
+  let endIdx = -1;
+  for (let i = startIdx; i < cleaned.length; i++) {
+    const ch = cleaned[i];
+    if (inStr) {
+      if (esc) esc = false;
+      else if (ch === "\\") esc = true;
+      else if (ch === '"') inStr = false;
+      continue;
+    }
+    if (ch === '"') inStr = true;
+    else if (ch === "{" || ch === "[") depth++;
+    else if (ch === "}" || ch === "]") {
+      depth--;
+      if (depth === 0) {
+        endIdx = i;
+        break;
+      }
+    }
+  }
+  if (endIdx === -1) throw new Error("AI returned incomplete JSON");
   cleaned = cleaned.substring(startIdx, endIdx + 1);
 
   return safeParseJson(cleaned) as T;
