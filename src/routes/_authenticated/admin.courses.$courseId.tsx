@@ -425,7 +425,7 @@ function SlidesSection({
               slides: parsed.map((p) => ({ title: p.title, bullets: p.bullets })),
             },
           });
-          aiNarrations = parsed.map((p, i) => (p.notes && p.notes.length > 8 ? p.notes : res.narrations[i] || ""));
+          aiNarrations = parsed.map((_, i) => res.narrations[i] || "");
         } catch (e) {
           console.warn("narration failed, continuing without AI", e);
         }
