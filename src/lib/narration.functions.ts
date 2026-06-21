@@ -701,10 +701,7 @@ export const regenerateSlideRange = createServerFn({ method: "POST" })
 
     for (const slide of slides) {
       const cleanBody = stripScenes(slide.body_md as string | null);
-      const bullets = cleanBody
-        .split("\n")
-        .map((l) => l.replace(/^[-*]\s*/, "").trim())
-        .filter(Boolean);
+      const bullets = bulletsFromBody(cleanBody);
       try {
         const r = await generateScenesForSingleSlide({
           slide: { title: slide.title as string, bullets },
