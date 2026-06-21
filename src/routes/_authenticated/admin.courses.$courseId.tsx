@@ -561,73 +561,20 @@ function SlidesSection({
         </div>
       ) : (
         <ol className="mt-4 space-y-3">
-          {slides.map((s) => {
-            const url = s.image_url ? signedImages[s.image_url] || s.image_url : null;
-            return (
-              <li key={s.id} className="rounded-xl border border-slate-800 bg-slate-950/50 p-3">
-                <div className="flex gap-3">
-                  <div className="flex w-12 flex-col items-center gap-1">
-                    <span className="text-xs text-slate-500">#{s.idx + 1}</span>
-                    <button
-                      onClick={() => move(s, -1)}
-                      disabled={s.idx === 0}
-                      className="rounded border border-slate-700 px-1 text-xs disabled:opacity-30"
-                    >
-                      ↑
-                    </button>
-                    <button
-                      onClick={() => move(s, 1)}
-                      disabled={s.idx === slides.length - 1}
-                      className="rounded border border-slate-700 px-1 text-xs disabled:opacity-30"
-                    >
-                      ↓
-                    </button>
-                  </div>
-                  <div className="w-32 shrink-0 overflow-hidden rounded-md bg-slate-800">
-                    {url ? (
-                      <img src={url} alt={s.title} className="h-20 w-full object-cover" />
-                    ) : (
-                      <div className="flex h-20 items-center justify-center text-center text-[10px] text-slate-500">
-                        text-only
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 space-y-2">
-                    <input
-                      defaultValue={s.title}
-                      onBlur={(e) => e.target.value !== s.title && updateSlide(s.id, { title: e.target.value })}
-                      placeholder="Slide title"
-                      className="w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-sm font-medium"
-                    />
-                    <textarea
-                      defaultValue={stripGeneratedMaterial(s.body_md)}
-                      onBlur={(e) =>
-                        e.target.value !== stripGeneratedMaterial(s.body_md) &&
-                        updateSlide(s.id, { body_md: e.target.value || null })
-                      }
-                      placeholder="Bullets (markdown, one per line)"
-                      rows={3}
-                      className="w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-300"
-                    />
-                    <textarea
-                      defaultValue={s.narration_text ?? ""}
-                      onBlur={(e) =>
-                        e.target.value !== (s.narration_text ?? "") &&
-                        updateSlide(s.id, { narration_text: e.target.value || null })
-                      }
-                      placeholder="Narration (spoken aloud)"
-                      rows={2}
-                      className="w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-amber-200/80"
-                    />
-                  </div>
-                  <button
-                    onClick={() => deleteSlide(s)}
-                    className="self-start rounded-md border border-red-500/40 px-2 py-1 text-xs text-red-300 hover:bg-red-500/10"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </li>
+          {slides.map((s) => (
+            <SlideRow
+              key={s.id}
+              s={s}
+              slides={slides}
+              signedImages={signedImages}
+              onMove={move}
+              onDelete={deleteSlide}
+              onUpdate={updateSlide}
+              onChanged={onChanged}
+              setErr={setErr}
+            />
+          ))}
+        </ol>
             );
           })}
         </ol>
