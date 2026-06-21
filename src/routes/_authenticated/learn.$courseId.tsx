@@ -391,7 +391,7 @@ function CoursePlayer() {
           </aside>
 
           {/* CENTER: slide deck */}
-          <section className="relative flex h-[44vh] flex-col bg-slate-950 lg:h-full">
+          <section className="relative flex h-full min-h-0 flex-col bg-slate-950">
             <div className="absolute left-0 top-0 z-10 h-1 w-full bg-white/5">
               <div
                 className="h-full bg-amber-400 transition-all"
@@ -422,7 +422,7 @@ function CoursePlayer() {
           </section>
 
           {/* RIGHT: narration column */}
-          <section className="flex h-[56vh] min-h-0 flex-col border-t border-white/10 bg-slate-900/40 lg:h-full lg:border-l lg:border-t-0">
+          <section className="flex h-full min-h-0 flex-col border-t border-white/10 bg-slate-900/40 lg:border-l lg:border-t-0">
             <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/10 px-4 py-2">
               <div className="flex min-w-0 items-center gap-2">
                 <AIAvatar speaking={speaking} accent={accent} />
