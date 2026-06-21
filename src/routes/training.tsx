@@ -111,65 +111,16 @@ function TrainingPage() {
     wsPlayerRef.current?.stop();
   };
 
-
-  const speakBrowser = (text: string) =>
-    new Promise<void>((resolve) => {
-      if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-        resolve();
-        return;
-      }
-      const u = new SpeechSynthesisUtterance(text);
-      if (voiceRef.current) u.voice = voiceRef.current;
-      u.lang = voiceRef.current?.lang || "en-US";
-      u.rate = rateRef.current;
-      u.pitch = 1.05;
-      u.onend = () => resolve();
-      u.onerror = () => resolve();
-      window.speechSynthesis.speak(u);
-    });
-
   const speakOne = async (text: string): Promise<void> => {
-    if (ttsSource === "ws") {
-      try {
-        let player = wsPlayerRef.current;
-        if (!player) {
-          player = new WsTtsPlayer({ url: buildTtsUrl(rateRef.current, ttsVoice, "a") });
-          player.prime();
-          wsPlayerRef.current = player;
-        } else {
-          player.setUrl(buildTtsUrl(rateRef.current, ttsVoice, "a"));
-        }
-        wsPlayerRef.current = player;
-        await player.speak(text);
-        return;
-      } catch (e: any) {
-        if (cancelledRef.current) return;
-        console.warn("Yavar WS TTS failed, falling back to browser TTS:", e);
-        setTtsSource("browser");
-      }
+    let player = wsPlayerRef.current;
+    if (!player) {
+      player = new WsTtsPlayer({ url: buildTtsUrl(rateRef.current, ttsVoice, "a") });
+      player.prime();
+      wsPlayerRef.current = player;
+    } else {
+      player.setUrl(buildTtsUrl(rateRef.current, ttsVoice, "a"));
     }
-    if (ttsSource === "lovable") {
-      try {
-        // Reuse the player primed by togglePlay so the AudioContext stays
-        // unlocked across sentences/slides — creating a fresh context
-        // after an await loses the user-gesture and plays nothing.
-        let player = lovablePlayerRef.current;
-        if (!player) {
-          player = new LovableTtsPlayer();
-          player.prime();
-          lovablePlayerRef.current = player;
-        }
-        player.setRate(rateRef.current);
-        await player.speak(text, ttsVoice);
-        return;
-      } catch (e: any) {
-        if (cancelledRef.current || e?.name === "AbortError") return;
-        console.warn("Lovable TTS failed, falling back to browser TTS:", e);
-        setTtsSource("browser");
-      }
-    }
-    if (cancelledRef.current) return;
-    await speakBrowser(text);
+    await player.speak(text);
   };
 
   const estimatedSentenceMs = (text: string) => {
@@ -190,11 +141,7 @@ function TrainingPage() {
       }),
     ]);
     if (timedOut && !cancelledRef.current) {
-      lovablePlayerRef.current?.stop();
       wsPlayerRef.current?.stop();
-      if (typeof window !== "undefined" && "speechSynthesis" in window) {
-        window.speechSynthesis.cancel();
-      }
     }
   };
 
