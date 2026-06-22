@@ -211,17 +211,34 @@ async function writeLog(
   }
 }
 
+type GeminiKeySlot = { name: string; value: string; meta: string };
+
 // Track which Gemini keys are temporarily exhausted (per server instance).
 const exhaustedUntil = new Map<string, number>();
 
-function liveGeminiKeys(): string[] {
-  const keys = [
-    process.env.GEMINI_API_KEY,
-    process.env.GEMINI_API_KEY_2,
-    process.env.GEMINI_API_KEY_3,
-  ].filter((k): k is string => !!k && k.length > 10);
+function geminiKeyMeta(name: string, value: string): string {
+  const prefix = value.slice(0, 6);
+  return `${name}(${prefix}…, len=${value.length})`;
+}
+
+function geminiKeyId(key: GeminiKeySlot): string {
+  return `${key.name}:${key.value.slice(0, 8)}:${key.value.length}`;
+}
+
+function configuredGeminiKeys(): GeminiKeySlot[] {
+  return [
+    { name: "GEMINI_API_KEY", value: process.env.GEMINI_API_KEY },
+    { name: "GEMINI_API_KEY_2", value: process.env.GEMINI_API_KEY_2 },
+    { name: "GEMINI_API_KEY_3", value: process.env.GEMINI_API_KEY_3 },
+  ]
+    .filter((k): k is { name: string; value: string } => !!k.value && k.value.length > 10)
+    .map((k) => ({ ...k, meta: geminiKeyMeta(k.name, k.value) }));
+}
+
+function liveGeminiKeys(): GeminiKeySlot[] {
+  const keys = configuredGeminiKeys();
   const now = Date.now();
-  return keys.filter((k) => (exhaustedUntil.get(k) ?? 0) < now);
+  return keys.filter((k) => (exhaustedUntil.get(geminiKeyId(k)) ?? 0) < now);
 }
 
 async function callGeminiPro(
@@ -278,21 +295,23 @@ async function generateJson(
 ): Promise<{ text: string; modelUsed: ModelUsed }> {
   const started = Date.now();
   const keys = liveGeminiKeys();
-  let lastErr = "";
+  const geminiErrors: string[] = [];
+  let lastErr = keys.length === 0 && configuredGeminiKeys().length > 0 ? "All configured Gemini keys are cooling down after quota errors" : "";
 
   // Try every available Gemini Pro key, marking exhausted ones for a cool-down.
   for (const key of keys) {
-    const r = await callGeminiPro(key, prompt);
+    const r = await callGeminiPro(key.value, prompt);
     if (r.ok) {
-      await writeLog(ctx, "gemini-3.1-pro", "ok", null, Date.now() - started);
+      await writeLog(ctx, "gemini-3.1-pro", "ok", `${key.meta} ok`, Date.now() - started);
       return { text: r.text, modelUsed: "gemini-3.1-pro" };
     }
-    lastErr = `Gemini Pro ${r.status}: ${r.detail}`;
-    if (r.status === 429 || /RESOURCE_EXHAUSTED|quota/i.test(r.detail)) {
-      // park this key for 60s so the next slide skips it
-      exhaustedUntil.set(key, Date.now() + 60_000);
-    } else if (!r.retryable) {
-      break; // hard error (e.g. bad request) — fall through to Lovable
+    const detail = r.detail.slice(0, 220);
+    lastErr = `Gemini Pro ${key.meta} ${r.status}: ${detail}`;
+    geminiErrors.push(lastErr);
+    console.warn("Gemini Pro key failed", { key: key.meta, status: r.status, detail });
+    if (r.status === 429 || /RESOURCE_EXHAUSTED|quota|monthly spending cap/i.test(r.detail)) {
+      // park this key briefly so the next slide skips it, but allow quick recovery after quota/cap changes
+      exhaustedUntil.set(geminiKeyId(key), Date.now() + 5 * 60_000);
     }
   }
 
@@ -315,7 +334,8 @@ async function generateJson(
     );
     return { text, modelUsed: "gemini-flash-fallback" };
   } catch (e) {
-    const msg = `${lastErr ? lastErr + " | " : ""}Flash fallback: ${(e as Error).message}`;
+    const geminiSummary = geminiErrors.length ? geminiErrors.join(" | ") : lastErr;
+    const msg = `${geminiSummary ? geminiSummary + " | " : ""}Flash fallback: ${(e as Error).message}`;
     await writeLog(ctx, "gemini-flash-fallback", "error", msg, Date.now() - started);
     throw new Error(msg);
   }
