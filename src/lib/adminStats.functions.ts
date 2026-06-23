@@ -9,6 +9,7 @@ export type LearnerRow = {
   attempts: number;
   best_score: number | null; // percentage 0-100
   last_active: string | null;
+  created_at: string; // when user joined
 };
 
 export type CourseStat = {
@@ -39,6 +40,19 @@ export const getAdminDashboard = createServerFn({ method: "GET" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    // Fetch ALL users first (for e2e admin visibility)
+    const allUsers: Array<{ id: string; email: string | null; created_at: string }> = [];
+    let page = 1;
+    while (true) {
+      const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
+      if (error || !data?.users?.length) break;
+      for (const u of data.users) {
+        allUsers.push({ id: u.id, email: u.email ?? null, created_at: u.created_at });
+      }
+      if (data.users.length < 200) break;
+      page++;
+    }
+
     const [coursesRes, enrollsRes, attemptsRes] = await Promise.all([
       supabaseAdmin.from("courses").select("id,title,published"),
       supabaseAdmin.from("enrollments").select("user_id,course_id,completed_at,started_at"),
@@ -49,20 +63,16 @@ export const getAdminDashboard = createServerFn({ method: "GET" })
     const enrolls = enrollsRes.data ?? [];
     const attempts = attemptsRes.data ?? [];
 
-    // Lookup emails
-    const userIds = new Set<string>([...enrolls.map((e) => e.user_id), ...attempts.map((a) => a.user_id)]);
+    // Build email and created_at lookup for all users
     const emails: Record<string, string | null> = {};
-    // Page through up to ~1000 users
-    let page = 1;
-    while (page <= 10) {
-      const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
-      if (error || !data?.users?.length) break;
-      for (const u of data.users) {
-        if (userIds.has(u.id)) emails[u.id] = u.email ?? null;
-      }
-      if (data.users.length < 200) break;
-      page++;
+    const userCreatedAt: Record<string, string> = {};
+    for (const u of allUsers) {
+      emails[u.id] = u.email;
+      userCreatedAt[u.id] = u.created_at;
     }
+
+    // All user IDs for learner stats
+    const allUserIds = new Set(allUsers.map((u) => u.id));
 
     const courseById = new Map(courses.map((c) => [c.id, c]));
 
@@ -82,9 +92,9 @@ export const getAdminDashboard = createServerFn({ method: "GET" })
       };
     });
 
-    // Per-learner stats
+    // Per-learner stats - initialize ALL users
     const learnerMap = new Map<string, LearnerRow>();
-    for (const uid of userIds) {
+    for (const uid of allUserIds) {
       learnerMap.set(uid, {
         user_id: uid,
         email: emails[uid] ?? null,
@@ -93,6 +103,7 @@ export const getAdminDashboard = createServerFn({ method: "GET" })
         attempts: 0,
         best_score: null,
         last_active: null,
+        created_at: userCreatedAt[uid] || "",
       });
     }
     for (const e of enrolls) {
@@ -110,9 +121,13 @@ export const getAdminDashboard = createServerFn({ method: "GET" })
       if (a.taken_at && (!row.last_active || a.taken_at > row.last_active)) row.last_active = a.taken_at;
     }
 
-    const learners = Array.from(learnerMap.values()).sort((a, b) =>
-      (b.last_active || "").localeCompare(a.last_active || ""),
-    );
+    // Sort: active users first (by last_active desc), then inactive (by joined desc)
+    const learners = Array.from(learnerMap.values()).sort((a, b) => {
+      if (a.last_active && b.last_active) return b.last_active.localeCompare(a.last_active);
+      if (a.last_active) return -1; // a is active, b is not
+      if (b.last_active) return 1;  // b is active, a is not
+      return b.created_at.localeCompare(a.created_at); // both inactive, sort by joined
+    });
 
     const recent = attempts.slice(0, 25).map((a) => ({
       user_id: a.user_id,

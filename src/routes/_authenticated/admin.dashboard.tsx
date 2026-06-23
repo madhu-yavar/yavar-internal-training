@@ -132,6 +132,7 @@ function AdminDashboard() {
                   <thead className="bg-slate-900/80 text-[11px] uppercase tracking-wider text-slate-400">
                     <tr>
                       <th className="px-4 py-2 text-left">Learner</th>
+                      <th className="px-4 py-2 text-left">Joined</th>
                       <th className="px-4 py-2 text-right">Enrolled</th>
                       <th className="px-4 py-2 text-right">Completed</th>
                       <th className="px-4 py-2 text-right">Attempts</th>
@@ -141,12 +142,13 @@ function AdminDashboard() {
                   </thead>
                   <tbody>
                     {data.learners.length === 0 ? (
-                      <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-400">No learner activity yet.</td></tr>
+                      <tr><td colSpan={7} className="px-4 py-6 text-center text-slate-400">No learners yet.</td></tr>
                     ) : data.learners.map((l) => (
                       <tr key={l.user_id} className="border-t border-slate-800 hover:bg-slate-900/40">
                         <td className="px-4 py-2 text-slate-100">
                           {l.email ?? <span className="font-mono text-xs text-slate-400">{l.user_id.slice(0, 8)}…</span>}
                         </td>
+                        <td className="px-4 py-2 text-slate-400">{fmtDate(l.created_at)}</td>
                         <td className="px-4 py-2 text-right text-slate-200">{l.enrollments}</td>
                         <td className="px-4 py-2 text-right text-slate-200">{l.completed}</td>
                         <td className="px-4 py-2 text-right text-slate-200">{l.attempts}</td>
