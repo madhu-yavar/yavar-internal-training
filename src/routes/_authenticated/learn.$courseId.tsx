@@ -345,7 +345,62 @@ function CoursePlayer() {
         <div className="grid h-full w-full grid-rows-[minmax(0,44%)_minmax(0,56%)] lg:grid-cols-[auto_minmax(0,1fr)_minmax(360px,440px)] lg:grid-rows-1">
 
           {/* LEFT: collapsible scenes panel */}
-...
+          <aside
+            className={`hidden lg:flex h-full flex-col border-r border-white/10 bg-slate-900/60 transition-[width] duration-300 ${navOpen ? "w-72" : "w-12"}`}
+          >
+            <div className="flex items-center justify-between border-b border-white/10 px-2 py-2">
+              {navOpen && (
+                <div className="px-1 text-[10px] uppercase tracking-[0.2em] text-amber-400">
+                  Scenes · {playUnits.length}
+                </div>
+              )}
+              <button
+                onClick={() => setNavOpen((v) => !v)}
+                title={navOpen ? "Collapse" : "Expand"}
+                className="grid h-8 w-8 place-items-center rounded-md border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
+              >
+                {navOpen ? "‹" : "›"}
+              </button>
+            </div>
+            <ol className="flex-1 space-y-1 overflow-y-auto p-2">
+              {playUnits.map((u, i) => {
+                const active = i === unitIdx;
+                return (
+                  <li key={u.key}>
+                    <button
+                      onClick={() => setUnitIdx(i)}
+                      title={u.scene.concept}
+                      className={`flex w-full items-start gap-2 rounded-md p-2 text-left text-xs transition ${active ? "bg-amber-500/15 ring-1 ring-amber-500/40" : "hover:bg-white/5"}`}
+                    >
+                      <span className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-semibold ${active ? "bg-amber-500 text-slate-900" : "bg-white/10 text-slate-300"}`}>
+                        {i + 1}
+                      </span>
+                      {navOpen && (
+                        <span className="min-w-0">
+                          <span className="line-clamp-2 font-medium text-slate-100">{u.scene.concept}</span>
+                          {u.scenesInSlide > 1 && (
+                            <span className="block text-[10px] text-slate-500">from "{u.sourceSlide.title}"</span>
+                          )}
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
+          </aside>
+
+          {/* CENTER: slide deck */}
+          <section className="relative flex h-full min-h-0 flex-col bg-slate-950">
+            <div className="absolute left-0 top-0 z-10 h-1 w-full bg-white/5">
+              <div
+                className="h-full bg-amber-400 transition-all"
+                style={{ width: `${((unitIdx + 1) / playUnits.length) * 100}%` }}
+              />
+            </div>
+            <div className="absolute right-3 top-3 z-10 rounded-md border border-white/10 bg-slate-900/70 px-2 py-1 text-[10px] uppercase tracking-[0.25em] text-amber-200/80 backdrop-blur">
+              Scene {unitIdx + 1} / {playUnits.length}
+            </div>
             <div className="relative flex h-full items-center justify-center p-3 sm:p-6">
               {slideImageUrl || illustrationUrl ? (
                 slideImageUrl && illustrationUrl ? (
