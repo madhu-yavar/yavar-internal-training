@@ -154,14 +154,23 @@ function CourseEditor() {
           </div>
           <div className="flex items-center gap-2 text-xs">
             {savedAt && <span className="text-emerald-400">Saved {savedAt}</span>}
-            <label className="flex items-center gap-2 rounded-md border border-slate-700 px-3 py-1.5">
-              <input
-                type="checkbox"
-                checked={course.published}
-                onChange={(e) => saveCourse({ published: e.target.checked })}
-              />
-              Published
-            </label>
+            {course.published ? (
+              <button
+                onClick={() => saveCourse({ published: false })}
+                title="Hide this course from the learner library"
+                className="rounded-md border border-emerald-400/50 bg-emerald-500/15 px-3 py-1.5 font-semibold text-emerald-200 hover:bg-emerald-500/25"
+              >
+                ✓ Published · Unpublish
+              </button>
+            ) : (
+              <button
+                onClick={() => saveCourse({ published: true })}
+                title="Make this course visible in the learner library now"
+                className="rounded-md bg-amber-500 px-3 py-1.5 font-semibold text-slate-950 hover:bg-amber-400"
+              >
+                🚀 Publish to library
+              </button>
+            )}
           </div>
         </div>
       </header>
