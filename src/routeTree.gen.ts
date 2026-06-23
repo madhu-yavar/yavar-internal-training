@@ -23,6 +23,7 @@ import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedLearnCourseIdRouteImport } from './routes/_authenticated/learn.$courseId'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin.settings'
 import { Route as AuthenticatedAdminRequestsRouteImport } from './routes/_authenticated/admin.requests'
+import { Route as AuthenticatedAdminDashboardRouteImport } from './routes/_authenticated/admin.dashboard'
 import { Route as AuthenticatedAdminCoursesCourseIdRouteImport } from './routes/_authenticated/admin.courses.$courseId'
 
 const TrainingRoute = TrainingRouteImport.update({
@@ -98,6 +99,12 @@ const AuthenticatedAdminRequestsRoute =
     path: '/admin/requests',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminDashboardRoute =
+  AuthenticatedAdminDashboardRouteImport.update({
+    id: '/admin/dashboard',
+    path: '/admin/dashboard',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminCoursesCourseIdRoute =
   AuthenticatedAdminCoursesCourseIdRouteImport.update({
     id: '/admin/courses/$courseId',
@@ -114,6 +121,7 @@ export interface FileRoutesByFullPath {
   '/api/chat': typeof ApiChatRoute
   '/api/quiz': typeof ApiQuizRoute
   '/api/tts': typeof ApiTtsRoute
+  '/admin/dashboard': typeof AuthenticatedAdminDashboardRoute
   '/admin/requests': typeof AuthenticatedAdminRequestsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/learn/$courseId': typeof AuthenticatedLearnCourseIdRoute
@@ -130,6 +138,7 @@ export interface FileRoutesByTo {
   '/api/chat': typeof ApiChatRoute
   '/api/quiz': typeof ApiQuizRoute
   '/api/tts': typeof ApiTtsRoute
+  '/admin/dashboard': typeof AuthenticatedAdminDashboardRoute
   '/admin/requests': typeof AuthenticatedAdminRequestsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/learn/$courseId': typeof AuthenticatedLearnCourseIdRoute
@@ -148,6 +157,7 @@ export interface FileRoutesById {
   '/api/chat': typeof ApiChatRoute
   '/api/quiz': typeof ApiQuizRoute
   '/api/tts': typeof ApiTtsRoute
+  '/_authenticated/admin/dashboard': typeof AuthenticatedAdminDashboardRoute
   '/_authenticated/admin/requests': typeof AuthenticatedAdminRequestsRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/learn/$courseId': typeof AuthenticatedLearnCourseIdRoute
@@ -166,6 +176,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/api/quiz'
     | '/api/tts'
+    | '/admin/dashboard'
     | '/admin/requests'
     | '/admin/settings'
     | '/learn/$courseId'
@@ -182,6 +193,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/api/quiz'
     | '/api/tts'
+    | '/admin/dashboard'
     | '/admin/requests'
     | '/admin/settings'
     | '/learn/$courseId'
@@ -199,6 +211,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/api/quiz'
     | '/api/tts'
+    | '/_authenticated/admin/dashboard'
     | '/_authenticated/admin/requests'
     | '/_authenticated/admin/settings'
     | '/_authenticated/learn/$courseId'
@@ -318,6 +331,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRequestsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/dashboard': {
+      id: '/_authenticated/admin/dashboard'
+      path: '/admin/dashboard'
+      fullPath: '/admin/dashboard'
+      preLoaderRoute: typeof AuthenticatedAdminDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/courses/$courseId': {
       id: '/_authenticated/admin/courses/$courseId'
       path: '/admin/courses/$courseId'
@@ -330,6 +350,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedChangePasswordRoute: typeof AuthenticatedChangePasswordRoute
+  AuthenticatedAdminDashboardRoute: typeof AuthenticatedAdminDashboardRoute
   AuthenticatedAdminRequestsRoute: typeof AuthenticatedAdminRequestsRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedLearnCourseIdRoute: typeof AuthenticatedLearnCourseIdRoute
@@ -340,6 +361,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedChangePasswordRoute: AuthenticatedChangePasswordRoute,
+  AuthenticatedAdminDashboardRoute: AuthenticatedAdminDashboardRoute,
   AuthenticatedAdminRequestsRoute: AuthenticatedAdminRequestsRoute,
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
   AuthenticatedLearnCourseIdRoute: AuthenticatedLearnCourseIdRoute,

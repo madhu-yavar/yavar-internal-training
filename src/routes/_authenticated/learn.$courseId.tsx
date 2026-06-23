@@ -341,7 +341,7 @@ function CoursePlayer() {
       </header>
 
       <main className="relative h-[calc(100vh-57px)] w-full overflow-hidden">
-        <style>{`@keyframes slideFade{from{opacity:0;transform:scale(.99)}to{opacity:1;transform:none}}@keyframes illIn{0%{opacity:0;transform:scale(.94) translateY(8px)}60%{opacity:1}100%{opacity:1;transform:scale(1) translateY(0)}}`}</style>
+        <style>{`@keyframes slideFade{from{opacity:0;transform:scale(.99)}to{opacity:1;transform:none}}@keyframes kenBurns{0%{transform:scale(1) translate(0,0)}100%{transform:scale(1.08) translate(-1%,-1%)}}@keyframes kenBurnsAlt{0%{transform:scale(1.06) translate(1%,1%)}100%{transform:scale(1) translate(0,0)}}@keyframes illIn{0%{opacity:0;transform:scale(.94) translateY(12px)}60%{opacity:1}100%{opacity:1;transform:scale(1) translateY(0)}}@keyframes shimmerBorder{0%,100%{box-shadow:0 0 0 1px rgba(232,121,249,.35),0 20px 60px -20px rgba(232,121,249,.35)}50%{box-shadow:0 0 0 1px rgba(232,121,249,.6),0 25px 80px -15px rgba(232,121,249,.55)}}`}</style>
         <div className="grid h-full w-full grid-rows-[minmax(0,44%)_minmax(0,56%)] lg:grid-cols-[auto_minmax(0,1fr)_minmax(360px,440px)] lg:grid-rows-1">
 
           {/* LEFT: collapsible scenes panel */}
@@ -403,30 +403,65 @@ function CoursePlayer() {
             </div>
             <div className="relative flex h-full items-center justify-center p-3 sm:p-6">
               {slideImageUrl || illustrationUrl ? (
-                <>
-                  {slideImageUrl && (
+                slideImageUrl && illustrationUrl ? (
+                  /* Both: split — slide on top, AI illustration on bottom, both always visible & animated */
+                  <div className="grid h-full w-full grid-rows-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
+                    <figure className="relative overflow-hidden rounded-xl border border-white/10 bg-slate-900/40 shadow-2xl">
+                      <img
+                        key={`slide-${slideImageUrl}-${unitIdx}`}
+                        src={slideImageUrl}
+                        alt={unit.sourceSlide.title || unit.scene.concept}
+                        className="absolute inset-0 h-full w-full object-contain"
+                        style={{ animation: "slideFade .6s ease-out both" }}
+                      />
+                      <figcaption className="absolute left-3 top-3 rounded-full border border-white/15 bg-slate-950/70 px-2.5 py-1 text-[10px] uppercase tracking-[0.25em] text-amber-200 backdrop-blur">
+                        📄 Source slide
+                      </figcaption>
+                    </figure>
+                    <figure
+                      className="relative overflow-hidden rounded-xl border border-fuchsia-400/40 bg-slate-900/40"
+                      style={{ animation: "illIn .9s ease-out both, shimmerBorder 4s ease-in-out infinite" }}
+                    >
+                      <img
+                        key={`ill-${illustrationUrl}-${unitIdx}`}
+                        src={illustrationUrl}
+                        alt={`AI illustration for ${unit.scene.concept}`}
+                        className="absolute inset-0 h-full w-full object-contain"
+                        style={{
+                          animation: `${unitIdx % 2 === 0 ? "kenBurns" : "kenBurnsAlt"} 14s ease-in-out infinite alternate`,
+                          transformOrigin: "center",
+                        }}
+                      />
+                      <figcaption className="absolute left-3 top-3 rounded-full border border-fuchsia-400/40 bg-slate-950/75 px-2.5 py-1 text-[10px] uppercase tracking-[0.25em] text-fuchsia-200 backdrop-blur">
+                        ✨ AI illustration
+                      </figcaption>
+                      <figcaption className="absolute bottom-3 right-3 max-w-[70%] truncate rounded-md border border-white/10 bg-slate-950/70 px-2 py-1 text-[11px] text-slate-200 backdrop-blur">
+                        {unit.scene.concept}
+                      </figcaption>
+                    </figure>
+                  </div>
+                ) : (
+                  /* Single image: fill the pane with Ken Burns */
+                  <figure
+                    className="relative h-full w-full overflow-hidden rounded-xl border border-white/10 bg-slate-900/40 shadow-2xl"
+                    style={{ animation: "slideFade .6s ease-out both" }}
+                  >
                     <img
-                      key={`slide-${slideImageUrl}`}
-                      src={slideImageUrl}
+                      key={`one-${slideImageUrl || illustrationUrl}-${unitIdx}`}
+                      src={(slideImageUrl || illustrationUrl) as string}
                       alt={unit.sourceSlide.title || unit.scene.concept}
-                      className={`absolute inset-0 m-auto max-h-[calc(100%-2rem)] max-w-[calc(100%-2rem)] rounded-xl object-contain shadow-2xl ring-1 ring-white/10 transition-opacity duration-700 ${illustrationUrl && phaseIdx >= 1 && phaseIdx <= 3 ? "opacity-0" : "opacity-100"}`}
+                      className="absolute inset-0 h-full w-full object-contain"
+                      style={{
+                        animation: `${unitIdx % 2 === 0 ? "kenBurns" : "kenBurnsAlt"} 16s ease-in-out infinite alternate`,
+                      }}
                     />
-                  )}
-                  {illustrationUrl && (
-                    <img
-                      key={`ill-${illustrationUrl}-${unitIdx}`}
-                      src={illustrationUrl}
-                      alt={`Illustration for ${unit.scene.concept}`}
-                      className={`absolute inset-0 m-auto max-h-[calc(100%-2rem)] max-w-[calc(100%-2rem)] rounded-xl object-contain shadow-2xl ring-1 ring-fuchsia-400/30 transition-opacity duration-700 ${phaseIdx >= 1 && phaseIdx <= 3 ? "opacity-100" : slideImageUrl ? "opacity-0" : "opacity-100"}`}
-                      style={{ animation: phaseIdx >= 1 && phaseIdx <= 3 ? "illIn .8s ease-out both" : undefined }}
-                    />
-                  )}
-                  {illustrationUrl && phaseIdx >= 1 && phaseIdx <= 3 && (
-                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-fuchsia-400/40 bg-slate-950/70 px-3 py-1 text-[10px] uppercase tracking-[0.25em] text-fuchsia-200 backdrop-blur">
-                      ✨ AI illustration
-                    </div>
-                  )}
-                </>
+                    {illustrationUrl && !slideImageUrl && (
+                      <figcaption className="absolute left-3 top-3 rounded-full border border-fuchsia-400/40 bg-slate-950/75 px-2.5 py-1 text-[10px] uppercase tracking-[0.25em] text-fuchsia-200 backdrop-blur">
+                        ✨ AI illustration
+                      </figcaption>
+                    )}
+                  </figure>
+                )
               ) : (
                 <div className={`flex h-full w-full items-center justify-center rounded-xl border bg-gradient-to-br ${ACCENT_BG[accent]} p-8 text-center`}>
                   <div>
