@@ -341,7 +341,7 @@ function CoursePlayer() {
       </header>
 
       <main className="relative h-[calc(100vh-57px)] w-full overflow-hidden">
-        <style>{`@keyframes slideFade{from{opacity:0;transform:scale(.99)}to{opacity:1;transform:none}}`}</style>
+        <style>{`@keyframes slideFade{from{opacity:0;transform:scale(.99)}to{opacity:1;transform:none}}@keyframes illIn{0%{opacity:0;transform:scale(.94) translateY(8px)}60%{opacity:1}100%{opacity:1;transform:scale(1) translateY(0)}}`}</style>
         <div className="grid h-full w-full grid-rows-[minmax(0,44%)_minmax(0,56%)] lg:grid-cols-[auto_minmax(0,1fr)_minmax(360px,440px)] lg:grid-rows-1">
 
           {/* LEFT: collapsible scenes panel */}
@@ -401,15 +401,32 @@ function CoursePlayer() {
             <div className="absolute right-3 top-3 z-10 rounded-md border border-white/10 bg-slate-900/70 px-2 py-1 text-[10px] uppercase tracking-[0.25em] text-amber-200/80 backdrop-blur">
               Scene {unitIdx + 1} / {playUnits.length}
             </div>
-            <div className="flex h-full items-center justify-center p-3 sm:p-6">
-              {slideImageUrl ? (
-                <img
-                  key={slideImageUrl}
-                  src={slideImageUrl}
-                  alt={unit.sourceSlide.title || unit.scene.concept}
-                  className="max-h-full max-w-full rounded-xl object-contain shadow-2xl ring-1 ring-white/10"
-                  style={{ animation: "slideFade .4s ease-out both" }}
-                />
+            <div className="relative flex h-full items-center justify-center p-3 sm:p-6">
+              {slideImageUrl || illustrationUrl ? (
+                <>
+                  {slideImageUrl && (
+                    <img
+                      key={`slide-${slideImageUrl}`}
+                      src={slideImageUrl}
+                      alt={unit.sourceSlide.title || unit.scene.concept}
+                      className={`absolute inset-0 m-auto max-h-[calc(100%-2rem)] max-w-[calc(100%-2rem)] rounded-xl object-contain shadow-2xl ring-1 ring-white/10 transition-opacity duration-700 ${illustrationUrl && phaseIdx >= 1 && phaseIdx <= 3 ? "opacity-0" : "opacity-100"}`}
+                    />
+                  )}
+                  {illustrationUrl && (
+                    <img
+                      key={`ill-${illustrationUrl}-${unitIdx}`}
+                      src={illustrationUrl}
+                      alt={`Illustration for ${unit.scene.concept}`}
+                      className={`absolute inset-0 m-auto max-h-[calc(100%-2rem)] max-w-[calc(100%-2rem)] rounded-xl object-contain shadow-2xl ring-1 ring-fuchsia-400/30 transition-opacity duration-700 ${phaseIdx >= 1 && phaseIdx <= 3 ? "opacity-100" : slideImageUrl ? "opacity-0" : "opacity-100"}`}
+                      style={{ animation: phaseIdx >= 1 && phaseIdx <= 3 ? "illIn .8s ease-out both" : undefined }}
+                    />
+                  )}
+                  {illustrationUrl && phaseIdx >= 1 && phaseIdx <= 3 && (
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-fuchsia-400/40 bg-slate-950/70 px-3 py-1 text-[10px] uppercase tracking-[0.25em] text-fuchsia-200 backdrop-blur">
+                      ✨ AI illustration
+                    </div>
+                  )}
+                </>
               ) : (
                 <div className={`flex h-full w-full items-center justify-center rounded-xl border bg-gradient-to-br ${ACCENT_BG[accent]} p-8 text-center`}>
                   <div>
@@ -558,26 +575,41 @@ function CoursePlayer() {
 }
 
 function CourseQuiz({ quiz, courseTitle, courseId, userId, onClose }: { quiz: Quiz[]; courseTitle: string; courseId: string; userId: string | null; onClose: () => void }) {
+  // Sample 20 random questions AND shuffle the option order within each one,
+  // remapping the correct-answer index so it points at the new position.
   const sampled = useMemo(() => {
     const arr = [...quiz];
     for (let i = arr.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [arr[i], arr[j]] = [arr[j], arr[i]];
     }
-    return arr.slice(0, Math.min(20, arr.length));
+    return arr.slice(0, Math.min(20, arr.length)).map((q) => {
+      const raw = [q.option_a, q.option_b, q.option_c, q.option_d];
+      const present = raw
+        .map((o, i) => ({ o, i }))
+        .filter((x): x is { o: string; i: number } => !!x.o);
+      for (let i = present.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [present[i], present[j]] = [present[j], present[i]];
+      }
+      const origCorrect = correctIndex(q.correct);
+      const correct = Math.max(0, present.findIndex((x) => x.i === origCorrect));
+      return { q, options: present.map((p) => p.o), correct };
+    });
   }, [quiz]);
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [hintsShown, setHintsShown] = useState<Record<number, boolean>>({});
   const [submitted, setSubmitted] = useState(false);
-  const q = sampled[current];
-  const score = sampled.reduce((acc, item, i) => acc + (answers[i] === correctIndex(item.correct) ? 1 : 0), 0);
+  const item = sampled[current];
+  const score = sampled.reduce((acc, it, i) => acc + (answers[i] === it.correct ? 1 : 0), 0);
   const pct = sampled.length ? Math.round((score / sampled.length) * 100) : 0;
 
-  if (!q) return null;
-  const options = [q.option_a, q.option_b, q.option_c, q.option_d].filter((o): o is string => !!o);
+  if (!item) return null;
+  const q = item.q;
+  const options = item.options;
   const answered = answers[current] !== undefined;
-  const correct = correctIndex(q.correct);
+  const correct = item.correct;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur">
