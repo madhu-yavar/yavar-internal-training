@@ -401,15 +401,32 @@ function CoursePlayer() {
             <div className="absolute right-3 top-3 z-10 rounded-md border border-white/10 bg-slate-900/70 px-2 py-1 text-[10px] uppercase tracking-[0.25em] text-amber-200/80 backdrop-blur">
               Scene {unitIdx + 1} / {playUnits.length}
             </div>
-            <div className="flex h-full items-center justify-center p-3 sm:p-6">
-              {slideImageUrl ? (
-                <img
-                  key={slideImageUrl}
-                  src={slideImageUrl}
-                  alt={unit.sourceSlide.title || unit.scene.concept}
-                  className="max-h-full max-w-full rounded-xl object-contain shadow-2xl ring-1 ring-white/10"
-                  style={{ animation: "slideFade .4s ease-out both" }}
-                />
+            <div className="relative flex h-full items-center justify-center p-3 sm:p-6">
+              {slideImageUrl || illustrationUrl ? (
+                <>
+                  {slideImageUrl && (
+                    <img
+                      key={`slide-${slideImageUrl}`}
+                      src={slideImageUrl}
+                      alt={unit.sourceSlide.title || unit.scene.concept}
+                      className={`absolute inset-0 m-auto max-h-[calc(100%-2rem)] max-w-[calc(100%-2rem)] rounded-xl object-contain shadow-2xl ring-1 ring-white/10 transition-opacity duration-700 ${illustrationUrl && phaseIdx >= 1 && phaseIdx <= 3 ? "opacity-0" : "opacity-100"}`}
+                    />
+                  )}
+                  {illustrationUrl && (
+                    <img
+                      key={`ill-${illustrationUrl}-${unitIdx}`}
+                      src={illustrationUrl}
+                      alt={`Illustration for ${unit.scene.concept}`}
+                      className={`absolute inset-0 m-auto max-h-[calc(100%-2rem)] max-w-[calc(100%-2rem)] rounded-xl object-contain shadow-2xl ring-1 ring-fuchsia-400/30 transition-opacity duration-700 ${phaseIdx >= 1 && phaseIdx <= 3 ? "opacity-100" : slideImageUrl ? "opacity-0" : "opacity-100"}`}
+                      style={{ animation: phaseIdx >= 1 && phaseIdx <= 3 ? "illIn .8s ease-out both" : undefined }}
+                    />
+                  )}
+                  {illustrationUrl && phaseIdx >= 1 && phaseIdx <= 3 && (
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-fuchsia-400/40 bg-slate-950/70 px-3 py-1 text-[10px] uppercase tracking-[0.25em] text-fuchsia-200 backdrop-blur">
+                      ✨ AI illustration
+                    </div>
+                  )}
+                </>
               ) : (
                 <div className={`flex h-full w-full items-center justify-center rounded-xl border bg-gradient-to-br ${ACCENT_BG[accent]} p-8 text-center`}>
                   <div>
