@@ -341,7 +341,7 @@ function CoursePlayer() {
       </header>
 
       <main className="relative h-[calc(100vh-57px)] w-full overflow-hidden">
-        <style>{`@keyframes slideFade{from{opacity:0;transform:scale(.99)}to{opacity:1;transform:none}}`}</style>
+        <style>{`@keyframes slideFade{from{opacity:0;transform:scale(.99)}to{opacity:1;transform:none}}@keyframes illIn{0%{opacity:0;transform:scale(.94) translateY(8px)}60%{opacity:1}100%{opacity:1;transform:scale(1) translateY(0)}}`}</style>
         <div className="grid h-full w-full grid-rows-[minmax(0,44%)_minmax(0,56%)] lg:grid-cols-[auto_minmax(0,1fr)_minmax(360px,440px)] lg:grid-rows-1">
 
           {/* LEFT: collapsible scenes panel */}
