@@ -558,26 +558,41 @@ function CoursePlayer() {
 }
 
 function CourseQuiz({ quiz, courseTitle, courseId, userId, onClose }: { quiz: Quiz[]; courseTitle: string; courseId: string; userId: string | null; onClose: () => void }) {
+  // Sample 20 random questions AND shuffle the option order within each one,
+  // remapping the correct-answer index so it points at the new position.
   const sampled = useMemo(() => {
     const arr = [...quiz];
     for (let i = arr.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [arr[i], arr[j]] = [arr[j], arr[i]];
     }
-    return arr.slice(0, Math.min(20, arr.length));
+    return arr.slice(0, Math.min(20, arr.length)).map((q) => {
+      const raw = [q.option_a, q.option_b, q.option_c, q.option_d];
+      const present = raw
+        .map((o, i) => ({ o, i }))
+        .filter((x): x is { o: string; i: number } => !!x.o);
+      for (let i = present.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [present[i], present[j]] = [present[j], present[i]];
+      }
+      const origCorrect = correctIndex(q.correct);
+      const correct = Math.max(0, present.findIndex((x) => x.i === origCorrect));
+      return { q, options: present.map((p) => p.o), correct };
+    });
   }, [quiz]);
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [hintsShown, setHintsShown] = useState<Record<number, boolean>>({});
   const [submitted, setSubmitted] = useState(false);
-  const q = sampled[current];
-  const score = sampled.reduce((acc, item, i) => acc + (answers[i] === correctIndex(item.correct) ? 1 : 0), 0);
+  const item = sampled[current];
+  const score = sampled.reduce((acc, it, i) => acc + (answers[i] === it.correct ? 1 : 0), 0);
   const pct = sampled.length ? Math.round((score / sampled.length) * 100) : 0;
 
-  if (!q) return null;
-  const options = [q.option_a, q.option_b, q.option_c, q.option_d].filter((o): o is string => !!o);
+  if (!item) return null;
+  const q = item.q;
+  const options = item.options;
   const answered = answers[current] !== undefined;
-  const correct = correctIndex(q.correct);
+  const correct = item.correct;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur">
