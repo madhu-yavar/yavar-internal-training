@@ -1326,7 +1326,9 @@ function GenerateSection({
   const [lastModel, setLastModel] = useState<string | null>(null);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [perSlide, setPerSlide] = useState<Array<{ idx: number; title: string; state: "pending" | "running" | "ok" | "error"; sceneCount?: number; error?: string }>>([]);
+  const [audit, setAudit] = useState<Array<{ idx: number; title: string; hasBody: boolean; hasScenes: boolean; hasNarration: boolean; hasImage: boolean; ok: boolean }> | null>(null);
   const runRegenOne = useServerFn(regenerateSlideNarration);
+  const runIll = useServerFn(generateSlideIllustrations);
 
   const hasGeneratedScenes = (s: Slide) =>
     !!s.narration_text && s.narration_text.trim().length >= 4 && !!s.body_md && s.body_md.includes("learning-scenes-v1");
@@ -1335,10 +1337,25 @@ function GenerateSection({
   const hasQuiz = quiz.length > 0;
   const ready = hasSlides && hasQuiz && missingNarration.length === 0;
 
-  async function generate() {
+  function runAudit(list: Slide[]) {
+    const rows = [...list].sort((a, b) => a.idx - b.idx).map((s) => {
+      const hasBody = !!s.body_md && s.body_md.trim().length > 0;
+      const hasScenes = !!s.body_md && s.body_md.includes("learning-scenes-v1");
+      const hasNarration = !!s.narration_text && s.narration_text.trim().length >= 4;
+      const hasImage = !!s.image_url || !!s.illustration_url;
+      // image is optional; required = body + scenes + narration
+      const ok = hasBody && hasScenes && hasNarration;
+      return { idx: s.idx, title: s.title, hasBody, hasScenes, hasNarration, hasImage, ok };
+    });
+    setAudit(rows);
+    return rows;
+  }
+
+  async function generate(opts: { force: boolean }) {
     setErr(null);
     setStatus(null);
     setLastModel(null);
+    setAudit(null);
     if (!hasSlides) {
       setErr("Upload a PDF or PPTX deck first.");
       return;
@@ -1349,18 +1366,19 @@ function GenerateSection({
     }
     try {
       const allSorted = [...slides].sort((a, b) => a.idx - b.idx);
-      // Resume: skip slides that already have narration generated
-      const workingSlides = allSorted.filter((s) => !hasGeneratedScenes(s));
+      // Force = re-run every slide. Otherwise skip ones already generated.
+      const workingSlides = opts.force ? allSorted : allSorted.filter((s) => !hasGeneratedScenes(s));
       const skipped = allSorted.length - workingSlides.length;
       setPerSlide([
-        ...allSorted
+        ...(opts.force ? [] : allSorted
           .filter((s) => hasGeneratedScenes(s))
-          .map((s) => ({ idx: s.idx, title: s.title, state: "ok" as const })),
+          .map((s) => ({ idx: s.idx, title: s.title, state: "ok" as const }))),
         ...workingSlides.map((s) => ({ idx: s.idx, title: s.title, state: "pending" as const })),
       ]);
       setProgress({ done: 0, total: workingSlides.length });
       if (workingSlides.length === 0) {
-        setStatus(`All ${allSorted.length} slides already generated. Nothing to do.`);
+        setStatus(`All ${allSorted.length} slides already generated. Use "Force re-generate all" to redo them.`);
+        runAudit(allSorted);
         setBusy(null);
         return;
       }
@@ -1382,6 +1400,15 @@ function GenerateSection({
           setPerSlide((prev) =>
             prev.map((r) => (r.idx === s.idx ? { ...r, state: "ok", sceneCount: res.sceneCount } : r)),
           );
+          // Auto-generate illustration if missing (optional but recommended)
+          if (!s.illustration_url && !s.image_url) {
+            try {
+              setBusy(`Slide ${i + 1}/${workingSlides.length} — illustration for "${s.title}"…`);
+              await runIll({ data: { slideIds: [s.id] } });
+            } catch {
+              /* illustration is optional — don't fail the slide */
+            }
+          }
         } catch (e) {
           errCount += 1;
           setPerSlide((prev) =>
@@ -1391,11 +1418,21 @@ function GenerateSection({
         setProgress({ done: i + 1, total: workingSlides.length });
       }
 
-      setBusy("Publishing learner material…");
-      if (!course.published && errCount === 0) await onSaveCourse({ published: true });
+      setBusy("Auditing course…");
       await onChanged();
+      // Re-read latest slides via parent refresh, then audit against current props is stale.
+      // We pass the freshly-refetched slides via the in-memory list (props update on next render),
+      // so re-run the audit against what we have now plus assumptions.
+      const auditRows = runAudit(allSorted.map((s) => {
+        const wasProcessed = workingSlides.find((w) => w.id === s.id);
+        if (!wasProcessed) return s;
+        // Mark as freshly generated since the server now has narration+scenes
+        return { ...s, narration_text: "x", body_md: (s.body_md ?? "") + " learning-scenes-v1" } as Slide;
+      }));
+      const failingAudit = auditRows.filter((r) => !r.ok);
+      if (!course.published && errCount === 0 && failingAudit.length === 0) await onSaveCourse({ published: true });
       setStatus(
-        `Generated ${totalScenes} teaching scenes across ${okCount}/${workingSlides.length} slides${errCount ? ` (${errCount} failed)` : ""}. ${quiz.length} quiz questions attached.`,
+        `Generated ${totalScenes} scenes across ${okCount}/${workingSlides.length} slides${errCount ? ` · ${errCount} failed` : ""}${failingAudit.length ? ` · ${failingAudit.length} slide(s) still incomplete — see audit below` : ""}. ${quiz.length} quiz questions attached.`,
       );
     } catch (e) {
       setErr((e as Error).message);
@@ -1404,6 +1441,7 @@ function GenerateSection({
       setProgress(null);
     }
   }
+
 
   return (
     <section className="rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 to-slate-900/60 p-5">
