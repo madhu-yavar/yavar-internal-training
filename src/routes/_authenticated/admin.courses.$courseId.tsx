@@ -1509,14 +1509,42 @@ function GenerateSection({
               </ul>
             </div>
           )}
+          {audit && (
+            <div className="mt-3 max-h-72 overflow-y-auto rounded-lg border border-slate-800 bg-slate-950/60 p-2 text-xs">
+              <div className="mb-1 flex items-center justify-between font-semibold">
+                <span className="text-slate-300">Completion audit ({audit.filter((a) => a.ok).length}/{audit.length} complete)</span>
+                <span className="text-[10px] text-slate-500">image = optional</span>
+              </div>
+              <ul className="space-y-0.5">
+                {audit.map((r) => (
+                  <li key={r.idx} className="flex items-center gap-2">
+                    <span className="w-8 text-slate-500">#{r.idx + 1}</span>
+                    <span className="flex-1 truncate text-slate-300">{r.title}</span>
+                    <span className={r.hasBody ? "text-emerald-300" : "text-red-300"} title="Slide content">📄</span>
+                    <span className={r.hasScenes ? "text-emerald-300" : "text-red-300"} title="Teaching scenes">🎬</span>
+                    <span className={r.hasNarration ? "text-emerald-300" : "text-red-300"} title="Narration + voice">🎙️</span>
+                    <span className={r.hasImage ? "text-emerald-300" : "text-slate-500"} title="Illustration (optional)">🖼️</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
         <div className="flex flex-col items-end gap-2">
           <button
-            onClick={generate}
+            onClick={() => generate({ force: false })}
             disabled={!!busy || !hasSlides}
             className="rounded-md bg-amber-500 px-5 py-2.5 text-sm font-semibold text-slate-950 hover:bg-amber-400 disabled:opacity-50"
           >
-            {busy ?? (ready && course.published ? "Re-generate" : "Generate learning material")}
+            {busy ?? (ready && course.published ? "Generate missing only" : "Generate learning material")}
+          </button>
+          <button
+            onClick={() => generate({ force: true })}
+            disabled={!!busy || !hasSlides}
+            className="rounded-md border border-amber-400/60 bg-amber-500/10 px-4 py-2 text-xs font-semibold text-amber-200 hover:bg-amber-500/20 disabled:opacity-50"
+            title="Re-run narration & illustration for every slide, ignoring existing content."
+          >
+            ⟳ Force re-generate ALL slides
           </button>
           <Link
             to="/learn/$courseId"
@@ -1526,6 +1554,7 @@ function GenerateSection({
             Preview as learner →
           </Link>
         </div>
+
       </div>
     </section>
   );
