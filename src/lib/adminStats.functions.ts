@@ -22,12 +22,16 @@ export type CourseStat = {
   avg_score: number | null; // percentage 0-100
 };
 
+export type DailyPoint = { date: string; attempts: number; completions: number; enrollments: number };
+
 export type DashboardData = {
   totals: { learners: number; courses: number; published: number; attempts: number; completions: number };
   courses: CourseStat[];
   learners: LearnerRow[];
   recent: Array<{ user_id: string; email: string | null; course_id: string; course_title: string; score: number; total: number; taken_at: string }>;
+  daily: DailyPoint[]; // last 30 days
 };
+
 
 export const getAdminDashboard = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
