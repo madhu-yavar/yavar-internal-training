@@ -77,6 +77,20 @@ function AdminDashboard() {
               <KPI label="Quiz attempts" value={data.totals.attempts} accent="fuchsia" />
             </section>
 
+            {/* Learning curve */}
+            <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+              <div className="mb-3 flex items-baseline justify-between">
+                <h2 className="text-base font-semibold">Learning curve · last 30 days</h2>
+                <div className="flex gap-3 text-[11px]">
+                  <span className="flex items-center gap-1 text-fuchsia-300"><i className="inline-block h-2 w-2 rounded-sm bg-fuchsia-400" /> Attempts</span>
+                  <span className="flex items-center gap-1 text-emerald-300"><i className="inline-block h-2 w-2 rounded-sm bg-emerald-400" /> Completions</span>
+                  <span className="flex items-center gap-1 text-sky-300"><i className="inline-block h-2 w-2 rounded-sm bg-sky-400" /> Enrollments</span>
+                </div>
+              </div>
+              <ActivityChart points={data.daily} />
+            </section>
+
+
             {/* Course directory */}
             <section>
               <h2 className="mb-3 text-base font-semibold">Course directory</h2>
