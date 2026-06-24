@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useAuthCtx } from "@/lib/auth-context";
-import { getAdminDashboard, type DashboardData } from "@/lib/adminStats.functions";
+import { getAdminDashboard, type DashboardData, type DailyPoint } from "@/lib/adminStats.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/dashboard")({
   component: AdminDashboard,
