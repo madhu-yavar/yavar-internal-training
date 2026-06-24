@@ -239,3 +239,52 @@ function KPI({ label, value, accent }: { label: string; value: number; accent: s
     </div>
   );
 }
+
+function ActivityChart({ points }: { points: DailyPoint[] }) {
+  const max = Math.max(1, ...points.map((p) => Math.max(p.attempts, p.completions, p.enrollments)));
+  const W = 800;
+  const H = 180;
+  const padL = 28;
+  const padB = 22;
+  const padT = 8;
+  const padR = 8;
+  const innerW = W - padL - padR;
+  const innerH = H - padT - padB;
+  const stepX = innerW / Math.max(1, points.length - 1);
+  const y = (v: number) => padT + innerH - (v / max) * innerH;
+  const x = (i: number) => padL + i * stepX;
+  const path = (key: "attempts" | "completions" | "enrollments") =>
+    points.map((p, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(p[key]).toFixed(1)}`).join(" ");
+  const labels = [0, 7, 14, 21, 29].map((i) => ({ i, d: points[i]?.date.slice(5) ?? "" }));
+  const yTicks = [0, Math.ceil(max / 2), max];
+  const totalA = points.reduce((s, p) => s + p.attempts, 0);
+  const totalC = points.reduce((s, p) => s + p.completions, 0);
+  const totalE = points.reduce((s, p) => s + p.enrollments, 0);
+  if (totalA + totalC + totalE === 0) {
+    return <div className="py-10 text-center text-sm text-slate-500">No learner activity in the last 30 days yet.</div>;
+  }
+  return (
+    <div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="h-48 w-full">
+        {yTicks.map((t, idx) => (
+          <g key={idx}>
+            <line x1={padL} x2={W - padR} y1={y(t)} y2={y(t)} stroke="rgba(148,163,184,0.15)" strokeDasharray="3 3" />
+            <text x={4} y={y(t) + 3} fill="rgb(148,163,184)" fontSize="10">{t}</text>
+          </g>
+        ))}
+        {labels.map(({ i, d }) => (
+          <text key={i} x={x(i)} y={H - 6} fill="rgb(148,163,184)" fontSize="10" textAnchor="middle">{d}</text>
+        ))}
+        <path d={path("enrollments")} fill="none" stroke="rgb(56,189,248)" strokeWidth="2" />
+        <path d={path("completions")} fill="none" stroke="rgb(52,211,153)" strokeWidth="2" />
+        <path d={path("attempts")} fill="none" stroke="rgb(232,121,249)" strokeWidth="2" />
+      </svg>
+      <div className="mt-2 grid grid-cols-3 gap-2 text-center text-xs">
+        <div className="rounded-lg bg-fuchsia-500/10 py-1.5 text-fuchsia-200">{totalA} attempts (30d)</div>
+        <div className="rounded-lg bg-emerald-500/10 py-1.5 text-emerald-200">{totalC} completions (30d)</div>
+        <div className="rounded-lg bg-sky-500/10 py-1.5 text-sky-200">{totalE} enrollments (30d)</div>
+      </div>
+    </div>
+  );
+}
+
