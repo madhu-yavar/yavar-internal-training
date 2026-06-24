@@ -143,6 +143,31 @@ export const getAdminDashboard = createServerFn({ method: "GET" })
       taken_at: a.taken_at,
     }));
 
+    // Build last-30-days activity series
+    const daily: DailyPoint[] = [];
+    const dayMap = new Map<string, DailyPoint>();
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(today);
+      d.setUTCDate(d.getUTCDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      const p: DailyPoint = { date: key, attempts: 0, completions: 0, enrollments: 0 };
+      dayMap.set(key, p);
+      daily.push(p);
+    }
+    const bump = (iso: string | null, field: "attempts" | "completions" | "enrollments") => {
+      if (!iso) return;
+      const k = iso.slice(0, 10);
+      const p = dayMap.get(k);
+      if (p) p[field]++;
+    };
+    for (const a of attempts) bump(a.taken_at, "attempts");
+    for (const e of enrolls) {
+      bump(e.started_at, "enrollments");
+      bump(e.completed_at, "completions");
+    }
+
     const data: DashboardData = {
       totals: {
         learners: learnerMap.size,
@@ -154,6 +179,8 @@ export const getAdminDashboard = createServerFn({ method: "GET" })
       courses: courseStats.sort((a, b) => b.enrolled - a.enrolled),
       learners,
       recent,
+      daily,
     };
+
     return data;
   });
