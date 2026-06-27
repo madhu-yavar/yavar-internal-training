@@ -352,10 +352,6 @@ export type Database = {
           image_url: string | null
           narration_text: string | null
           title: string
-          video_duration_ms: number | null
-          video_poster_url: string | null
-          video_type: string | null
-          video_url: string | null
         }
         Insert: {
           body_md?: string | null
@@ -369,10 +365,6 @@ export type Database = {
           image_url?: string | null
           narration_text?: string | null
           title?: string
-          video_duration_ms?: number | null
-          video_poster_url?: string | null
-          video_type?: string | null
-          video_url?: string | null
         }
         Update: {
           body_md?: string | null
@@ -386,10 +378,6 @@ export type Database = {
           image_url?: string | null
           narration_text?: string | null
           title?: string
-          video_duration_ms?: number | null
-          video_poster_url?: string | null
-          video_type?: string | null
-          video_url?: string | null
         }
         Relationships: [
           {
