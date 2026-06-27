@@ -130,6 +130,12 @@ function LearnDashboard() {
             </div>
           </Link>
           <div className="flex items-center gap-2 text-sm">
+            <Link to="/notebooks" title="Notebook Labs" aria-label="Notebook Labs" className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-cyan-400/40 bg-cyan-500/10 text-cyan-200 hover:bg-cyan-500/20">
+              📓 <span className="text-xs">Notebooks</span>
+            </Link>
+            <Link to="/sandbox" title="Python Sandbox" aria-label="Python Sandbox" className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-emerald-400/40 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20">
+              🐍 <span className="text-xs">Sandbox</span>
+            </Link>
             <span className="hidden text-slate-400 sm:inline">{user?.email}</span>
             <button onClick={() => { markRepliesSeen(); setMsgOpen(true); }} title="Message team" aria-label="Message team" className="relative grid h-9 w-9 place-items-center rounded-md border border-amber-400/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20">
               💬
@@ -152,6 +158,38 @@ function LearnDashboard() {
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {loading && <div className="text-sm text-slate-400">Loading…</div>}
+
+          {/* Notebook Labs - Interactive notebooks */}
+          <Link
+            to="/notebooks"
+            className="group rounded-2xl border border-cyan-400/30 bg-slate-900/60 p-5 hover:border-cyan-400/70 transition"
+          >
+            <div className="aspect-video w-full overflow-hidden rounded-lg bg-gradient-to-br from-cyan-500/30 to-blue-500/30 mb-4 grid place-items-center text-4xl">
+              📓
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-lg font-semibold group-hover:text-cyan-300">Notebook Labs</h3>
+              <span className="shrink-0 rounded-full bg-cyan-500/15 text-cyan-300 px-2 py-0.5 text-[10px] font-medium">Interactive</span>
+            </div>
+            <p className="mt-2 text-sm text-slate-400">Work with Jupyter notebooks in your browser. Run code, visualize data, and learn step-by-step.</p>
+            <div className="mt-3 text-[11px] text-cyan-300">Start exploring →</div>
+          </Link>
+
+          {/* Python Sandbox - Practice coding */}
+          <Link
+            to="/sandbox"
+            className="group rounded-2xl border border-emerald-400/30 bg-slate-900/60 p-5 hover:border-emerald-400/70 transition"
+          >
+            <div className="aspect-video w-full overflow-hidden rounded-lg bg-gradient-to-br from-emerald-500/30 to-cyan-500/30 mb-4 grid place-items-center text-4xl">
+              🐍
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-lg font-semibold group-hover:text-emerald-300">Python Sandbox</h3>
+              <span className="shrink-0 rounded-full bg-emerald-500/15 text-emerald-300 px-2 py-0.5 text-[10px] font-medium">Practice</span>
+            </div>
+            <p className="mt-2 text-sm text-slate-400">Write and run Python code in your browser. Practice with exercises and get AI feedback.</p>
+            <div className="mt-3 text-[11px] text-emerald-300">Start coding →</div>
+          </Link>
 
           {/* Original demo training — always visible */}
           <a

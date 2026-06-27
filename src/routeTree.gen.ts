@@ -17,13 +17,21 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiTtsRouteImport } from './routes/api/tts'
 import { Route as ApiQuizRouteImport } from './routes/api/quiz'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
+import { Route as ApiAiCodeReviewRouteImport } from './routes/api/ai-code-review'
 import { Route as AuthenticatedChangePasswordRouteImport } from './routes/_authenticated/change-password'
+import { Route as AuthenticatedSandboxIndexRouteImport } from './routes/_authenticated/sandbox.index'
+import { Route as AuthenticatedNotebooksIndexRouteImport } from './routes/_authenticated/notebooks.index'
 import { Route as AuthenticatedLearnIndexRouteImport } from './routes/_authenticated/learn.index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
+import { Route as AuthenticatedSandboxExerciseIdRouteImport } from './routes/_authenticated/sandbox.$exerciseId'
+import { Route as AuthenticatedNotebooksNotebookIdRouteImport } from './routes/_authenticated/notebooks.$notebookId'
 import { Route as AuthenticatedLearnCourseIdRouteImport } from './routes/_authenticated/learn.$courseId'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin.settings'
+import { Route as AuthenticatedAdminSandboxRouteImport } from './routes/_authenticated/admin.sandbox'
 import { Route as AuthenticatedAdminRequestsRouteImport } from './routes/_authenticated/admin.requests'
+import { Route as AuthenticatedAdminNotebooksRouteImport } from './routes/_authenticated/admin.notebooks'
 import { Route as AuthenticatedAdminDashboardRouteImport } from './routes/_authenticated/admin.dashboard'
+import { Route as AuthenticatedAdminNotebooksNotebookIdRouteImport } from './routes/_authenticated/admin.notebooks.$notebookId'
 import { Route as AuthenticatedAdminCoursesCourseIdRouteImport } from './routes/_authenticated/admin.courses.$courseId'
 
 const TrainingRoute = TrainingRouteImport.update({
@@ -65,10 +73,27 @@ const ApiChatRoute = ApiChatRouteImport.update({
   path: '/api/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAiCodeReviewRoute = ApiAiCodeReviewRouteImport.update({
+  id: '/api/ai-code-review',
+  path: '/api/ai-code-review',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedChangePasswordRoute =
   AuthenticatedChangePasswordRouteImport.update({
     id: '/change-password',
     path: '/change-password',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSandboxIndexRoute =
+  AuthenticatedSandboxIndexRouteImport.update({
+    id: '/sandbox/',
+    path: '/sandbox/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedNotebooksIndexRoute =
+  AuthenticatedNotebooksIndexRouteImport.update({
+    id: '/notebooks/',
+    path: '/notebooks/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedLearnIndexRoute = AuthenticatedLearnIndexRouteImport.update({
@@ -81,6 +106,18 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   path: '/admin/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedSandboxExerciseIdRoute =
+  AuthenticatedSandboxExerciseIdRouteImport.update({
+    id: '/sandbox/$exerciseId',
+    path: '/sandbox/$exerciseId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedNotebooksNotebookIdRoute =
+  AuthenticatedNotebooksNotebookIdRouteImport.update({
+    id: '/notebooks/$notebookId',
+    path: '/notebooks/$notebookId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedLearnCourseIdRoute =
   AuthenticatedLearnCourseIdRouteImport.update({
     id: '/learn/$courseId',
@@ -93,10 +130,22 @@ const AuthenticatedAdminSettingsRoute =
     path: '/admin/settings',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminSandboxRoute =
+  AuthenticatedAdminSandboxRouteImport.update({
+    id: '/admin/sandbox',
+    path: '/admin/sandbox',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminRequestsRoute =
   AuthenticatedAdminRequestsRouteImport.update({
     id: '/admin/requests',
     path: '/admin/requests',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminNotebooksRoute =
+  AuthenticatedAdminNotebooksRouteImport.update({
+    id: '/admin/notebooks',
+    path: '/admin/notebooks',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAdminDashboardRoute =
@@ -104,6 +153,12 @@ const AuthenticatedAdminDashboardRoute =
     id: '/admin/dashboard',
     path: '/admin/dashboard',
     getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminNotebooksNotebookIdRoute =
+  AuthenticatedAdminNotebooksNotebookIdRouteImport.update({
+    id: '/$notebookId',
+    path: '/$notebookId',
+    getParentRoute: () => AuthenticatedAdminNotebooksRoute,
   } as any)
 const AuthenticatedAdminCoursesCourseIdRoute =
   AuthenticatedAdminCoursesCourseIdRouteImport.update({
@@ -118,16 +173,24 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/training': typeof TrainingRoute
   '/change-password': typeof AuthenticatedChangePasswordRoute
+  '/api/ai-code-review': typeof ApiAiCodeReviewRoute
   '/api/chat': typeof ApiChatRoute
   '/api/quiz': typeof ApiQuizRoute
   '/api/tts': typeof ApiTtsRoute
   '/admin/dashboard': typeof AuthenticatedAdminDashboardRoute
+  '/admin/notebooks': typeof AuthenticatedAdminNotebooksRouteWithChildren
   '/admin/requests': typeof AuthenticatedAdminRequestsRoute
+  '/admin/sandbox': typeof AuthenticatedAdminSandboxRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/learn/$courseId': typeof AuthenticatedLearnCourseIdRoute
+  '/notebooks/$notebookId': typeof AuthenticatedNotebooksNotebookIdRoute
+  '/sandbox/$exerciseId': typeof AuthenticatedSandboxExerciseIdRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/learn/': typeof AuthenticatedLearnIndexRoute
+  '/notebooks/': typeof AuthenticatedNotebooksIndexRoute
+  '/sandbox/': typeof AuthenticatedSandboxIndexRoute
   '/admin/courses/$courseId': typeof AuthenticatedAdminCoursesCourseIdRoute
+  '/admin/notebooks/$notebookId': typeof AuthenticatedAdminNotebooksNotebookIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -135,16 +198,24 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/training': typeof TrainingRoute
   '/change-password': typeof AuthenticatedChangePasswordRoute
+  '/api/ai-code-review': typeof ApiAiCodeReviewRoute
   '/api/chat': typeof ApiChatRoute
   '/api/quiz': typeof ApiQuizRoute
   '/api/tts': typeof ApiTtsRoute
   '/admin/dashboard': typeof AuthenticatedAdminDashboardRoute
+  '/admin/notebooks': typeof AuthenticatedAdminNotebooksRouteWithChildren
   '/admin/requests': typeof AuthenticatedAdminRequestsRoute
+  '/admin/sandbox': typeof AuthenticatedAdminSandboxRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/learn/$courseId': typeof AuthenticatedLearnCourseIdRoute
+  '/notebooks/$notebookId': typeof AuthenticatedNotebooksNotebookIdRoute
+  '/sandbox/$exerciseId': typeof AuthenticatedSandboxExerciseIdRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/learn': typeof AuthenticatedLearnIndexRoute
+  '/notebooks': typeof AuthenticatedNotebooksIndexRoute
+  '/sandbox': typeof AuthenticatedSandboxIndexRoute
   '/admin/courses/$courseId': typeof AuthenticatedAdminCoursesCourseIdRoute
+  '/admin/notebooks/$notebookId': typeof AuthenticatedAdminNotebooksNotebookIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -154,16 +225,24 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/training': typeof TrainingRoute
   '/_authenticated/change-password': typeof AuthenticatedChangePasswordRoute
+  '/api/ai-code-review': typeof ApiAiCodeReviewRoute
   '/api/chat': typeof ApiChatRoute
   '/api/quiz': typeof ApiQuizRoute
   '/api/tts': typeof ApiTtsRoute
   '/_authenticated/admin/dashboard': typeof AuthenticatedAdminDashboardRoute
+  '/_authenticated/admin/notebooks': typeof AuthenticatedAdminNotebooksRouteWithChildren
   '/_authenticated/admin/requests': typeof AuthenticatedAdminRequestsRoute
+  '/_authenticated/admin/sandbox': typeof AuthenticatedAdminSandboxRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/learn/$courseId': typeof AuthenticatedLearnCourseIdRoute
+  '/_authenticated/notebooks/$notebookId': typeof AuthenticatedNotebooksNotebookIdRoute
+  '/_authenticated/sandbox/$exerciseId': typeof AuthenticatedSandboxExerciseIdRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/learn/': typeof AuthenticatedLearnIndexRoute
+  '/_authenticated/notebooks/': typeof AuthenticatedNotebooksIndexRoute
+  '/_authenticated/sandbox/': typeof AuthenticatedSandboxIndexRoute
   '/_authenticated/admin/courses/$courseId': typeof AuthenticatedAdminCoursesCourseIdRoute
+  '/_authenticated/admin/notebooks/$notebookId': typeof AuthenticatedAdminNotebooksNotebookIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -173,16 +252,24 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/training'
     | '/change-password'
+    | '/api/ai-code-review'
     | '/api/chat'
     | '/api/quiz'
     | '/api/tts'
     | '/admin/dashboard'
+    | '/admin/notebooks'
     | '/admin/requests'
+    | '/admin/sandbox'
     | '/admin/settings'
     | '/learn/$courseId'
+    | '/notebooks/$notebookId'
+    | '/sandbox/$exerciseId'
     | '/admin/'
     | '/learn/'
+    | '/notebooks/'
+    | '/sandbox/'
     | '/admin/courses/$courseId'
+    | '/admin/notebooks/$notebookId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -190,16 +277,24 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/training'
     | '/change-password'
+    | '/api/ai-code-review'
     | '/api/chat'
     | '/api/quiz'
     | '/api/tts'
     | '/admin/dashboard'
+    | '/admin/notebooks'
     | '/admin/requests'
+    | '/admin/sandbox'
     | '/admin/settings'
     | '/learn/$courseId'
+    | '/notebooks/$notebookId'
+    | '/sandbox/$exerciseId'
     | '/admin'
     | '/learn'
+    | '/notebooks'
+    | '/sandbox'
     | '/admin/courses/$courseId'
+    | '/admin/notebooks/$notebookId'
   id:
     | '__root__'
     | '/'
@@ -208,16 +303,24 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/training'
     | '/_authenticated/change-password'
+    | '/api/ai-code-review'
     | '/api/chat'
     | '/api/quiz'
     | '/api/tts'
     | '/_authenticated/admin/dashboard'
+    | '/_authenticated/admin/notebooks'
     | '/_authenticated/admin/requests'
+    | '/_authenticated/admin/sandbox'
     | '/_authenticated/admin/settings'
     | '/_authenticated/learn/$courseId'
+    | '/_authenticated/notebooks/$notebookId'
+    | '/_authenticated/sandbox/$exerciseId'
     | '/_authenticated/admin/'
     | '/_authenticated/learn/'
+    | '/_authenticated/notebooks/'
+    | '/_authenticated/sandbox/'
     | '/_authenticated/admin/courses/$courseId'
+    | '/_authenticated/admin/notebooks/$notebookId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -226,6 +329,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   TrainingRoute: typeof TrainingRoute
+  ApiAiCodeReviewRoute: typeof ApiAiCodeReviewRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiQuizRoute: typeof ApiQuizRoute
   ApiTtsRoute: typeof ApiTtsRoute
@@ -289,11 +393,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiChatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/ai-code-review': {
+      id: '/api/ai-code-review'
+      path: '/api/ai-code-review'
+      fullPath: '/api/ai-code-review'
+      preLoaderRoute: typeof ApiAiCodeReviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/change-password': {
       id: '/_authenticated/change-password'
       path: '/change-password'
       fullPath: '/change-password'
       preLoaderRoute: typeof AuthenticatedChangePasswordRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/sandbox/': {
+      id: '/_authenticated/sandbox/'
+      path: '/sandbox'
+      fullPath: '/sandbox/'
+      preLoaderRoute: typeof AuthenticatedSandboxIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/notebooks/': {
+      id: '/_authenticated/notebooks/'
+      path: '/notebooks'
+      fullPath: '/notebooks/'
+      preLoaderRoute: typeof AuthenticatedNotebooksIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/learn/': {
@@ -310,6 +435,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/sandbox/$exerciseId': {
+      id: '/_authenticated/sandbox/$exerciseId'
+      path: '/sandbox/$exerciseId'
+      fullPath: '/sandbox/$exerciseId'
+      preLoaderRoute: typeof AuthenticatedSandboxExerciseIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/notebooks/$notebookId': {
+      id: '/_authenticated/notebooks/$notebookId'
+      path: '/notebooks/$notebookId'
+      fullPath: '/notebooks/$notebookId'
+      preLoaderRoute: typeof AuthenticatedNotebooksNotebookIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/learn/$courseId': {
       id: '/_authenticated/learn/$courseId'
       path: '/learn/$courseId'
@@ -324,11 +463,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminSettingsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/sandbox': {
+      id: '/_authenticated/admin/sandbox'
+      path: '/admin/sandbox'
+      fullPath: '/admin/sandbox'
+      preLoaderRoute: typeof AuthenticatedAdminSandboxRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/requests': {
       id: '/_authenticated/admin/requests'
       path: '/admin/requests'
       fullPath: '/admin/requests'
       preLoaderRoute: typeof AuthenticatedAdminRequestsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/notebooks': {
+      id: '/_authenticated/admin/notebooks'
+      path: '/admin/notebooks'
+      fullPath: '/admin/notebooks'
+      preLoaderRoute: typeof AuthenticatedAdminNotebooksRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/dashboard': {
@@ -337,6 +490,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/dashboard'
       preLoaderRoute: typeof AuthenticatedAdminDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/notebooks/$notebookId': {
+      id: '/_authenticated/admin/notebooks/$notebookId'
+      path: '/$notebookId'
+      fullPath: '/admin/notebooks/$notebookId'
+      preLoaderRoute: typeof AuthenticatedAdminNotebooksNotebookIdRouteImport
+      parentRoute: typeof AuthenticatedAdminNotebooksRoute
     }
     '/_authenticated/admin/courses/$courseId': {
       id: '/_authenticated/admin/courses/$courseId'
@@ -348,25 +508,53 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedAdminNotebooksRouteChildren {
+  AuthenticatedAdminNotebooksNotebookIdRoute: typeof AuthenticatedAdminNotebooksNotebookIdRoute
+}
+
+const AuthenticatedAdminNotebooksRouteChildren: AuthenticatedAdminNotebooksRouteChildren =
+  {
+    AuthenticatedAdminNotebooksNotebookIdRoute:
+      AuthenticatedAdminNotebooksNotebookIdRoute,
+  }
+
+const AuthenticatedAdminNotebooksRouteWithChildren =
+  AuthenticatedAdminNotebooksRoute._addFileChildren(
+    AuthenticatedAdminNotebooksRouteChildren,
+  )
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedChangePasswordRoute: typeof AuthenticatedChangePasswordRoute
   AuthenticatedAdminDashboardRoute: typeof AuthenticatedAdminDashboardRoute
+  AuthenticatedAdminNotebooksRoute: typeof AuthenticatedAdminNotebooksRouteWithChildren
   AuthenticatedAdminRequestsRoute: typeof AuthenticatedAdminRequestsRoute
+  AuthenticatedAdminSandboxRoute: typeof AuthenticatedAdminSandboxRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedLearnCourseIdRoute: typeof AuthenticatedLearnCourseIdRoute
+  AuthenticatedNotebooksNotebookIdRoute: typeof AuthenticatedNotebooksNotebookIdRoute
+  AuthenticatedSandboxExerciseIdRoute: typeof AuthenticatedSandboxExerciseIdRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedLearnIndexRoute: typeof AuthenticatedLearnIndexRoute
+  AuthenticatedNotebooksIndexRoute: typeof AuthenticatedNotebooksIndexRoute
+  AuthenticatedSandboxIndexRoute: typeof AuthenticatedSandboxIndexRoute
   AuthenticatedAdminCoursesCourseIdRoute: typeof AuthenticatedAdminCoursesCourseIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedChangePasswordRoute: AuthenticatedChangePasswordRoute,
   AuthenticatedAdminDashboardRoute: AuthenticatedAdminDashboardRoute,
+  AuthenticatedAdminNotebooksRoute:
+    AuthenticatedAdminNotebooksRouteWithChildren,
   AuthenticatedAdminRequestsRoute: AuthenticatedAdminRequestsRoute,
+  AuthenticatedAdminSandboxRoute: AuthenticatedAdminSandboxRoute,
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
   AuthenticatedLearnCourseIdRoute: AuthenticatedLearnCourseIdRoute,
+  AuthenticatedNotebooksNotebookIdRoute: AuthenticatedNotebooksNotebookIdRoute,
+  AuthenticatedSandboxExerciseIdRoute: AuthenticatedSandboxExerciseIdRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   AuthenticatedLearnIndexRoute: AuthenticatedLearnIndexRoute,
+  AuthenticatedNotebooksIndexRoute: AuthenticatedNotebooksIndexRoute,
+  AuthenticatedSandboxIndexRoute: AuthenticatedSandboxIndexRoute,
   AuthenticatedAdminCoursesCourseIdRoute:
     AuthenticatedAdminCoursesCourseIdRoute,
 }
@@ -380,6 +568,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   TrainingRoute: TrainingRoute,
+  ApiAiCodeReviewRoute: ApiAiCodeReviewRoute,
   ApiChatRoute: ApiChatRoute,
   ApiQuizRoute: ApiQuizRoute,
   ApiTtsRoute: ApiTtsRoute,

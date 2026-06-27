@@ -101,6 +101,12 @@ function AdminHome() {
             <Link to="/admin/dashboard" className="rounded-md border border-amber-400/40 bg-amber-500/10 px-3 py-1.5 text-sm text-amber-200 hover:bg-amber-500/20">
               📊 Dashboard
             </Link>
+            <Link to="/admin/notebooks" className="rounded-md border border-cyan-400/40 bg-cyan-500/10 px-3 py-1.5 text-sm text-cyan-200 hover:bg-cyan-500/20">
+              📓 Notebooks
+            </Link>
+            <Link to="/admin/sandbox" className="rounded-md border border-emerald-400/40 bg-emerald-500/10 px-3 py-1.5 text-sm text-emerald-200 hover:bg-emerald-500/20">
+              🐍 Sandbox
+            </Link>
             <Link to="/admin/settings" className="rounded-md border border-slate-700 px-3 py-1.5 text-sm hover:bg-slate-800">
               ⚙ Settings
             </Link>
