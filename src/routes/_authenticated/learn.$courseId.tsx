@@ -6,7 +6,6 @@ import { MessageAdminDialog } from "@/components/MessageAdminDialog";
 import { BrandFooter } from "@/components/BrandFooter";
 import { LearningScene } from "@/components/LearningScene";
 import { VideoPlayer } from "@/components/VideoPlayer";
-import yavarLogo from "@/assets/yavar-logo.png.asset.json";
 import { useAuthCtx } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/external";
 import { AmbientMusic } from "@/lib/ambientMusic";
@@ -287,7 +286,7 @@ function CoursePlayer() {
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <Link to="/learn" aria-label="Library">
-              <img src={yavarLogo.url} alt="Yavar" className="h-7 w-auto shrink-0" />
+              <img src="/yavar-logo.png" alt="Yavar" className="h-7 w-auto shrink-0" />
             </Link>
             <div className="min-w-0">
               <Link to="/learn" className="text-[11px] font-semibold text-amber-300 hover:text-amber-200">← Library</Link>

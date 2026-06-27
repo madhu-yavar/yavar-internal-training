@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/external";
-import yavarLogo from "@/assets/yavar-logo.png.asset.json";
 import { BrandFooter } from "@/components/BrandFooter";
 
 
@@ -36,7 +35,7 @@ function Index() {
       <header className="border-b border-white/5">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
           <div className="flex items-center gap-3">
-            <img src={yavarLogo.url} alt="Yavar" className="h-8 w-auto" />
+            <img src="/yavar-logo.png" alt="Yavar" className="h-8 w-auto" />
             <div className="hidden sm:block border-l border-white/10 pl-3">
               <div className="text-sm font-semibold leading-none">Learn</div>
               <div className="text-[10px] uppercase tracking-[0.2em] text-amber-300">with Ari</div>

@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/external";
 import { useAuthCtx } from "@/lib/auth-context";
 import { MessageAdminDialog } from "@/components/MessageAdminDialog";
 import { BrandFooter } from "@/components/BrandFooter";
-import yavarLogo from "@/assets/yavar-logo.png.asset.json";
 
 type Course = {
   id: string;
@@ -124,7 +123,7 @@ function LearnDashboard() {
       <header className="border-b border-slate-800 bg-slate-900/60">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
           <Link to="/" className="flex items-center gap-2">
-            <img src={yavarLogo.url} alt="Yavar" className="h-8 w-auto" />
+            <img src="/yavar-logo.png" alt="Yavar" className="h-8 w-auto" />
             <div className="border-l border-white/10 pl-2">
               <div className="text-sm font-semibold leading-none">Yavar Learn</div>
               <div className="text-[10px] uppercase tracking-[0.2em] text-amber-300">with Ari</div>

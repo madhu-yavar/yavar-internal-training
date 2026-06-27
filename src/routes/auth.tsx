@@ -1,7 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/external";
-import yavarLogo from "@/assets/yavar-logo.png.asset.json";
 import { BrandFooter } from "@/components/BrandFooter";
 
 
@@ -94,7 +93,7 @@ function AuthPage() {
       <div className="flex-1 flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900/60 p-8 shadow-2xl">
         <Link to="/" className="mb-5 flex items-center gap-2">
-          <img src={yavarLogo.url} alt="Yavar" className="h-7 w-auto" />
+          <img src="/yavar-logo.png" alt="Yavar" className="h-7 w-auto" />
           <span className="text-[10px] uppercase tracking-[0.25em] text-amber-400">Yavar Learn</span>
         </Link>
         <h1 className="text-2xl font-semibold mb-1">
