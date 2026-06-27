@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { generateText } from "ai";
 import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSupabaseAuth } from "@/integrations/supabase/external-auth-middleware";
 import type { LearningScene, SlideScenes } from "@/lib/learningScenes";
 import { scenePhaseLines } from "@/lib/learningScenes";
 
@@ -76,7 +76,7 @@ async function loadCourseCfg(courseId: string | undefined): Promise<CourseCfg> {
       prompt_override: null,
     };
   }
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { supabaseAdmin } = await import("@/integrations/supabase/external.server");
   const { data } = await supabaseAdmin
     .from("courses")
     .select("tone, audience, tech_depth, prompt_override")
@@ -92,7 +92,7 @@ async function loadCourseCfg(courseId: string | undefined): Promise<CourseCfg> {
 
 async function loadGlobalTemplate(): Promise<string> {
   try {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/external.server");
     const { data } = await supabaseAdmin
       .from("prompt_templates")
       .select("template")
@@ -193,7 +193,7 @@ async function writeLog(
   durationMs: number,
 ) {
   try {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/external.server");
     const meta = MODEL_LABEL[modelUsed];
     await supabaseAdmin.from("generation_logs").insert({
       user_id: ctx.userId ?? null,
@@ -661,7 +661,7 @@ export const regenerateSlideNarration = createServerFn({ method: "POST" })
     });
     if (!isAdmin) throw new Error("Forbidden");
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/external.server");
     const { stripScenes, embedScenes } = await import("@/lib/learningScenes");
     const { data: slide, error } = await supabaseAdmin
       .from("slides")
@@ -748,7 +748,7 @@ export const regenerateSlideRange = createServerFn({ method: "POST" })
     });
     if (!isAdmin) throw new Error("Forbidden");
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/external.server");
     const { stripScenes, embedScenes } = await import("@/lib/learningScenes");
 
     const { data: course } = await supabaseAdmin
@@ -830,7 +830,7 @@ export const generateSlideIllustrations = createServerFn({ method: "POST" })
 
     const lovableKey = process.env.LOVABLE_API_KEY;
     if (!lovableKey) throw new Error("Missing LOVABLE_API_KEY");
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/external.server");
 
     const { data: slides, error } = await supabaseAdmin
       .from("slides")
@@ -898,7 +898,7 @@ export const getAdminSettings = createServerFn({ method: "GET" })
       _role: "admin",
     });
     if (!isAdmin) throw new Error("Forbidden");
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/external.server");
     const { data } = await supabaseAdmin
       .from("prompt_templates")
       .select("template, updated_at")
@@ -930,7 +930,7 @@ export const getRecentGenerationLogs = createServerFn({ method: "GET" })
       _role: "admin",
     });
     if (!isAdmin) throw new Error("Forbidden");
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/external.server");
     const { data, error } = await supabaseAdmin
       .from("generation_logs")
       .select(
@@ -953,7 +953,7 @@ export const saveGlobalTemplate = createServerFn({ method: "POST" })
       _role: "admin",
     });
     if (!isAdmin) throw new Error("Forbidden");
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/external.server");
     const { error } = await supabaseAdmin
       .from("prompt_templates")
       .upsert(

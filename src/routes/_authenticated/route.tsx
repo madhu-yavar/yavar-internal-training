@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, useNavigate, useLocation } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/external";
 import { AuthCtx, type AuthState } from "@/lib/auth-context";
 
 export { useAuthCtx, useAuthReady } from "@/lib/auth-context";

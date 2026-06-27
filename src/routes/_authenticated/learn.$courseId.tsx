@@ -8,7 +8,7 @@ import { LearningScene } from "@/components/LearningScene";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import yavarLogo from "@/assets/yavar-logo.png.asset.json";
 import { useAuthCtx } from "@/lib/auth-context";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/external";
 import { AmbientMusic } from "@/lib/ambientMusic";
 import { stripGeneratedMaterial } from "@/lib/courseMaterial";
 import { readScenes, scenePhaseLines, stripScenes, type LearningScene as Scene, type ScenePhase } from "@/lib/learningScenes";

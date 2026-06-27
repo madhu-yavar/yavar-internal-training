@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/external";
 import { useAuthCtx } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/_authenticated/change-password")({
