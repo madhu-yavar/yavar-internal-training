@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuthCtx } from "@/lib/auth-context";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/external";
 
 export const Route = createFileRoute("/_authenticated/admin/")({
   component: AdminHome,

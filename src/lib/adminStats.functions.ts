@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSupabaseAuth } from "@/integrations/supabase/external-auth-middleware";
 
 export type LearnerRow = {
   user_id: string;
@@ -42,7 +42,7 @@ export const getAdminDashboard = createServerFn({ method: "GET" })
     const isAdmin = !!roles?.some((r: { role: string }) => r.role === "admin");
     if (!isAdmin) throw new Response("Forbidden", { status: 403 });
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/external.server");
 
     // Fetch ALL users first (for e2e admin visibility)
     const allUsers: Array<{ id: string; email: string | null; created_at: string }> = [];
