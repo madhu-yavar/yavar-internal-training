@@ -96,7 +96,7 @@ function CourseEditor() {
       supabase.from("quiz_questions").select("*").eq("course_id", courseId).order("idx"),
     ]);
     setCourse(c as Course | null);
-    setSlides((s as Slide[]) ?? []);
+    setSlides(((s as unknown) as Slide[]) ?? []);
     setCues((cu as Cue[]) ?? []);
     setQuiz((q as Quiz[]) ?? []);
     setLoading(false);
@@ -650,7 +650,7 @@ function SlidesSection({
   async function updateSlide(id: string, patch: Partial<Slide>) {
     // Optimistic save — do NOT reload the whole editor on every blur,
     // that's what caused the "refresh while typing" flash and focus loss.
-    const { error } = await supabase.from("slides").update(patch).eq("id", id);
+    const { error } = await supabase.from("slides").update(patch as never).eq("id", id);
     if (error) setErr(error.message);
   }
 

@@ -137,7 +137,7 @@ function CoursePlayer() {
         setLoading(false);
         return;
       }
-      const orderedSlides = ((s as Slide[]) ?? []).sort((a, b) => a.idx - b.idx);
+      const orderedSlides = (((s as unknown) as Slide[]) ?? []).sort((a, b) => a.idx - b.idx);
       setCourse(c as Course);
       setSpeed((c as Course).speed ?? 1);
       setSlides(orderedSlides);

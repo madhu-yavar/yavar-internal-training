@@ -37,7 +37,7 @@ export function VideoPlayer({
 }: VideoPlayerProps) {
   const [isLoaded, setIsLoaded] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const progressIntervalRef = useRef<number>();
+  const progressIntervalRef = useRef<number | undefined>(undefined);
 
   // Auto-detect type if not provided
   const detectedType = videoType || (videoUrl ? detectTypeFromUrl(videoUrl) : null);
