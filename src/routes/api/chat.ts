@@ -1,4 +1,4 @@
-import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { createFileRoute } from "@tanstack/react-router";
 import { convertToModelMessages, streamText, type UIMessage } from "ai";
 import slidesData from "@/assets/training/slides.json";
@@ -37,8 +37,8 @@ export const Route = createFileRoute("/api/chat")({
         if (!Array.isArray(messages)) {
           return new Response("Messages are required", { status: 400 });
         }
-        const key = process.env.LOVABLE_API_KEY;
-        if (!key) return new Response("Missing LOVABLE_API_KEY", { status: 500 });
+        const key = process.env.GEMINI_API_KEY;
+        if (!key) return new Response("Missing GEMINI_API_KEY", { status: 500 });
 
         // Build the per-course system prompt when a course context is passed in;
         // otherwise fall back to the original Enterprise-AI deck corpus.
@@ -60,11 +60,16 @@ ${corpus}
 === END MATERIAL ===`;
         }
 
-        const gateway = createLovableAiGatewayProvider(key);
+        const google = createOpenAICompatible({
+          name: "google",
+          baseURL: "https://generativelanguage.googleapis.com/v1beta/openai",
+          apiKey: key,
+        });
+        const modelMessages = await convertToModelMessages(messages as UIMessage[]);
         const result = streamText({
-          model: gateway("google/gemini-3-flash-preview"),
+          model: google("gemini-3.5-flash"),
           system,
-          messages: await convertToModelMessages(messages as UIMessage[]),
+          messages: modelMessages,
         });
 
         return result.toUIMessageStreamResponse({
