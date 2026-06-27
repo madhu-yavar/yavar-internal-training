@@ -86,6 +86,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary" },
       { name: "twitter:title", content: "Yavar Learn with Ari" },
       { name: "twitter:description", content: "AI-narrated enterprise training courses with Ari, your built-in AI tutor." },
+      {
+        httpEquiv: "Content-Security-Policy",
+        content: "frame-src 'self' https://www.youtube.com https://player.vimeo.com https://www.loom.com; media-src 'self' https://*.supabase.co https://*.supabase.in https://www.youtube.com;",
+      },
     ],
     links: [
       {

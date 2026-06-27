@@ -5,6 +5,7 @@ import { TrainingChat } from "@/components/TrainingChat";
 import { MessageAdminDialog } from "@/components/MessageAdminDialog";
 import { BrandFooter } from "@/components/BrandFooter";
 import { LearningScene } from "@/components/LearningScene";
+import { VideoPlayer } from "@/components/VideoPlayer";
 import yavarLogo from "@/assets/yavar-logo.png.asset.json";
 import { useAuthCtx } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,6 +38,10 @@ type Slide = {
   narration_text: string | null;
   illustration_url?: string | null;
   icon_keywords?: string[] | null;
+  video_url: string | null;
+  video_type: 'mp4' | 'youtube' | 'vimeo' | 'loom' | null;
+  video_poster_url: string | null;
+  video_duration_ms: number | null;
 };
 
 type Quiz = {
@@ -140,7 +145,8 @@ function CoursePlayer() {
       const paths = [
         ...orderedSlides.map((sl) => sl.image_url),
         ...orderedSlides.map((sl) => sl.illustration_url),
-      ].filter((p): p is string => !!p);
+        ...orderedSlides.map((sl) => sl.video_poster_url),
+      ].filter((p): p is string => !!p && !/^https?:\/\//.test(p));
       setSignedImages(paths.length ? await signMany(paths, 3600) : {});
       setLoading(false);
     })();
@@ -402,7 +408,23 @@ function CoursePlayer() {
               Scene {unitIdx + 1} / {playUnits.length}
             </div>
             <div className="relative flex h-full items-center justify-center p-3 sm:p-6">
-              {slideImageUrl || illustrationUrl ? (
+              {unit.sourceSlide.video_url ? (
+                /* Video content */
+                <div className="h-full w-full">
+                  <VideoPlayer
+                    videoUrl={unit.sourceSlide.video_url}
+                    videoType={unit.sourceSlide.video_type}
+                    posterUrl={
+                      unit.sourceSlide.video_poster_url
+                        ? signedImages[unit.sourceSlide.video_poster_url] || unit.sourceSlide.video_poster_url
+                        : slideImageUrl || illustrationUrl || undefined
+                    }
+                    autoPlay={playing && phaseIdx === 0}
+                    muted={false}
+                    className="h-full w-full rounded-xl overflow-hidden"
+                  />
+                </div>
+              ) : slideImageUrl || illustrationUrl ? (
                 slideImageUrl && illustrationUrl ? (
                   /* Both: split — slide on top, AI illustration on bottom, both always visible & animated */
                   <div className="grid h-full w-full grid-rows-[minmax(0,1fr)_minmax(0,1fr)] gap-3">

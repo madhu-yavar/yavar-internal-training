@@ -8,6 +8,7 @@ import { COURSE_BUCKET, getSignedUrl } from "@/lib/storage";
 import { parseDeck, type ParsedSlide } from "@/lib/deckParser";
 import { generateCourseDescription, regenerateSlideNarration, generateSlideIllustrations } from "@/lib/narration.functions";
 import { stripGeneratedMaterial } from "@/lib/courseMaterial";
+import { detectVideoType, getThumbnailUrl, VIDEO_PLATFORMS } from "@/lib/videoUtils";
 
 export const Route = createFileRoute("/_authenticated/admin/courses/$courseId")({
   component: CourseEditor,
@@ -39,6 +40,10 @@ type Slide = {
   generation_hint: string | null;
   illustration_url: string | null;
   icon_keywords: string[] | null;
+  video_url: string | null;
+  video_type: 'mp4' | 'youtube' | 'vimeo' | 'loom' | null;
+  video_poster_url: string | null;
+  video_duration_ms: number | null;
 };
 
 type Cue = { id: string; idx: number; start_ms: number; end_ms: number; text: string };
@@ -712,6 +717,26 @@ function SlidesSection({
               onChange={(e) => e.target.files?.[0] && handleDeck(e.target.files[0], false)}
             />
           </label>
+          <button
+            onClick={async () => {
+              setErr(null);
+              try {
+                const nextIdx = slides.length;
+                const { error } = await supabase.from("slides").insert({
+                  course_id: courseId,
+                  idx: nextIdx,
+                  title: `Slide ${nextIdx + 1}`,
+                });
+                if (error) throw error;
+                await onChanged();
+              } catch (e) {
+                setErr((e as Error).message);
+              }
+            }}
+            className="rounded-md border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-sm font-medium text-emerald-300 hover:bg-emerald-500/20"
+          >
+            + Add empty slide
+          </button>
         </div>
       </div>
 
@@ -891,8 +916,35 @@ function SlidesSection({
       )}
 
       {slides.length === 0 ? (
-        <div className="mt-4 rounded-xl border border-dashed border-slate-700 p-8 text-center text-sm text-slate-400">
-          No slides yet — upload a PDF or PPTX to get started.
+        <div className="mt-4 rounded-xl border border-dashed border-slate-700 p-8 text-center">
+          <p className="text-sm text-slate-400 mb-4">No slides yet — upload a PDF/PPTX or create empty slides for videos</p>
+          <div className="flex justify-center gap-3">
+            <button
+              onClick={() => document.getElementById('pptx-upload')?.click()}
+              className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-amber-400"
+            >
+              📄 Upload Deck (PDF/PPTX)
+            </button>
+            <button
+              onClick={async () => {
+                setErr(null);
+                try {
+                  const { error } = await supabase.from("slides").insert({
+                    course_id: courseId,
+                    idx: 0,
+                    title: `Slide 1`,
+                  });
+                  if (error) throw error;
+                  await onChanged();
+                } catch (e) {
+                  setErr((e as Error).message);
+                }
+              }}
+              className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-300 hover:bg-emerald-500/20"
+            >
+              📹 Create Empty Slide for Video
+            </button>
+          </div>
         </div>
       ) : (
         <ol className="mt-4 space-y-3">
@@ -932,11 +984,18 @@ function SlideRow({
   const [hint, setHint] = useState(s.generation_hint ?? "");
   const [regenBusy, setRegenBusy] = useState(false);
   const [illBusy, setIllBusy] = useState(false);
+  const [videoUrl, setVideoUrl] = useState(s.video_url ?? "");
+  const [uploadBusy, setUploadBusy] = useState(false);
+  const [showVideoPreview, setShowVideoPreview] = useState(false);
   const [modelBadge, setModelBadge] = useState<string | null>(null);
   const runRegen = useServerFn(regenerateSlideNarration);
   const runIll = useServerFn(generateSlideIllustrations);
   const url = s.image_url ? signedImages[s.image_url] || s.image_url : null;
   const illUrl = s.illustration_url ? signedImages[s.illustration_url] || s.illustration_url : null;
+
+  // Auto-detect video type from URL
+  const detectedVideoType = videoUrl ? detectVideoType(videoUrl) : null;
+  const platformInfo = detectedVideoType ? VIDEO_PLATFORMS[detectedVideoType] : null;
 
   async function regen() {
     setRegenBusy(true); setErr(null);
@@ -959,6 +1018,59 @@ function SlideRow({
     } catch (e) {
       setErr((e as Error).message);
     } finally { setIllBusy(false); }
+  }
+
+  async function handleVideoUpload(file: File) {
+    if (!file) return;
+    setUploadBusy(true);
+    setErr(null);
+    try {
+      const ext = file.name.split('.').pop() || 'mp4';
+      const path = `${s.course_id}/videos/${s.id}-${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from('course-videos')
+        .upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: signedData } = await supabase.storage
+        .from('course-videos')
+        .createSignedUrl(path, 60 * 60 * 24 * 365); // 1 year
+      if (signedData?.signedUrl) {
+        setVideoUrl(signedData.signedUrl);
+        await onUpdate(s.id, {
+          video_url: signedData.signedUrl,
+          video_type: 'mp4'
+        });
+      }
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setUploadBusy(false);
+    }
+  }
+
+  async function removeVideo() {
+    setVideoUrl("");
+    await onUpdate(s.id, {
+      video_url: null,
+      video_type: null,
+      video_poster_url: null
+    });
+  }
+
+  async function saveVideoUrl() {
+    if (!videoUrl.trim()) {
+      await onUpdate(s.id, { video_url: null, video_type: null });
+      return;
+    }
+    const type = detectVideoType(videoUrl);
+    if (!type) {
+      setErr("Unrecognized video URL. Supported: YouTube, Vimeo, Loom, or direct MP4 links.");
+      return;
+    }
+    await onUpdate(s.id, {
+      video_url: videoUrl.trim(),
+      video_type: type
+    });
   }
 
   return (
@@ -1007,6 +1119,71 @@ function SlideRow({
             rows={2}
             className="w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-sky-200/80"
           />
+          {/* Video Section */}
+          <div className="rounded-md border border-slate-700 bg-slate-900/30 p-2">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-xs font-medium text-slate-300">📹 Video</span>
+              {platformInfo && (
+                <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${platformInfo.bgColor} ${platformInfo.color}`}>
+                  {platformInfo.icon} {platformInfo.name}
+                </span>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={videoUrl}
+                onChange={(e) => setVideoUrl(e.target.value)}
+                onBlur={saveVideoUrl}
+                placeholder="Paste YouTube, Vimeo, Loom URL, or upload MP4..."
+                className="flex-1 rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-300 placeholder:text-slate-600"
+              />
+              <label className="cursor-pointer rounded border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-slate-300 hover:bg-slate-700 disabled:opacity-50">
+                {uploadBusy ? "Uploading…" : "Upload MP4"}
+                <input
+                  type="file"
+                  accept="video/mp4,video/webm"
+                  onChange={(e) => e.target.files?.[0] && handleVideoUpload(e.target.files[0])}
+                  disabled={uploadBusy}
+                  className="hidden"
+                />
+              </label>
+              {videoUrl && (
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => setShowVideoPreview(!showVideoPreview)}
+                    className="rounded border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-slate-300 hover:bg-slate-700"
+                  >
+                    {showVideoPreview ? "Hide" : "Preview"}
+                  </button>
+                  <button
+                    onClick={removeVideo}
+                    className="rounded border border-red-500/40 bg-red-500/10 px-2 py-1 text-xs text-red-300 hover:bg-red-500/20"
+                  >
+                    Remove
+                  </button>
+                </div>
+              )}
+            </div>
+            {showVideoPreview && videoUrl && detectedVideoType && (
+              <div className="mt-2 aspect-video overflow-hidden rounded border border-slate-700">
+                <iframe
+                  src={detectedVideoType === 'mp4'
+                    ? ''
+                    : detectedVideoType === 'youtube'
+                    ? `https://www.youtube.com/embed/${videoUrl.match(/(?:embed\/|v=)([a-zA-Z0-9_-]+)/)?.[1] || ''}`
+                    : detectedVideoType === 'vimeo'
+                    ? `https://player.vimeo.com/video/${videoUrl.match(/(\d+)/)?.[1] || ''}`
+                    : videoUrl
+                  }
+                  className="h-full w-full border-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  title="Video preview"
+                />
+              </div>
+            )}
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={regen} disabled={regenBusy}
