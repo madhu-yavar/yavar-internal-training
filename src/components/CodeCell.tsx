@@ -205,6 +205,27 @@ function CellOutput({ output }: CellOutputProps) {
     );
   }
 
+  if (output.output_type === 'image') {
+    if (output.mime_type === 'image/svg+xml') {
+      return (
+        <div className="my-2 flex justify-center bg-white rounded p-2">
+          <div
+            dangerouslySetInnerHTML={{ __html: output.data }}
+            className="max-w-full"
+          />
+        </div>
+      );
+    }
+    // For other image types (png, jpeg)
+    return (
+      <img
+        src={`data:${output.mime_type};base64,${output.data}`}
+        alt="Output"
+        className="max-w-full h-auto rounded my-2"
+      />
+    );
+  }
+
   if (output.output_type === 'execute_result' || output.output_type === 'display_data') {
     // Handle rich output (images, HTML, etc.)
     const text = output.data['text/plain'] as string | string[] | undefined;

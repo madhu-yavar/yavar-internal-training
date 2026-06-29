@@ -62,7 +62,8 @@ export type CellOutput =
   | StreamOutput
   | ErrorOutput
   | ExecuteResultOutput
-  | DisplayDataOutput;
+  | DisplayDataOutput
+  | ImageOutput;
 
 export interface StreamOutput {
   output_type: 'stream';
@@ -88,6 +89,12 @@ export interface DisplayDataOutput {
   output_type: 'display_data';
   data: Record<string, unknown>;
   metadata?: Record<string, unknown>;
+}
+
+export interface ImageOutput {
+  output_type: 'image';
+  mime_type: 'image/svg+xml' | 'image/png' | 'image/jpeg';
+  data: string; // Base64 or SVG source
 }
 
 // UI State Types

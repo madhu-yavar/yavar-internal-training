@@ -91,6 +91,26 @@ sys.stderr = _stderr_capture
 import matplotlib
 matplotlib.use('module://matplotlib.backends.backend_svg')
 import matplotlib.pyplot as plt
+import io
+
+# Global list to store plot SVGs
+_matplotlib_images = []
+
+# Override plt.show() to capture the plot
+_original_show = plt.show
+def capture_plot():
+    import base64
+    buf = io.BytesIO()
+    plt.savefig(buf, format='svg', bbox_inches='tight')
+    buf.seek(0)
+    svg_data = buf.read().decode('utf-8')
+    _matplotlib_images.append(svg_data)
+    plt.close()
+    print("[Plot displayed below]")
+
+plt.show = capture_plot
+
+print("Matplotlib configured - plots will be displayed in notebook")
         `);
         console.log('✓ Matplotlib configured for browser');
 
@@ -181,31 +201,40 @@ export function usePyodideKernel() {
   /**
    * Run Python code
    */
-  const runPython = useCallback(async (code: string): Promise<{ output: string[]; error: string | null }> => {
+  const runPython = useCallback(async (code: string): Promise<{ output: string[]; images: string[]; error: string | null }> => {
     if (!state.pyodide || !state.isReady) {
       throw new Error('Pyodide not ready');
     }
 
     try {
-      // Clear previous outputs
+      // Clear previous outputs and images
       await state.pyodide.runPythonAsync(`
 _stdout_capture.clear()
 _stderr_capture.clear()
+if '_matplotlib_images' in globals():
+    _matplotlib_images.clear()
+else:
+    _matplotlib_images = []
       `);
 
       // Run user code
       await state.pyodide.runPythonAsync(code);
 
-      // Get outputs
+      // Get text outputs
       const outputs = state.pyodide.runPython('_stdout_capture.get_outputs() + _stderr_capture.get_outputs()');
+
+      // Get matplotlib images (if any)
+      const images = state.pyodide.runPython('_matplotlib_images if "_matplotlib_images" in globals() else []');
 
       return {
         output: outputs || [],
+        images: images || [],
         error: null,
       };
     } catch (error) {
       return {
         output: [],
+        images: [],
         error: error instanceof Error ? error.message : String(error),
       };
     }

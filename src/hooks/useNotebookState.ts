@@ -202,6 +202,36 @@ export function useNotebookState(
 
       const executionCount = executionCounterRef.current++;
 
+      // Build outputs array from text and images
+      const outputs: any[] = [];
+
+      if (result.error) {
+        outputs.push({
+          output_type: 'error' as const,
+          ename: 'Error',
+          evalue: result.error,
+          traceback: [result.error],
+        });
+      } else {
+        // Add text outputs
+        result.output.forEach((line: string) => {
+          outputs.push({
+            output_type: 'stream' as const,
+            name: 'stdout',
+            text: line,
+          });
+        });
+
+        // Add image outputs
+        result.images?.forEach((svgData: string) => {
+          outputs.push({
+            output_type: 'image' as const,
+            mime_type: 'image/svg+xml',
+            data: svgData,
+          });
+        });
+      }
+
       setState(prev => ({
         ...prev,
         cells: prev.cells.map(c =>
@@ -209,20 +239,7 @@ export function useNotebookState(
             ? {
                 ...c,
                 isRunning: false,
-                outputs: result.error
-                  ? [
-                      {
-                        output_type: 'error' as const,
-                        ename: 'Error',
-                        evalue: result.error,
-                        traceback: [result.error],
-                      },
-                    ]
-                  : result.output.map((line: string) => ({
-                      output_type: 'stream' as const,
-                      name: 'stdout',
-                      text: line,
-                    })),
+                outputs,
                 executionCount,
               }
             : c
