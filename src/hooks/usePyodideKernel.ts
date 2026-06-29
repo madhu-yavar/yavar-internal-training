@@ -75,6 +75,32 @@ sys.stdout = _stdout_capture
 sys.stderr = _stderr_capture
       `);
 
+      // Preload common data science packages
+      // These are used in the sample notebooks
+      console.log('Loading Python packages...');
+      try {
+        await pyodide.loadPackage(['numpy', 'pandas']);
+        console.log('✓ NumPy and Pandas loaded');
+
+        // Load matplotlib (for plotting notebooks)
+        await pyodide.loadPackage('matplotlib');
+        console.log('✓ Matplotlib loaded');
+
+        // Setup matplotlib for browser environment (non-interactive backend)
+        await pyodide.runPythonAsync(`
+import matplotlib
+matplotlib.use('module://matplotlib.backends.backend_svg')
+import matplotlib.pyplot as plt
+        `);
+        console.log('✓ Matplotlib configured for browser');
+
+        // Load scikit-learn (for ML notebook)
+        await pyodide.loadPackage('scikit-learn');
+        console.log('✓ Scikit-learn loaded');
+      } catch (error) {
+        console.warn('Some packages failed to load:', error);
+      }
+
       globalPyodide = pyodide;
       isLoading = false;
       loadPromise = null;
