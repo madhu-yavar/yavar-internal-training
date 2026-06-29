@@ -13,11 +13,11 @@ export function OutputPanel({ output, testResults, isRunning, className }: Outpu
   const hasTests = testResults && testResults.results.length > 0;
 
   return (
-    <div className={cn('h-full flex flex-col bg-slate-950 font-mono text-sm', className)}>
-      <div className="flex items-center justify-between px-4 py-2 border-b border-slate-800 bg-slate-900">
-        <h3 className="font-semibold text-slate-200">Output</h3>
+    <div className={cn('h-full flex flex-col bg-background font-mono text-sm', className)}>
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card">
+        <h3 className="font-semibold text-card-foreground">Output</h3>
         {isRunning && (
-          <div className="flex items-center gap-2 text-slate-400">
+          <div className="flex items-center gap-2 text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
             <span className="text-xs">Running...</span>
           </div>
@@ -29,7 +29,7 @@ export function OutputPanel({ output, testResults, isRunning, className }: Outpu
         {output.length > 0 && (
           <div className="space-y-1">
             {output.map((line, i) => (
-              <div key={i} className="text-slate-300 whitespace-pre-wrap">
+              <div key={i} className="text-card-foreground whitespace-pre-wrap">
                 {line}
               </div>
             ))}
@@ -51,11 +51,11 @@ export function OutputPanel({ output, testResults, isRunning, className }: Outpu
               <span>
                 {testResults.passed ? 'All tests passed!' : 'Some tests failed'}
               </span>
-              <span className="text-slate-500 text-xs ml-2">
+              <span className="text-muted-foreground text-xs ml-2">
                 ({testResults.results.filter(r => r.passed).length}/{testResults.results.length})
               </span>
               {testResults.execution_time_ms && (
-                <span className="text-slate-500 text-xs ml-auto">
+                <span className="text-muted-foreground text-xs ml-auto">
                   {testResults.execution_time_ms}ms
                 </span>
               )}
@@ -82,7 +82,7 @@ export function OutputPanel({ output, testResults, isRunning, className }: Outpu
 
         {/* Empty State */}
         {!isRunning && output.length === 0 && !hasTests && (
-          <div className="text-slate-600 text-center py-8">
+          <div className="text-muted-foreground text-center py-8">
             Run your code to see output here
           </div>
         )}
@@ -109,7 +109,7 @@ function TestCaseResult({ result }: TestCaseResultProps) {
         ) : (
           <XCircle className="h-4 w-4 text-amber-400" />
         )}
-        <span className="font-medium text-slate-200">
+        <span className="font-medium text-card-foreground">
           {result.description || 'Test case'}
         </span>
       </div>
@@ -121,16 +121,16 @@ function TestCaseResult({ result }: TestCaseResultProps) {
           ) : (
             <>
               {result.input && (
-                <div className="text-slate-400">
-                  <span className="text-slate-500">Input:</span> {result.input}
+                <div className="text-muted-foreground">
+                  <span className="text-muted-foreground">Input:</span> {result.input}
                 </div>
               )}
               <div className="flex gap-4">
                 <div className="text-green-400">
-                  <span className="text-slate-500">Expected:</span> {result.expected}
+                  <span className="text-muted-foreground">Expected:</span> {result.expected}
                 </div>
                 <div className="text-amber-400">
-                  <span className="text-slate-500">Actual:</span> {result.actual}
+                  <span className="text-muted-foreground">Actual:</span> {result.actual}
                 </div>
               </div>
             </>

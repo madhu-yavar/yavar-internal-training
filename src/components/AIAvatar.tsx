@@ -8,10 +8,10 @@ type Props = {
 };
 
 export function AIAvatar({ speaking, accent = "amber", name = "Ari" }: Props) {
-  const ring = speaking ? "ring-2 ring-amber-400/70" : "ring-1 ring-white/10";
+  const ring = speaking ? "ring-2 ring-amber-400/70" : "ring-1 ring-border";
   return (
     <div className="flex items-center gap-3">
-      <div className={`relative h-14 w-14 rounded-full bg-gradient-to-br from-slate-800 to-slate-950 ${ring} transition`}>
+      <div className={`relative h-14 w-14 rounded-full bg-gradient-to-br from-muted-foreground/20 to-muted-foreground/40 ${ring} transition`}>
         {speaking && (
           <span className="absolute inset-0 rounded-full animate-ping bg-amber-400/20" />
         )}
@@ -41,8 +41,8 @@ export function AIAvatar({ speaking, accent = "amber", name = "Ari" }: Props) {
         </svg>
       </div>
       <div>
-        <div className="text-[11px] uppercase tracking-[0.2em] text-amber-300">AI Trainer</div>
-        <div className="text-sm font-semibold text-slate-100">{name}</div>
+        <div className="text-[11px] uppercase tracking-[0.2em] text-amber-600 dark:text-amber-300">AI Trainer</div>
+        <div className="text-sm font-semibold text-card-foreground">{name}</div>
         <div className="mt-0.5 flex items-end gap-0.5 h-3">
           {[0,1,2,3,4].map((i) => (
             <span

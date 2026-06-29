@@ -59,8 +59,8 @@ export function MarkdownCell({
     >
       {/* Toolbar */}
       {isSelected && (
-        <div className="flex items-center justify-between px-3 py-2 bg-slate-800/50 border-b border-slate-700 rounded-t-lg">
-          <div className="flex items-center gap-1 text-slate-400 text-sm">
+        <div className="flex items-center justify-between px-3 py-2 bg-muted border-b border-border rounded-t-lg">
+          <div className="flex items-center gap-1 text-muted-foreground text-sm">
             <FileText className="h-4 w-4" />
             <span>Markdown</span>
           </div>
@@ -68,33 +68,33 @@ export function MarkdownCell({
           <div className="flex items-center gap-1">
             <button
               onClick={onMoveUp}
-              className="p-1.5 rounded hover:bg-slate-700 text-slate-400 hover:text-slate-200"
+              className="p-1.5 rounded hover:bg-muted-foreground/20 text-muted-foreground hover:text-card-foreground"
               title="Move cell up"
             >
               <ChevronUp className="h-4 w-4" />
             </button>
             <button
               onClick={onMoveDown}
-              className="p-1.5 rounded hover:bg-slate-700 text-slate-400 hover:text-slate-200"
+              className="p-1.5 rounded hover:bg-muted-foreground/20 text-muted-foreground hover:text-card-foreground"
               title="Move cell down"
             >
               <ChevronDown className="h-4 w-4" />
             </button>
             <button
               onClick={onAddAbove}
-              className="px-3 py-1.5 text-xs rounded bg-slate-700 text-slate-300 hover:bg-slate-600"
+              className="px-3 py-1.5 text-xs rounded bg-muted text-card-foreground hover:bg-muted-foreground/20"
             >
               + Above
             </button>
             <button
               onClick={onAddBelow}
-              className="px-3 py-1.5 text-xs rounded bg-slate-700 text-slate-300 hover:bg-slate-600"
+              className="px-3 py-1.5 text-xs rounded bg-muted text-card-foreground hover:bg-muted-foreground/20"
             >
               + Below
             </button>
             <button
               onClick={onDelete}
-              className="p-1.5 rounded hover:bg-rose-500/20 text-slate-400 hover:text-rose-400"
+              className="p-1.5 rounded hover:bg-rose-500/20 text-muted-foreground hover:text-rose-400"
               title="Delete cell"
             >
               <Trash2 className="h-4 w-4" />
@@ -110,7 +110,7 @@ export function MarkdownCell({
           onChange={e => setContent(e.target.value)}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
-          className="w-full min-h-[80px] bg-slate-950 text-slate-200 p-3 rounded border-0 focus:border-0 focus:outline-none resize-y font-mono text-sm"
+          className="w-full min-h-[80px] bg-background text-card-foreground p-3 rounded border-0 focus:border-0 focus:outline-none resize-y font-mono text-sm"
           autoFocus
           placeholder="# Write markdown here..."
         />
@@ -122,27 +122,27 @@ export function MarkdownCell({
           {cell.content ? (
             <ReactMarkdown
               components={{
-                h1: ({ children }) => <h1 className="text-xl font-bold text-slate-100 mb-2">{children}</h1>,
-                h2: ({ children }) => <h2 className="text-lg font-semibold text-slate-200 mb-2 mt-4">{children}</h2>,
-                h3: ({ children }) => <h3 className="text-base font-semibold text-slate-300 mb-2 mt-3">{children}</h3>,
-                p: ({ children }) => <p className="text-slate-300 mb-2">{children}</p>,
-                ul: ({ children }) => <ul className="list-disc list-inside text-slate-300 mb-2 ml-4">{children}</ul>,
-                ol: ({ children }) => <ol className="list-decimal list-inside text-slate-300 mb-2 ml-4">{children}</ol>,
+                h1: ({ children }) => <h1 className="text-xl font-bold text-card-foreground mb-2">{children}</h1>,
+                h2: ({ children }) => <h2 className="text-lg font-semibold text-card-foreground mb-2 mt-4">{children}</h2>,
+                h3: ({ children }) => <h3 className="text-base font-semibold text-card-foreground mb-2 mt-3">{children}</h3>,
+                p: ({ children }) => <p className="text-card-foreground mb-2">{children}</p>,
+                ul: ({ children }) => <ul className="list-disc list-inside text-card-foreground mb-2 ml-4">{children}</ul>,
+                ol: ({ children }) => <ol className="list-decimal list-inside text-card-foreground mb-2 ml-4">{children}</ol>,
                 code: ({ children, className }) => {
                   const isInline = !className;
                   return isInline ? (
-                    <code className="bg-slate-800 text-emerald-300 px-1 py-0.5 rounded text-sm">{children}</code>
+                    <code className="bg-muted text-emerald-300 px-1 py-0.5 rounded text-sm">{children}</code>
                   ) : (
-                    <code className="block bg-slate-800 text-slate-300 p-2 rounded text-sm overflow-x-auto">{children}</code>
+                    <code className="block bg-muted text-card-foreground p-2 rounded text-sm overflow-x-auto">{children}</code>
                   );
                 },
-                pre: ({ children }) => <pre className="bg-slate-800 p-2 rounded overflow-x-auto mb-2">{children}</pre>,
+                pre: ({ children }) => <pre className="bg-muted p-2 rounded overflow-x-auto mb-2">{children}</pre>,
               }}
             >
               {cell.content}
             </ReactMarkdown>
           ) : (
-            <div className="text-slate-500 italic" onClick={() => setIsEditing(true)}>
+            <div className="text-muted-foreground italic" onClick={() => setIsEditing(true)}>
               # Click to add markdown...
             </div>
           )}

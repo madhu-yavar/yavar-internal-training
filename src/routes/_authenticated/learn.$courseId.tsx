@@ -6,6 +6,7 @@ import { MessageAdminDialog } from "@/components/MessageAdminDialog";
 import { BrandFooter } from "@/components/BrandFooter";
 import { LearningScene } from "@/components/LearningScene";
 import { VideoPlayer } from "@/components/VideoPlayer";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuthCtx } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/external";
 import { AmbientMusic } from "@/lib/ambientMusic";
@@ -141,12 +142,21 @@ function CoursePlayer() {
       setSpeed((c as Course).speed ?? 1);
       setSlides(orderedSlides);
       setQuiz((q as Quiz[]) ?? []);
-      const paths = [
+      const allPaths = [
         ...orderedSlides.map((sl) => sl.image_url),
         ...orderedSlides.map((sl) => sl.illustration_url),
         ...orderedSlides.map((sl) => sl.video_poster_url),
-      ].filter((p): p is string => !!p && !/^https?:\/\//.test(p));
-      setSignedImages(paths.length ? await signMany(paths, 3600) : {});
+      ].filter((p): p is string => !!p);
+      const paths = allPaths.filter((p) => !/^https?:\/\//.test(p));
+
+      console.log('[Course] All image URLs from database - TOTAL:', allPaths.length, 'FIRST 10:', allPaths.slice(0, 10));
+      console.log('[Course] Paths to sign (non-HTTP) - TOTAL:', paths.length, 'FIRST 10:', paths.slice(0, 10));
+
+      const signedMap = paths.length ? await signMany(paths, 3600) : {};
+      console.log('[Course] Signed map received. Sample keys:', Object.keys(signedMap).slice(0, 5));
+      const firstImagePath = orderedSlides[0]?.image_url?.replace(/^\/+|\/+$/g, '') || '';
+      console.log('[Course] Looking for image_url key in signed map:', firstImagePath, '=>', signedMap[firstImagePath]);
+      setSignedImages(signedMap);
       setLoading(false);
     })();
     return () => {
@@ -169,6 +179,7 @@ function CoursePlayer() {
         });
       });
     }
+    console.log('[Course] Play units created:', out.length, 'from', slides.length, 'slides');
     return out;
   }, [slides]);
 
@@ -260,29 +271,39 @@ function CoursePlayer() {
     void playFrom(Math.min(phaseIdx, Math.max(0, phases.length - 1)));
   };
 
-  if (loading) return <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-400">Loading course…</div>;
+  if (loading) return <div className="flex min-h-screen items-center justify-center bg-background text-muted-foreground">Loading course…</div>;
   if (error || !course || !unit) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4 text-slate-100">
+      <div className="flex min-h-screen items-center justify-center bg-background px-4 text-foreground">
         <div className="max-w-md rounded-2xl border border-rose-500/30 bg-rose-500/10 p-6 text-center">
           <h1 className="text-lg font-semibold">Course unavailable</h1>
           <p className="mt-2 text-sm text-rose-100/80">{error || "No learning scenes have been generated yet. Ask an admin to regenerate."}</p>
-          <Link to="/learn" className="mt-5 inline-block rounded-md border border-white/10 px-4 py-2 text-sm hover:bg-white/10">Back to library</Link>
+          <Link to="/learn" className="mt-5 inline-block rounded-md border border-border px-4 py-2 text-sm hover:bg-muted">Back to library</Link>
         </div>
       </div>
     );
   }
 
   const illustrationUrl = unit.sourceSlide.illustration_url
-    ? signedImages[unit.sourceSlide.illustration_url] || unit.sourceSlide.illustration_url
+    ? signedImages[unit.sourceSlide.illustration_url.replace(/^\/+|\/+$/g, '')] || unit.sourceSlide.illustration_url
     : null;
   const slideImageUrl = unit.sourceSlide.image_url
-    ? signedImages[unit.sourceSlide.image_url] || unit.sourceSlide.image_url
+    ? signedImages[unit.sourceSlide.image_url.replace(/^\/+|\/+$/g, '')] || unit.sourceSlide.image_url
     : null;
 
+  // Debug: log slide data to check what's available
+  console.log('[Course] Current slide -', {
+    unitIndex: unitIdx,
+    slideIndex: unit.sourceSlide.idx,
+    title: unit.sourceSlide.title,
+    image_url: unit.sourceSlide.image_url,
+    resolvedSlideImageUrl: slideImageUrl,
+    isSignedUrl: slideImageUrl?.startsWith('http'),
+  });
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <header className="sticky top-0 z-20 border-b border-white/10 bg-slate-900/75 backdrop-blur">
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="sticky top-0 z-20 border-b border-border bg-card/75 backdrop-blur">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <Link to="/learn" aria-label="Library">
@@ -294,25 +315,25 @@ function CoursePlayer() {
             </div>
           </div>
           <div className="flex shrink-0 flex-wrap items-center gap-2">
-            <div className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-300">
-              Voice <span className="text-slate-100">Yavar · af_heart</span>
+            <div className="rounded-md border border-border bg-muted/5 px-2 py-1 text-[11px] text-muted-foreground">
+              Voice <span className="text-foreground">Yavar · af_heart</span>
             </div>
-            <label className="flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-300">
-              <span className="text-slate-400">Speed</span>
+            <label className="flex items-center gap-1 rounded-md border border-border bg-muted/5 px-2 py-1 text-[11px] text-muted-foreground">
+              <span className="text-muted-foreground">Speed</span>
               <select
                 value={speed}
                 onChange={(e) => setSpeed(Number(e.target.value))}
-                className="bg-transparent text-xs text-slate-100 outline-none"
+                className="bg-transparent text-xs text-foreground outline-none"
               >
                 {[0.75, 0.9, 1, 1.15, 1.25, 1.5, 1.75, 2].map((s) => (
-                  <option key={s} value={s} className="bg-slate-900">{s}×</option>
+                  <option key={s} value={s} className="bg-card">{s}×</option>
                 ))}
               </select>
             </label>
             <button
               onClick={() => completed && setQuizOpen(true)}
               disabled={!completed || quiz.length === 0}
-              className="rounded-md border border-emerald-400/40 bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-100 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-500"
+              className="rounded-md border border-emerald-400/40 bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-100 disabled:cursor-not-allowed disabled:border-border disabled:bg-muted/5 disabled:text-muted-foreground"
             >
               {completed ? "🎓 Quiz" : "🔒 Quiz"}
             </button>
@@ -329,7 +350,7 @@ function CoursePlayer() {
                   setMusicOn(true);
                 }
               }}
-              className={`rounded-md border px-3 py-1.5 text-xs font-semibold ${musicOn ? "border-amber-400/40 bg-amber-500/15 text-amber-100" : "border-white/10 bg-white/5 text-slate-300"}`}
+              className={`rounded-md border px-3 py-1.5 text-xs font-semibold ${musicOn ? "border-amber-400/40 bg-amber-500/15 text-amber-100" : "border-border bg-muted/5 text-muted-foreground"}`}
             >
               {musicOn ? "🎵 On" : "🎵 Music"}
             </button>
@@ -337,10 +358,11 @@ function CoursePlayer() {
               onClick={() => setMsgOpen(true)}
               title="Suggest a correction to this course"
               aria-label="Suggest correction"
-              className="grid h-8 w-8 place-items-center rounded-md border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
+              className="grid h-8 w-8 place-items-center rounded-md border border-border bg-muted/5 text-muted-foreground hover:bg-muted"
             >
               ✏️
             </button>
+            <ThemeToggle />
           </div>
         </div>
       </header>
@@ -351,9 +373,9 @@ function CoursePlayer() {
 
           {/* LEFT: collapsible scenes panel */}
           <aside
-            className={`hidden lg:flex h-full flex-col border-r border-white/10 bg-slate-900/60 transition-[width] duration-300 ${navOpen ? "w-72" : "w-12"}`}
+            className={`hidden lg:flex h-full flex-col border-r border-border bg-card/60 transition-[width] duration-300 ${navOpen ? "w-72" : "w-12"}`}
           >
-            <div className="flex items-center justify-between border-b border-white/10 px-2 py-2">
+            <div className="flex items-center justify-between border-b border-border px-2 py-2">
               {navOpen && (
                 <div className="px-1 text-[10px] uppercase tracking-[0.2em] text-amber-400">
                   Scenes · {playUnits.length}
@@ -362,7 +384,7 @@ function CoursePlayer() {
               <button
                 onClick={() => setNavOpen((v) => !v)}
                 title={navOpen ? "Collapse" : "Expand"}
-                className="grid h-8 w-8 place-items-center rounded-md border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
+                className="grid h-8 w-8 place-items-center rounded-md border border-border bg-muted text-card-foreground hover:bg-muted-foreground/20"
               >
                 {navOpen ? "‹" : "›"}
               </button>
@@ -375,16 +397,16 @@ function CoursePlayer() {
                     <button
                       onClick={() => setUnitIdx(i)}
                       title={u.scene.concept}
-                      className={`flex w-full items-start gap-2 rounded-md p-2 text-left text-xs transition ${active ? "bg-amber-500/15 ring-1 ring-amber-500/40" : "hover:bg-white/5"}`}
+                      className={`flex w-full items-start gap-2 rounded-md p-2 text-left text-xs transition ${active ? "bg-amber-500/15 ring-1 ring-amber-500/40" : "hover:bg-muted"}`}
                     >
-                      <span className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-semibold ${active ? "bg-amber-500 text-slate-900" : "bg-white/10 text-slate-300"}`}>
+                      <span className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-semibold ${active ? "bg-amber-500 text-slate-900" : "bg-muted text-card-foreground"}`}>
                         {i + 1}
                       </span>
                       {navOpen && (
                         <span className="min-w-0">
-                          <span className="line-clamp-2 font-medium text-slate-100">{u.scene.concept}</span>
+                          <span className="line-clamp-2 font-medium text-foreground">{u.scene.concept}</span>
                           {u.scenesInSlide > 1 && (
-                            <span className="block text-[10px] text-slate-500">from "{u.sourceSlide.title}"</span>
+                            <span className="block text-[10px] text-muted-foreground">from "{u.sourceSlide.title}"</span>
                           )}
                         </span>
                       )}
@@ -396,14 +418,14 @@ function CoursePlayer() {
           </aside>
 
           {/* CENTER: slide deck */}
-          <section className="relative flex h-full min-h-0 flex-col bg-slate-950">
-            <div className="absolute left-0 top-0 z-10 h-1 w-full bg-white/5">
+          <section className="relative flex h-full min-h-0 flex-col bg-background">
+            <div className="absolute left-0 top-0 z-10 h-1 w-full bg-muted">
               <div
                 className="h-full bg-amber-400 transition-all"
                 style={{ width: `${((unitIdx + 1) / playUnits.length) * 100}%` }}
               />
             </div>
-            <div className="absolute right-3 top-3 z-10 rounded-md border border-white/10 bg-slate-900/70 px-2 py-1 text-[10px] uppercase tracking-[0.25em] text-amber-200/80 backdrop-blur">
+            <div className="absolute right-3 top-3 z-10 rounded-md border border-border bg-card/90 px-2 py-1 text-[10px] uppercase tracking-[0.25em] text-amber-600 dark:text-amber-200 backdrop-blur">
               Scene {unitIdx + 1} / {playUnits.length}
             </div>
             <div className="relative flex h-full items-center justify-center p-3 sm:p-6">
@@ -415,7 +437,7 @@ function CoursePlayer() {
                     videoType={unit.sourceSlide.video_type}
                     posterUrl={
                       unit.sourceSlide.video_poster_url
-                        ? signedImages[unit.sourceSlide.video_poster_url] || unit.sourceSlide.video_poster_url
+                        ? signedImages[unit.sourceSlide.video_poster_url.replace(/^\/+|\/+$/g, '')] || unit.sourceSlide.video_poster_url
                         : slideImageUrl || illustrationUrl || undefined
                     }
                     autoPlay={playing && phaseIdx === 0}
@@ -427,20 +449,30 @@ function CoursePlayer() {
                 slideImageUrl && illustrationUrl ? (
                   /* Both: split — slide on top, AI illustration on bottom, both always visible & animated */
                   <div className="grid h-full w-full grid-rows-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
-                    <figure className="relative overflow-hidden rounded-xl border border-white/10 bg-slate-900/40 shadow-2xl">
-                      <img
-                        key={`slide-${slideImageUrl}-${unitIdx}`}
-                        src={slideImageUrl}
-                        alt={unit.sourceSlide.title || unit.scene.concept}
-                        className="absolute inset-0 h-full w-full object-contain"
-                        style={{ animation: "slideFade .6s ease-out both" }}
-                      />
-                      <figcaption className="absolute left-3 top-3 rounded-full border border-white/15 bg-slate-950/70 px-2.5 py-1 text-[10px] uppercase tracking-[0.25em] text-amber-200 backdrop-blur">
+                    <figure className="relative overflow-hidden rounded-xl border border-border bg-card/40 shadow-2xl">
+                      {slideImageUrl.startsWith('http') ? (
+                        <img
+                          key={`slide-${slideImageUrl}-${unitIdx}`}
+                          src={slideImageUrl}
+                          alt={unit.sourceSlide.title || unit.scene.concept}
+                          className="absolute inset-0 h-full w-full object-contain"
+                          style={{ animation: "slideFade .6s ease-out both" }}
+                        />
+                      ) : (
+                        /* Fallback when slide image is missing from storage */
+                        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-muted to-muted/80">
+                          <div className="text-center">
+                            <div className="text-4xl mb-2">📄</div>
+                            <div className="text-sm text-card-foreground">Slide image not available</div>
+                          </div>
+                        </div>
+                      )}
+                      <figcaption className="absolute left-3 top-3 rounded-full border border-border bg-card/90 px-2.5 py-1 text-[10px] uppercase tracking-[0.25em] text-amber-600 dark:text-amber-200 backdrop-blur">
                         📄 Source slide
                       </figcaption>
                     </figure>
                     <figure
-                      className="relative overflow-hidden rounded-xl border border-fuchsia-400/40 bg-slate-900/40"
+                      className="relative overflow-hidden rounded-xl border border-fuchsia-400/40 bg-muted/40"
                       style={{ animation: "illIn .9s ease-out both, shimmerBorder 4s ease-in-out infinite" }}
                     >
                       <img
@@ -453,10 +485,10 @@ function CoursePlayer() {
                           transformOrigin: "center",
                         }}
                       />
-                      <figcaption className="absolute left-3 top-3 rounded-full border border-fuchsia-400/40 bg-slate-950/75 px-2.5 py-1 text-[10px] uppercase tracking-[0.25em] text-fuchsia-200 backdrop-blur">
+                      <figcaption className="absolute left-3 top-3 rounded-full border border-fuchsia-400/40 bg-card/90 px-2.5 py-1 text-[10px] uppercase tracking-[0.25em] text-fuchsia-600 dark:text-fuchsia-200 backdrop-blur">
                         ✨ AI illustration
                       </figcaption>
-                      <figcaption className="absolute bottom-3 right-3 max-w-[70%] truncate rounded-md border border-white/10 bg-slate-950/70 px-2 py-1 text-[11px] text-slate-200 backdrop-blur">
+                      <figcaption className="absolute bottom-3 right-3 max-w-[70%] truncate rounded-md border border-border bg-card/70 px-2 py-1 text-[11px] text-card-foreground backdrop-blur">
                         {unit.scene.concept}
                       </figcaption>
                     </figure>
@@ -464,20 +496,30 @@ function CoursePlayer() {
                 ) : (
                   /* Single image: fill the pane with Ken Burns */
                   <figure
-                    className="relative h-full w-full overflow-hidden rounded-xl border border-white/10 bg-slate-900/40 shadow-2xl"
+                    className="relative h-full w-full overflow-hidden rounded-xl border border-border bg-muted/40 shadow-2xl"
                     style={{ animation: "slideFade .6s ease-out both" }}
                   >
-                    <img
-                      key={`one-${slideImageUrl || illustrationUrl}-${unitIdx}`}
-                      src={(slideImageUrl || illustrationUrl) as string}
-                      alt={unit.sourceSlide.title || unit.scene.concept}
-                      className="absolute inset-0 h-full w-full object-contain"
-                      style={{
-                        animation: `${unitIdx % 2 === 0 ? "kenBurns" : "kenBurnsAlt"} 16s ease-in-out infinite alternate`,
-                      }}
-                    />
+                    {(slideImageUrl || illustrationUrl)?.startsWith('http') ? (
+                      <img
+                        key={`one-${slideImageUrl || illustrationUrl}-${unitIdx}`}
+                        src={(slideImageUrl || illustrationUrl) as string}
+                        alt={unit.sourceSlide.title || unit.scene.concept}
+                        className="absolute inset-0 h-full w-full object-contain"
+                        style={{
+                          animation: `${unitIdx % 2 === 0 ? "kenBurns" : "kenBurnsAlt"} 16s ease-in-out infinite alternate`,
+                        }}
+                      />
+                    ) : (
+                      /* Fallback when image is missing from storage */
+                      <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-muted to-muted/80">
+                        <div className="text-center">
+                          <div className="text-4xl mb-2">📄</div>
+                          <div className="text-sm text-card-foreground">Slide image not available</div>
+                        </div>
+                      </div>
+                    )}
                     {illustrationUrl && !slideImageUrl && (
-                      <figcaption className="absolute left-3 top-3 rounded-full border border-fuchsia-400/40 bg-slate-950/75 px-2.5 py-1 text-[10px] uppercase tracking-[0.25em] text-fuchsia-200 backdrop-blur">
+                      <figcaption className="absolute left-3 top-3 rounded-full border border-fuchsia-400/40 bg-card/90 px-2.5 py-1 text-[10px] uppercase tracking-[0.25em] text-fuchsia-600 dark:text-fuchsia-200 backdrop-blur">
                         ✨ AI illustration
                       </figcaption>
                     )}
@@ -487,7 +529,7 @@ function CoursePlayer() {
                 <div className={`flex h-full w-full items-center justify-center rounded-xl border bg-gradient-to-br ${ACCENT_BG[accent]} p-8 text-center`}>
                   <div>
                     <div className="text-[10px] uppercase tracking-[0.3em] text-amber-300">Slide</div>
-                    <h3 className="mt-2 text-2xl font-bold text-slate-50">{unit.sourceSlide.title}</h3>
+                    <h3 className="mt-2 text-2xl font-bold text-card-foreground">{unit.sourceSlide.title}</h3>
                   </div>
                 </div>
               )}
@@ -495,15 +537,15 @@ function CoursePlayer() {
           </section>
 
           {/* RIGHT: narration column */}
-          <section className="flex h-full min-h-0 flex-col border-t border-white/10 bg-slate-900/40 lg:border-l lg:border-t-0">
-            <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/10 px-4 py-2">
+          <section className="flex h-full min-h-0 flex-col border-t border-border bg-card/40 lg:border-l lg:border-t-0">
+            <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-4 py-2">
               <div className="flex min-w-0 items-center gap-2">
                 <AIAvatar speaking={speaking} accent={accent} />
                 <div className="min-w-0">
-                  <div className="text-[10px] uppercase tracking-[0.25em] text-amber-300">
+                  <div className="text-[10px] uppercase tracking-[0.25em] text-amber-600 dark:text-amber-300">
                     {speaking ? "Now speaking" : phaseIdx >= phases.length ? "Scene complete" : "Ready"}
                   </div>
-                  <div className="truncate text-xs text-slate-400">{unit.sourceSlide.title}</div>
+                  <div className="truncate text-xs text-muted-foreground">{unit.sourceSlide.title}</div>
                 </div>
               </div>
             </div>
@@ -538,14 +580,14 @@ function CoursePlayer() {
             </div>
 
             {/* Bottom dock — controls never reflow */}
-            <div className="shrink-0 border-t border-white/10 bg-slate-950/80 px-4 py-3 backdrop-blur">
+            <div className="shrink-0 border-t border-border bg-background/80 px-4 py-3 backdrop-blur">
               <p
                 key={`${unitIdx}-${phaseIdx}`}
-                className="mb-3 line-clamp-3 text-[13px] leading-relaxed text-slate-100"
+                className="mb-3 line-clamp-3 text-[13px] leading-relaxed text-card-foreground"
               >
                 {currentLine}
               </p>
-              <div className="h-1 w-full overflow-hidden rounded-full bg-white/5">
+              <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
                 <div
                   className="h-full bg-amber-400 transition-all duration-500"
                   style={{ width: `${(Math.min(phases.length, phaseIdx + 1) / Math.max(1, phases.length)) * 100}%` }}
@@ -556,7 +598,7 @@ function CoursePlayer() {
                   <button
                     onClick={() => setUnitIdx((i) => Math.max(0, i - 1))}
                     disabled={unitIdx === 0}
-                    className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs disabled:opacity-30 hover:bg-white/10"
+                    className="rounded-md border border-border bg-muted px-3 py-1.5 text-xs text-card-foreground disabled:opacity-30 hover:bg-muted-foreground/20"
                   >
                     ←
                   </button>
@@ -572,7 +614,7 @@ function CoursePlayer() {
                       setPlaying(false);
                       setPhaseIdx(phases.length);
                     }}
-                    className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs hover:bg-white/10"
+                    className="rounded-md border border-border bg-muted px-3 py-1.5 text-xs text-card-foreground hover:bg-muted-foreground/20"
                   >
                     Reveal
                   </button>
@@ -588,10 +630,10 @@ function CoursePlayer() {
                 <select
                   value={unitIdx}
                   onChange={(e) => setUnitIdx(Number(e.target.value))}
-                  className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-200 lg:hidden"
+                  className="rounded-md border border-border bg-muted px-2 py-1 text-xs text-card-foreground lg:hidden"
                 >
                   {playUnits.map((u, i) => (
-                    <option key={u.key} value={i} className="bg-slate-900">
+                    <option key={u.key} value={i} className="bg-card">
                       {i + 1}. {u.scene.concept}
                     </option>
                   ))}

@@ -80,9 +80,9 @@ export function TrainingChat({
       </button>
 
       {open && (
-        <div className="fixed bottom-24 right-5 z-40 flex h-[640px] w-[440px] max-w-[94vw] flex-col overflow-hidden rounded-3xl border border-white/10 bg-slate-950/90 shadow-2xl backdrop-blur-xl">
+        <div className="fixed bottom-24 right-5 z-40 flex h-[640px] w-[440px] max-w-[94vw] flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-2xl backdrop-blur-xl">
           {/* Header */}
-          <header className="relative overflow-hidden border-b border-white/10 px-5 py-4">
+          <header className="relative overflow-hidden border-b border-border px-5 py-4">
             <div className="absolute inset-0 bg-gradient-to-br from-amber-500/25 via-orange-500/10 to-transparent" />
             <div className="absolute -left-10 -top-10 h-32 w-32 rounded-full bg-amber-400/20 blur-3xl" />
             <div className="relative flex items-center gap-3">
@@ -92,19 +92,19 @@ export function TrainingChat({
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-base font-semibold text-slate-100">Ari</span>
+                  <span className="text-base font-semibold text-card-foreground">Ari</span>
                   <span className="rounded-full bg-emerald-400/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-emerald-300">
                     Online
                   </span>
                 </div>
-                <div className="text-[11px] text-slate-400">
+                <div className="text-[11px] text-muted-foreground">
                   Private LLM coach · grounded in your deck
                 </div>
               </div>
               {messages.length > 0 && (
                 <button
                   onClick={() => setMessages([])}
-                  className="rounded-md px-2 py-1 text-[11px] text-slate-400 hover:bg-white/10 hover:text-slate-100"
+                  className="rounded-md px-2 py-1 text-[11px] text-muted-foreground hover:bg-muted hover:text-card-foreground"
                   title="Clear chat"
                 >
                   Clear
@@ -112,7 +112,7 @@ export function TrainingChat({
               )}
               <button
                 onClick={() => setOpen(false)}
-                className="rounded-md p-1.5 text-slate-400 hover:bg-white/10 hover:text-slate-100"
+                className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-card-foreground"
                 aria-label="Close"
               >
                 ✕
@@ -127,21 +127,21 @@ export function TrainingChat({
           >
             {messages.length === 0 && (
               <div className="space-y-4">
-                <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-4">
-                  <p className="text-slate-200">
-                    Hey! I'm <span className="font-semibold text-amber-300">Ari</span>. 
+                <div className="rounded-2xl border border-border bg-gradient-to-br from-muted/50 to-transparent p-4">
+                  <p className="text-card-foreground">
+                    Hey! I'm <span className="font-semibold text-amber-300">Ari</span>.
                     Ask me anything about the course — and I'll also pull in relevant
                     industry context (model families, vector DBs, serving stacks, GPU
                     economics) when it helps.
                   </p>
                   {currentSlide && (
-                    <p className="mt-2 text-[11px] text-slate-400">
+                    <p className="mt-2 text-[11px] text-muted-foreground">
                       I know you're on <b>Slide {currentSlide}</b> — I'll keep that in mind.
                     </p>
                   )}
                 </div>
                 <div>
-                  <div className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                  <div className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                     Try asking
                   </div>
                   <div className="space-y-1.5">
@@ -149,7 +149,7 @@ export function TrainingChat({
                       <button
                         key={s.text}
                         onClick={() => submit(s.text)}
-                        className="group flex w-full items-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-left text-[12.5px] text-slate-200 transition hover:border-amber-400/40 hover:bg-amber-500/10"
+                        className="group flex w-full items-center gap-2.5 rounded-xl border border-border bg-muted px-3 py-2.5 text-left text-[12.5px] text-card-foreground transition hover:border-amber-400/40 hover:bg-amber-500/10"
                       >
                         <span className="text-base">{s.icon}</span>
                         <span className="flex-1">{s.text}</span>
@@ -175,7 +175,7 @@ export function TrainingChat({
                     className={`max-w-[82%] rounded-2xl px-3.5 py-2.5 leading-relaxed shadow-sm ${
                       isUser
                         ? "rounded-br-md bg-gradient-to-br from-amber-400 to-amber-500 text-slate-900"
-                        : "rounded-bl-md border border-white/10 bg-white/[0.06] text-slate-100"
+                        : "rounded-bl-md border border-border bg-muted text-card-foreground"
                     }`}
                   >
                     {isUser ? (
@@ -195,12 +195,12 @@ export function TrainingChat({
                 <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-amber-300 to-orange-500 text-xs">
                   🤖
                 </div>
-                <div className="rounded-2xl rounded-bl-md border border-white/10 bg-white/[0.06] px-3.5 py-2.5">
+                <div className="rounded-2xl rounded-bl-md border border-border bg-muted px-3.5 py-2.5">
                   <span className="inline-flex items-center gap-1">
                     <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-amber-400" />
                     <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-amber-400 [animation-delay:120ms]" />
                     <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-amber-400 [animation-delay:240ms]" />
-                    <span className="ml-2 text-[11px] text-slate-400">Ari is thinking…</span>
+                    <span className="ml-2 text-[11px] text-muted-foreground">Ari is thinking…</span>
                   </span>
                 </div>
               </div>
@@ -219,9 +219,9 @@ export function TrainingChat({
               e.preventDefault();
               submit(input);
             }}
-            className="border-t border-white/10 bg-slate-950/80 p-3"
+            className="border-t border-border bg-muted p-3"
           >
-            <div className="flex items-end gap-2 rounded-2xl border border-white/10 bg-white/[0.04] p-2 focus-within:border-amber-400/50 focus-within:bg-white/[0.07] transition">
+            <div className="flex items-end gap-2 rounded-2xl border border-border bg-background p-2 focus-within:border-amber-400/50 focus-within:bg-muted transition">
               <textarea
                 ref={taRef}
                 value={input}
@@ -239,13 +239,13 @@ export function TrainingChat({
                 }}
                 rows={1}
                 placeholder="Ask about RAG, agents, vector DBs, GPUs…"
-                className="max-h-[140px] flex-1 resize-none bg-transparent px-2 py-1.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none"
+                className="max-h-[140px] flex-1 resize-none bg-transparent px-2 py-1.5 text-sm text-card-foreground placeholder:text-muted-foreground focus:outline-none"
               />
               {busy ? (
                 <button
                   type="button"
                   onClick={() => stop()}
-                  className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-700 text-slate-100 hover:bg-slate-600"
+                  className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted text-card-foreground hover:bg-muted-foreground/20"
                   aria-label="Stop"
                 >
                   ◼
@@ -261,7 +261,7 @@ export function TrainingChat({
                 </button>
               )}
             </div>
-            <div className="mt-1.5 px-1 text-[10px] text-slate-500">
+            <div className="mt-1.5 px-1 text-[10px] text-muted-foreground">
               Grounded in your deck · enriched with industry context · Enter to send · Shift+Enter for newline
             </div>
           </form>

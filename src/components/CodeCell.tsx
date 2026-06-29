@@ -64,12 +64,12 @@ export function CodeCell({
         'border rounded-lg transition-colors',
         isSelected
           ? 'border-amber-500/50 bg-amber-500/5'
-          : 'border-slate-700 bg-slate-900/50'
+          : 'border-border bg-card'
       )}
       onClick={onSelect}
     >
       {/* Input Area */}
-      <div className="flex items-start gap-2 p-3 border-b border-slate-800">
+      <div className="flex items-start gap-2 p-3 border-b border-border">
         {/* Execution Indicator */}
         <div className="flex-shrink-0 flex flex-col items-center gap-1">
           {cell.executionCount !== null ? (
@@ -77,7 +77,7 @@ export function CodeCell({
               {cell.executionCount}
             </div>
           ) : (
-            <div className="h-5 w-5 rounded-full border border-slate-600" />
+            <div className="h-5 w-5 rounded-full border border-muted-foreground/30" />
           )}
         </div>
 
@@ -89,16 +89,16 @@ export function CodeCell({
               onChange={e => setContent(e.target.value)}
               onBlur={handleBlur}
               onKeyDown={handleKeyDown}
-              className="w-full min-h-[60px] bg-slate-950 text-slate-200 font-mono text-sm p-2 rounded border border-slate-700 focus:border-amber-500 focus:outline-none resize-y"
+              className="w-full min-h-[60px] bg-background text-card-foreground font-mono text-sm p-2 rounded border border-border focus:border-amber-500 focus:outline-none resize-y"
               autoFocus
               placeholder="# Write your Python code here..."
             />
           ) : (
             <pre
-              className="text-slate-300 font-mono text-sm whitespace-pre-wrap cursor-text"
+              className="text-card-foreground font-mono text-sm whitespace-pre-wrap cursor-text"
               onClick={() => setIsEditing(true)}
             >
-              {cell.content || <span className="text-slate-500"># Click to add code...</span>}
+              {cell.content || <span className="text-muted-foreground"># Click to add code...</span>}
             </pre>
           )}
         </div>
@@ -106,18 +106,18 @@ export function CodeCell({
 
       {/* Toolbar */}
       {(isSelected || isEditing) && (
-        <div className="flex items-center justify-between px-3 py-2 bg-slate-800/50 border-b border-slate-700">
+        <div className="flex items-center justify-between px-3 py-2 bg-muted border-b border-border">
           <div className="flex items-center gap-1">
             <button
               onClick={onMoveUp}
-              className="p-1.5 rounded hover:bg-slate-700 text-slate-400 hover:text-slate-200"
+              className="p-1.5 rounded hover:bg-muted-foreground/20 text-muted-foreground hover:text-card-foreground"
               title="Move cell up"
             >
               <ChevronUp className="h-4 w-4" />
             </button>
             <button
               onClick={onMoveDown}
-              className="p-1.5 rounded hover:bg-slate-700 text-slate-400 hover:text-slate-200"
+              className="p-1.5 rounded hover:bg-muted-foreground/20 text-muted-foreground hover:text-card-foreground"
               title="Move cell down"
             >
               <ChevronDown className="h-4 w-4" />
@@ -127,19 +127,19 @@ export function CodeCell({
           <div className="flex items-center gap-1">
             <button
               onClick={onAddAbove}
-              className="px-3 py-1.5 text-xs rounded bg-slate-700 text-slate-300 hover:bg-slate-600"
+              className="px-3 py-1.5 text-xs rounded bg-muted text-card-foreground hover:bg-muted-foreground/20"
             >
               + Above
             </button>
             <button
               onClick={onAddBelow}
-              className="px-3 py-1.5 text-xs rounded bg-slate-700 text-slate-300 hover:bg-slate-600"
+              className="px-3 py-1.5 text-xs rounded bg-muted text-card-foreground hover:bg-muted-foreground/20"
             >
               + Below
             </button>
             <button
               onClick={onDelete}
-              className="p-1.5 rounded hover:bg-rose-500/20 text-slate-400 hover:text-rose-400"
+              className="p-1.5 rounded hover:bg-rose-500/20 text-muted-foreground hover:text-rose-400"
               title="Delete cell"
             >
               <Trash2 className="h-4 w-4" />
@@ -150,7 +150,7 @@ export function CodeCell({
 
       {/* Output Area */}
       {cell.outputs.length > 0 && (
-        <div className="p-3 bg-slate-950/50">
+        <div className="p-3 bg-muted">
           {cell.outputs.map((output, i) => (
             <CellOutput key={i} output={output} />
           ))}
@@ -159,7 +159,7 @@ export function CodeCell({
 
       {/* Running Indicator */}
       {cell.isRunning && (
-        <div className="flex items-center gap-2 px-3 py-2 text-slate-400 text-sm">
+        <div className="flex items-center gap-2 px-3 py-2 text-muted-foreground text-sm">
           <Loader2 className="h-4 w-4 animate-spin" />
           Running...
         </div>
@@ -167,7 +167,7 @@ export function CodeCell({
 
       {/* Empty state hint */}
       {cell.outputs.length === 0 && !cell.isRunning && isSelected && (
-        <div className="flex items-center gap-2 px-3 py-2 text-slate-500 text-xs">
+        <div className="flex items-center gap-2 px-3 py-2 text-muted-foreground text-xs">
           <span>Shift+Enter</span>
           <span>to run</span>
         </div>
@@ -184,7 +184,7 @@ function CellOutput({ output }: CellOutputProps) {
   if (output.output_type === 'stream') {
     const text = Array.isArray(output.text) ? output.text.join('') : output.text;
     return (
-      <pre className="text-slate-300 text-sm whitespace-pre-wrap font-mono">
+      <pre className="text-card-foreground text-sm whitespace-pre-wrap font-mono">
         {text}
       </pre>
     );
@@ -232,7 +232,7 @@ function CellOutput({ output }: CellOutputProps) {
     if (text) {
       const textStr = Array.isArray(text) ? text.join('') : text;
       return (
-        <pre className="text-slate-300 text-sm whitespace-pre-wrap font-mono">
+        <pre className="text-card-foreground text-sm whitespace-pre-wrap font-mono">
           {textStr}
         </pre>
       );

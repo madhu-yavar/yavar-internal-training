@@ -26,8 +26,8 @@ function LucideIcon({ name, className }: { name: string; className?: string }) {
 }
 
 const ACCENT_TEXT: Record<string, string> = {
-  amber: "text-amber-300", sky: "text-sky-300", emerald: "text-emerald-300",
-  rose: "text-rose-300", cyan: "text-cyan-300", violet: "text-violet-300",
+  amber: "text-amber-600 dark:text-amber-300", sky: "text-sky-600 dark:text-sky-300", emerald: "text-emerald-600 dark:text-emerald-300",
+  rose: "text-rose-600 dark:text-rose-300", cyan: "text-cyan-600 dark:text-cyan-300", violet: "text-violet-600 dark:text-violet-300",
 };
 const ACCENT_RING: Record<string, string> = {
   amber: "ring-amber-400/50 bg-amber-500/10", sky: "ring-sky-400/50 bg-sky-500/10",
@@ -47,16 +47,16 @@ const PHASE_LABELS: Record<ScenePhase, string> = {
 function Diagram({
   caption, nodes, accent, active,
 }: { caption: string; nodes: string[]; accent: string; active: boolean }) {
-  const textAccent = ACCENT_TEXT[accent] ?? "text-amber-300";
+  const textAccent = ACCENT_TEXT[accent] ?? "text-amber-600 dark:text-amber-300";
   const ring = ACCENT_RING[accent] ?? "ring-amber-400/50 bg-amber-500/10";
   return (
-    <div className={`rounded-2xl border p-5 transition-all duration-500 ${active ? `ring-2 ${ring} border-transparent` : "border-white/10 bg-slate-950/60"}`}>
+    <div className={`rounded-2xl border p-5 transition-all duration-500 ${active ? `ring-2 ${ring} border-transparent` : "border-border bg-card"}`}>
       <div className={`text-[10px] uppercase tracking-[0.3em] ${textAccent}`}>{caption}</div>
       <div className="mt-4 flex flex-wrap items-center gap-2 sm:gap-3">
         {nodes.map((n, i) => (
           <Fragment key={i}>
             <div
-              className={`group flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium text-slate-100 transition-all duration-500 ${active ? `${ring} border-transparent ring-1` : "border-white/10 bg-slate-900"}`}
+              className={`group flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium text-card-foreground transition-all duration-500 ${active ? `${ring} border-transparent ring-1` : "border-border bg-muted"}`}
               style={{ animation: active ? `fadeIn 0.5s ${i * 0.15}s both` : undefined }}
             >
               <LucideIcon name={iconForKeyword(n)} className={`h-4 w-4 ${textAccent}`} />
@@ -73,7 +73,7 @@ function Diagram({
 export function LearningScene({
   scene, phase, speaking, accent, illustrationUrl, slideImageUrl, sceneNumber, totalScenes, sourceSlideTitle,
 }: Props) {
-  const textAccent = ACCENT_TEXT[accent] ?? "text-amber-300";
+  const textAccent = ACCENT_TEXT[accent] ?? "text-amber-600 dark:text-amber-300";
   const ring = ACCENT_RING[accent] ?? "ring-amber-400/50 bg-amber-500/10";
   const phaseIdx = PHASE_ORDER.indexOf(phase);
 
@@ -97,18 +97,18 @@ export function LearningScene({
         <div className={`text-[10px] uppercase tracking-[0.3em] ${textAccent}`}>
           {PHASE_LABELS[phase]} · Scene {sceneNumber} of {totalScenes}
         </div>
-        <h3 className="mt-1 text-2xl font-bold leading-tight text-slate-50 sm:text-3xl">
+        <h3 className="mt-1 text-2xl font-bold leading-tight text-foreground sm:text-3xl">
           {scene.concept}
         </h3>
         {sourceSlideTitle && sourceSlideTitle !== scene.concept && (
-          <div className="mt-1 text-[11px] text-slate-500">from "{sourceSlideTitle}"</div>
+          <div className="mt-1 text-[11px] text-muted-foreground">from "{sourceSlideTitle}"</div>
         )}
       </div>
 
       {/* Intro card */}
-      <div className={`rounded-2xl border p-5 transition-all ${phase === "intro" && speaking ? `ring-2 ${ring} border-transparent` : "border-white/10 bg-slate-950/40"}`}>
+      <div className={`rounded-2xl border p-5 transition-all ${phase === "intro" && speaking ? `ring-2 ${ring} border-transparent` : "border-border bg-card"}`}>
         <div className={`text-[10px] uppercase tracking-[0.3em] ${textAccent}`}>Introduction</div>
-        <p className="mt-2 text-base leading-relaxed text-slate-100 sm:text-lg">{scene.intro}</p>
+        <p className="mt-2 text-base leading-relaxed text-card-foreground sm:text-lg">{scene.intro}</p>
       </div>
 
       {showAnalogy && scene.analogy && (
@@ -126,7 +126,7 @@ export function LearningScene({
       {showTakeaway && (
         <div className={`rounded-2xl border-l-4 border-l-current p-5 ${ring} ${textAccent} transition-all ${phase === "takeaway" && speaking ? `ring-2 border-transparent` : ""}`}>
           <div className="text-[10px] uppercase tracking-[0.3em]">Key takeaway</div>
-          <p className="mt-2 text-base font-medium leading-relaxed text-slate-50 sm:text-lg">
+          <p className="mt-2 text-base font-medium leading-relaxed text-foreground sm:text-lg">
             {scene.takeaway}
           </p>
         </div>
@@ -146,7 +146,7 @@ export function LearningScene({
           return (
             <span
               key={p}
-              className={`rounded-full border px-2.5 py-0.5 text-[10px] uppercase tracking-wider transition ${isCurrent ? `${ring} border-transparent ring-1 font-bold ${textAccent}` : visited ? "border-white/20 bg-white/5 text-slate-300" : "border-white/5 text-slate-600"}`}
+              className={`rounded-full border px-2.5 py-0.5 text-[10px] uppercase tracking-wider transition ${isCurrent ? `${ring} border-transparent ring-1 font-bold ${textAccent}` : visited ? "border-border bg-muted text-muted-foreground" : "border-border text-muted-foreground/50"}`}
             >
               {PHASE_LABELS[p]}
             </span>

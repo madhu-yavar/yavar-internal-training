@@ -112,8 +112,8 @@ export function JupyterNotebook({
 
   if (!pyodideReady) {
     return (
-      <div className={cn('h-full flex items-center justify-center bg-slate-950', className)}>
-        <div className="flex flex-col items-center gap-3 text-slate-400">
+      <div className={cn('h-full flex items-center justify-center bg-background', className)}>
+        <div className="flex flex-col items-center gap-3 text-muted-foreground">
           <Loader2 className="h-8 w-8 animate-spin" />
           <p className="text-sm">Loading Python environment...</p>
         </div>
@@ -122,14 +122,14 @@ export function JupyterNotebook({
   }
 
   return (
-    <div className={cn('h-full flex flex-col bg-slate-950', className)}>
+    <div className={cn('h-full flex flex-col bg-background', className)}>
       {/* Header */}
       {showHeader && (
-        <div className="flex-shrink-0 border-b border-slate-800 bg-slate-900/60 px-4 py-3">
+        <div className="flex-shrink-0 border-b border-border bg-card px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <h2 className="font-semibold text-slate-200">{title || 'Notebook'}</h2>
-              <span className="text-xs text-slate-500">
+              <h2 className="font-semibold text-card-foreground">{title || 'Notebook'}</h2>
+              <span className="text-xs text-muted-foreground">
                 {notebook.cells.filter(c => c.type === 'code').length} code cells
               </span>
             </div>
@@ -141,7 +141,7 @@ export function JupyterNotebook({
                     variant="ghost"
                     size="sm"
                     onClick={handleImport}
-                    className="text-slate-400 hover:text-slate-200"
+                    className="text-muted-foreground hover:text-card-foreground"
                   >
                     <Upload className="h-4 w-4 mr-1" />
                     Import
@@ -150,7 +150,7 @@ export function JupyterNotebook({
                     variant="ghost"
                     size="sm"
                     onClick={handleExport}
-                    className="text-slate-400 hover:text-slate-200"
+                    className="text-muted-foreground hover:text-card-foreground"
                   >
                     <Download className="h-4 w-4 mr-1" />
                     Export
@@ -160,7 +160,7 @@ export function JupyterNotebook({
                     size="sm"
                     onClick={() => notebook.runAllCells()}
                     disabled={notebook.isRunning}
-                    className="text-slate-400 hover:text-slate-200"
+                    className="text-muted-foreground hover:text-card-foreground"
                   >
                     <Play className="h-4 w-4 mr-1" />
                     Run All
@@ -170,7 +170,7 @@ export function JupyterNotebook({
                     size="sm"
                     onClick={() => notebook.save()}
                     disabled={notebook.isSaving}
-                    className="text-slate-400 hover:text-slate-200"
+                    className="text-muted-foreground hover:text-card-foreground"
                   >
                     {notebook.isSaving ? (
                       <Loader2 className="h-4 w-4 mr-1 animate-spin" />
@@ -221,7 +221,7 @@ export function JupyterNotebook({
 
         {/* Empty State */}
         {notebook.cells.length === 0 && (
-          <div className="text-center py-12 text-slate-500">
+          <div className="text-center py-12 text-muted-foreground">
             <Sparkles className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p className="mb-4">This notebook is empty</p>
             <div className="flex items-center justify-center gap-3">
@@ -229,7 +229,7 @@ export function JupyterNotebook({
                 variant="outline"
                 size="sm"
                 onClick={() => notebook.addMarkdownCell()}
-                className="border-slate-700"
+                className="border-border"
               >
                 <FileText className="h-4 w-4 mr-2" />
                 Add Markdown
@@ -238,7 +238,7 @@ export function JupyterNotebook({
                 variant="outline"
                 size="sm"
                 onClick={() => notebook.addCodeCell()}
-                className="border-slate-700"
+                className="border-border"
               >
                 <Code className="h-4 w-4 mr-2" />
                 Add Code
@@ -250,14 +250,14 @@ export function JupyterNotebook({
 
       {/* Footer Toolbar */}
       {!readOnly && (
-        <div className="flex-shrink-0 border-t border-slate-800 bg-slate-900/60 px-4 py-3">
+        <div className="flex-shrink-0 border-t border-border bg-card px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => notebook.addMarkdownCell(notebook.selectedCellId || undefined)}
-                className="border-slate-700"
+                className="border-border"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 <FileText className="h-4 w-4 mr-1" />
@@ -267,7 +267,7 @@ export function JupyterNotebook({
                 variant="outline"
                 size="sm"
                 onClick={() => notebook.addCodeCell(notebook.selectedCellId || undefined)}
-                className="border-slate-700"
+                className="border-border"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 <Code className="h-4 w-4 mr-1" />
@@ -275,7 +275,7 @@ export function JupyterNotebook({
               </Button>
             </div>
 
-            <div className="text-xs text-slate-500">
+            <div className="text-xs text-muted-foreground">
               {notebook.isRunning && (
                 <span className="flex items-center gap-2">
                   <Loader2 className="h-3 w-3 animate-spin" />

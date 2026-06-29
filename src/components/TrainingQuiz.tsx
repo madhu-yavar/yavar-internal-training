@@ -125,20 +125,20 @@ export function TrainingQuiz({ onClose }: { onClose: () => void }) {
   const q = questions[current];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur">
-      <div className="relative flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-amber-400/30 bg-gradient-to-br from-slate-900 to-slate-950 shadow-2xl">
-        <header className="flex items-center justify-between border-b border-white/10 px-5 py-3">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur">
+      <div className="relative flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-amber-400/30 bg-gradient-to-br from-card to-muted shadow-2xl">
+        <header className="flex items-center justify-between border-b border-border px-5 py-3">
           <div>
             <div className="text-[10px] uppercase tracking-[0.25em] text-amber-400">
               Final Assessment
             </div>
-            <div className="text-base font-semibold text-slate-100">
+            <div className="text-base font-semibold text-card-foreground">
               Enterprise AI · 20-Question Quiz
             </div>
           </div>
           <button
             onClick={onClose}
-            className="rounded-md border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200 hover:bg-white/10"
+            className="rounded-md border border-border bg-muted px-3 py-1 text-xs text-card-foreground hover:bg-muted-foreground/20"
           >
             ✕ Close
           </button>
@@ -148,10 +148,10 @@ export function TrainingQuiz({ onClose }: { onClose: () => void }) {
           {!participant && (
             <form onSubmit={startQuiz} className="mx-auto max-w-md space-y-4">
               <div>
-                <h3 className="text-lg font-semibold text-slate-100">
+                <h3 className="text-lg font-semibold text-card-foreground">
                   Before you begin
                 </h3>
-                <p className="mt-1 text-sm text-slate-400">
+                <p className="mt-1 text-sm text-muted-foreground">
                   We need a few details to record your assessment. All fields are mandatory.
                 </p>
               </div>
@@ -169,7 +169,7 @@ export function TrainingQuiz({ onClose }: { onClose: () => void }) {
                 };
                 return (
                   <div key={field}>
-                    <label className="mb-1 block text-xs uppercase tracking-wider text-slate-300">
+                    <label className="mb-1 block text-xs uppercase tracking-wider text-card-foreground">
                       {labels[field]} <span className="text-rose-400">*</span>
                     </label>
                     <input
@@ -181,10 +181,10 @@ export function TrainingQuiz({ onClose }: { onClose: () => void }) {
                       placeholder={placeholders[field]}
                       maxLength={field === "name" ? 80 : field === "email" ? 120 : 40}
                       required
-                      className={`w-full rounded-lg border bg-slate-950/60 px-3 py-2 text-sm text-slate-100 outline-none transition focus:ring-2 ${
+                      className={`w-full rounded-lg border bg-background px-3 py-2 text-sm text-card-foreground outline-none transition focus:ring-2 ${
                         formErrors[field]
                           ? "border-rose-500/60 focus:ring-rose-400/30"
-                          : "border-white/10 focus:border-amber-400/60 focus:ring-amber-400/20"
+                          : "border-border focus:border-amber-400/60 focus:ring-amber-400/20"
                       }`}
                     />
                     {formErrors[field] && (
@@ -194,7 +194,7 @@ export function TrainingQuiz({ onClose }: { onClose: () => void }) {
                 );
               })}
 
-              <p className="text-[11px] text-slate-500">
+              <p className="text-[11px] text-muted-foreground">
                 Personal email domains (gmail, yahoo, outlook, etc.) are not accepted —
                 please use your work email.
               </p>
@@ -209,7 +209,7 @@ export function TrainingQuiz({ onClose }: { onClose: () => void }) {
           )}
 
           {participant && loading && (
-            <div className="flex flex-col items-center justify-center gap-3 py-20 text-slate-300">
+            <div className="flex flex-col items-center justify-center gap-3 py-20 text-card-foreground">
               <div className="h-10 w-10 animate-spin rounded-full border-2 border-amber-400 border-t-transparent" />
               <div className="text-sm">Generating 20 fresh questions just for you…</div>
             </div>
@@ -229,7 +229,7 @@ export function TrainingQuiz({ onClose }: { onClose: () => void }) {
 
           {!loading && !error && !submitted && q && (
             <div>
-              <div className="mb-4 flex items-center justify-between text-xs text-slate-400">
+              <div className="mb-4 flex items-center justify-between text-xs text-muted-foreground">
                 <span>
                   Question {current + 1} of {questions.length}
                 </span>
@@ -237,13 +237,13 @@ export function TrainingQuiz({ onClose }: { onClose: () => void }) {
                   {q.topic}
                 </span>
               </div>
-              <div className="mb-2 h-1 w-full overflow-hidden rounded-full bg-white/5">
+              <div className="mb-2 h-1 w-full overflow-hidden rounded-full bg-muted">
                 <div
                   className="h-full bg-amber-400 transition-all"
                   style={{ width: `${((current + 1) / questions.length) * 100}%` }}
                 />
               </div>
-              <h3 className="mt-4 text-lg font-semibold text-slate-100">
+              <h3 className="mt-4 text-lg font-semibold text-card-foreground">
                 {q.question}
               </h3>
 
@@ -277,14 +277,14 @@ export function TrainingQuiz({ onClose }: { onClose: () => void }) {
                   const answered = answers[current] !== undefined;
                   const isCorrect = i === q.answerIndex;
                   let cls =
-                    "border-white/10 bg-white/5 text-slate-200 hover:bg-white/10";
+                    "border-border bg-muted text-card-foreground hover:bg-muted-foreground/20";
                   if (answered) {
                     if (isCorrect)
                       cls =
                         "border-emerald-400 bg-emerald-500/15 text-emerald-100";
                     else if (chosen)
                       cls = "border-rose-400 bg-rose-500/15 text-rose-100";
-                    else cls = "border-white/5 bg-white/0 text-slate-400";
+                    else cls = "border-border bg-transparent text-muted-foreground";
                   } else if (chosen) {
                     cls = "border-amber-400 bg-amber-500/15 text-amber-100";
                   }
@@ -328,7 +328,7 @@ export function TrainingQuiz({ onClose }: { onClose: () => void }) {
                       : "❌ Not quite — let's learn this one"}
                   </div>
                   {answers[current] !== q.answerIndex && (
-                    <div className="mt-1 text-xs text-slate-200">
+                    <div className="mt-1 text-xs text-card-foreground">
                       Correct answer:{" "}
                       <span className="font-semibold text-emerald-200">
                         {String.fromCharCode(65 + q.answerIndex)}.{" "}
@@ -349,11 +349,11 @@ export function TrainingQuiz({ onClose }: { onClose: () => void }) {
                 <button
                   disabled={current === 0}
                   onClick={() => setCurrent((c) => Math.max(0, c - 1))}
-                  className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-sm disabled:opacity-30 hover:bg-white/10"
+                  className="rounded-md border border-border bg-muted px-3 py-1.5 text-sm text-card-foreground disabled:opacity-30 hover:bg-muted-foreground/20"
                 >
                   ← Prev
                 </button>
-                <div className="text-xs text-slate-400">
+                <div className="text-xs text-muted-foreground">
                   Answered: {Object.keys(answers).length}/{questions.length}
                 </div>
                 {current < questions.length - 1 ? (
@@ -386,12 +386,12 @@ export function TrainingQuiz({ onClose }: { onClose: () => void }) {
                   {score}/{questions.length}
                 </div>
                 <div className="mt-1 text-2xl font-semibold text-amber-200">{pct}%</div>
-                <div className="mt-3 text-lg font-semibold text-slate-100">
+                <div className="mt-3 text-lg font-semibold text-card-foreground">
                   {badge.label}
                 </div>
-                <p className="mt-1 text-sm text-slate-300">{badge.note}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{badge.note}</p>
                 {participant && (
-                  <p className="mt-2 text-[11px] text-slate-400">
+                  <p className="mt-2 text-[11px] text-muted-foreground">
                     {participant.name} · {participant.employeeId} · {participant.email}
                   </p>
                 )}
@@ -404,14 +404,14 @@ export function TrainingQuiz({ onClose }: { onClose: () => void }) {
                   </button>
                   <button
                     onClick={onClose}
-                    className="rounded-md border border-white/10 bg-white/5 px-4 py-1.5 text-sm text-slate-200 hover:bg-white/10"
+                    className="rounded-md border border-border bg-muted px-4 py-1.5 text-sm text-card-foreground hover:bg-muted-foreground/20"
                   >
                     Done
                   </button>
                 </div>
               </div>
 
-              <h4 className="mt-6 mb-2 text-sm font-semibold uppercase tracking-wider text-slate-400">
+              <h4 className="mt-6 mb-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                 Review
               </h4>
               <ol className="space-y-3">
@@ -427,10 +427,10 @@ export function TrainingQuiz({ onClose }: { onClose: () => void }) {
                           : "border-rose-500/30 bg-rose-500/5"
                       }`}
                     >
-                      <div className="font-medium text-slate-100">
+                      <div className="font-medium text-card-foreground">
                         {i + 1}. {qq.question}
                       </div>
-                      <div className="mt-1 text-xs text-slate-300">
+                      <div className="mt-1 text-xs text-muted-foreground">
                         Your answer:{" "}
                         <span className={correct ? "text-emerald-300" : "text-rose-300"}>
                           {qq.options[userIdx] ?? "—"}
@@ -444,7 +444,7 @@ export function TrainingQuiz({ onClose }: { onClose: () => void }) {
                           </>
                         )}
                       </div>
-                      <div className="mt-1 text-xs text-slate-400">{qq.explanation}</div>
+                      <div className="mt-1 text-xs text-muted-foreground">{qq.explanation}</div>
                     </li>
                   );
                 })}
