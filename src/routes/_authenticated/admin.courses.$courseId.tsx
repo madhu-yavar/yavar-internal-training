@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/external";
 import { COURSE_BUCKET, getSignedUrl } from "@/lib/storage";
 import { parseDeck, type ParsedSlide } from "@/lib/deckParser";
 import { generateCourseDescription, regenerateSlideNarration, generateSlideIllustrations } from "@/lib/narration.functions";
+import { generateCourseCover } from "@/lib/courseCover.functions";
 import { stripGeneratedMaterial } from "@/lib/courseMaterial";
 import { detectVideoType, getThumbnailUrl, VIDEO_PLATFORMS } from "@/lib/videoUtils";
 
@@ -159,6 +160,7 @@ function CourseEditor() {
           </div>
           <div className="flex items-center gap-2 text-xs">
             {savedAt && <span className="text-emerald-400">Saved {savedAt}</span>}
+            <CoverGenButton courseId={courseId} onDone={reload} />
             {course.published ? (
               <button
                 onClick={() => saveCourse({ published: false })}
@@ -177,6 +179,7 @@ function CourseEditor() {
               </button>
             )}
           </div>
+
         </div>
       </header>
 
@@ -1734,5 +1737,36 @@ function GenerateSection({
 
       </div>
     </section>
+  );
+}
+
+function CoverGenButton({ courseId, onDone }: { courseId: string; onDone: () => void | Promise<void> }) {
+  const genCover = useServerFn(generateCourseCover);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const run = async () => {
+    setBusy(true);
+    setErr(null);
+    try {
+      await genCover({ data: { courseId } });
+      await onDone();
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <>
+      <button
+        onClick={run}
+        disabled={busy}
+        title="Generate an AI cover image for this course and save it to the database"
+        className="rounded-md border border-amber-400/50 bg-amber-500/10 px-3 py-1.5 font-semibold text-amber-200 hover:bg-amber-500/20 disabled:opacity-50"
+      >
+        {busy ? "Generating cover…" : "🎨 Generate cover"}
+      </button>
+      {err && <span className="text-red-300">{err}</span>}
+    </>
   );
 }

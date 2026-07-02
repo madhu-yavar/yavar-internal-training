@@ -142,3 +142,27 @@
     color: var(--color-foreground);
   }
 }
+
+/*
+ * Light-theme palette override.
+ * Most pages use hardcoded slate-* utilities (bg-slate-950, text-slate-100, etc.).
+ * When `html.light` is present we remap those Tailwind slate CSS variables so
+ * every page flips to a white theme without touching each file. The amber
+ * accent tokens stay unchanged (they read fine on white).
+ */
+html.light {
+  --color-slate-950: #ffffff;
+  --color-slate-900: #f8fafc;
+  --color-slate-800: #e2e8f0;
+  --color-slate-700: #cbd5e1;
+  --color-slate-600: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-400: #475569;
+  --color-slate-300: #334155;
+  --color-slate-200: #1e293b;
+  --color-slate-100: #0f172a;
+  --color-slate-50:  #0b1220;
+  color-scheme: light;
+}
+html.light body { background-color: #ffffff; color: #0f172a; }
+

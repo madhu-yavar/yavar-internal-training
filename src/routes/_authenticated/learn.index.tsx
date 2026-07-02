@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/external";
 import { useAuthCtx } from "@/lib/auth-context";
 import { MessageAdminDialog } from "@/components/MessageAdminDialog";
 import { BrandFooter } from "@/components/BrandFooter";
+import { signMany } from "@/lib/storage";
 
 type Course = {
   id: string;
@@ -42,6 +43,7 @@ function LearnDashboard() {
   const [loading, setLoading] = useState(true);
   const [msgOpen, setMsgOpen] = useState(false);
   const [unreadReplies, setUnreadReplies] = useState(0);
+  const [coverUrls, setCoverUrls] = useState<Record<string, string>>({});
 
   const seenKey = user?.id ? `ari_replies_seen_${user.id}` : "";
   const markRepliesSeen = () => {
@@ -60,6 +62,14 @@ function LearnDashboard() {
         .order("created_at", { ascending: false });
       const courseList = (cs as Course[]) ?? [];
       setCourses(courseList);
+
+      const paths = courseList.map((c) => c.cover_url).filter((p): p is string => !!p);
+      if (paths.length) {
+        const signed = await signMany(paths, 3600);
+        const map: Record<string, string> = {};
+        for (const c of courseList) if (c.cover_url && signed[c.cover_url]) map[c.id] = signed[c.cover_url];
+        setCoverUrls(map);
+      }
 
       const ids = courseList.map((c) => c.id);
       if (ids.length) {
@@ -220,7 +230,11 @@ function LearnDashboard() {
                 className="group rounded-2xl border border-slate-800 bg-slate-900/60 p-5 hover:border-amber-400/50 transition"
               >
                 <div className="aspect-video w-full overflow-hidden rounded-lg bg-slate-800 mb-4">
-                  {c.cover_url && <img src={c.cover_url} alt={c.title} className="h-full w-full object-cover" />}
+                  {coverUrls[c.id] ? (
+                    <img src={coverUrls[c.id]} alt={c.title} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="grid h-full w-full place-items-center bg-gradient-to-br from-amber-500/20 to-slate-800 text-3xl">📚</div>
+                  )}
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <h3 className="text-lg font-semibold group-hover:text-amber-300">{c.title}</h3>
