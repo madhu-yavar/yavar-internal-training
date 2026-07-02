@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/external";
 import { COURSE_BUCKET, getSignedUrl } from "@/lib/storage";
 import { parseDeck, type ParsedSlide } from "@/lib/deckParser";
 import { generateCourseDescription, regenerateSlideNarration, generateSlideIllustrations } from "@/lib/narration.functions";
+import { generateCourseCover } from "@/lib/courseCover.functions";
 import { stripGeneratedMaterial } from "@/lib/courseMaterial";
 import { detectVideoType, getThumbnailUrl, VIDEO_PLATFORMS } from "@/lib/videoUtils";
 
@@ -159,6 +160,7 @@ function CourseEditor() {
           </div>
           <div className="flex items-center gap-2 text-xs">
             {savedAt && <span className="text-emerald-400">Saved {savedAt}</span>}
+            <CoverGenButton courseId={courseId} onDone={reload} />
             {course.published ? (
               <button
                 onClick={() => saveCourse({ published: false })}
@@ -177,6 +179,7 @@ function CourseEditor() {
               </button>
             )}
           </div>
+
         </div>
       </header>
 
