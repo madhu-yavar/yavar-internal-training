@@ -1739,3 +1739,34 @@ function GenerateSection({
     </section>
   );
 }
+
+function CoverGenButton({ courseId, onDone }: { courseId: string; onDone: () => void | Promise<void> }) {
+  const genCover = useServerFn(generateCourseCover);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const run = async () => {
+    setBusy(true);
+    setErr(null);
+    try {
+      await genCover({ data: { courseId } });
+      await onDone();
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <>
+      <button
+        onClick={run}
+        disabled={busy}
+        title="Generate an AI cover image for this course and save it to the database"
+        className="rounded-md border border-amber-400/50 bg-amber-500/10 px-3 py-1.5 font-semibold text-amber-200 hover:bg-amber-500/20 disabled:opacity-50"
+      >
+        {busy ? "Generating cover…" : "🎨 Generate cover"}
+      </button>
+      {err && <span className="text-red-300">{err}</span>}
+    </>
+  );
+}
